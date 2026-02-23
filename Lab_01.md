@@ -21,7 +21,7 @@ Ihre Aufgabe: Cockpit installieren, den Dienst dauerhaft und zuverlässig betrei
 
 | Anforderung | Details |
 |---|---|
-| **Betriebssystem** | Linux Mint 21.x (Cinnamon, MATE oder XFCE) |
+| **Betriebssystem** | Linux Mint 21.x (Cinnamon) |
 | **Benutzerrechte** | sudo-Berechtigung erforderlich |
 | **Internetzugang** | Für apt-Paketinstallation |
 | **Browser** | Firefox oder Chromium (lokal installiert) |
