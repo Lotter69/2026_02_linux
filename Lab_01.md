@@ -1,12 +1,12 @@
-# Lab 01: Cockpit – Web-basiertes Systemmanagement
+# Lab 01: Lokale Bereitstellung eines webbasierten Dienstes
 
 ![line](images/banner.png)
 
 ## Einführung
 
-In dieser Laborübung installieren und konfigurieren Sie **Cockpit** – eine moderne, webbasierte Verwaltungsoberfläche für Linux-Systeme, entwickelt von Red Hat. Sie lernen, wie ein Dienst über das Paketverwaltungssystem **apt** installiert, mit **systemd** dauerhaft aktiviert und betrieben wird und wie Konfigurationsänderungen unter `/etc` sicher gehandhabt werden.
+Als Netzwerkadministrator werden Sie damit beauftragt, auf einem Linux-Rechner im lokalen Netz eine webbasierte Verwaltungsoberfläche bereitzustellen – schnell, ohne zusätzliche Infrastruktur und mit möglichst geringem Aufwand. Die Wahl fällt auf **Cockpit**, ein von Red Hat entwickeltes Tool, das Systemressourcen, Dienste und Logs übersichtlich im Browser zugänglich macht.
 
-Cockpit ist ein ideales Praxisbeispiel, um grundlegende Linux-Administration zu erlernen: Es verbindet Paketverwaltung, Dienstverwaltung und Konfigurationsmanagement in einem realen Anwendungsfall.
+Ihre Aufgabe: Cockpit installieren, den Dienst dauerhaft und zuverlässig betreiben und sicherstellen, dass er auch nach einem Serverneustart oder einer Konfigurationsänderung ohne manuelles Eingreifen wieder läuft.
 
 ## Lernziele
 
