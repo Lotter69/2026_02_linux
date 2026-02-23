@@ -1,4 +1,4 @@
-# Laborübung: Cockpit – Web-basiertes Systemmanagement
+# Lab 01: Cockpit – Web-basiertes Systemmanagement
 
 ![line](images/banner.png)
 
