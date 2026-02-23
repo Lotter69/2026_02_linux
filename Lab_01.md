@@ -156,7 +156,7 @@ Origins = https://localhost:9090
 Banner = /etc/cockpit/issue.cockpit
 ```
 
-Speichern Sie mit `Strg+O`, bestätigen mit `Enter`, beenden mit `Strg+X`.
+Speichern Sie mit `Strg+O`, bestätigen Sie mit `Enter`, beenden Sie mit `Strg+X`.
 
 #### 3.3 Login-Banner erstellen
 
