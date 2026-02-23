@@ -299,6 +299,7 @@ Erstellen Sie eine systemd-**Drop-in-Datei**, die Cockpit bei einem Absturz auto
 sudo mkdir -p /etc/systemd/system/cockpit.service.d/
 sudo nano /etc/systemd/system/cockpit.service.d/restart.conf
 ```
+> cockpit.service definiert von Haus aus kein Neustartverhalten. Statt die Original-Datei > zu kopieren und zu bearbeiten, legt man eine Drop-in-Datei restart.conf an, die nur den > einen neuen Parameter Restart=on-failure enthält. systemd liest beim Start beides ein > > und verhält sich so, als wäre der Parameter von Anfang an Teil der Unit-Datei gewesen.
 
 Inhalt der Datei:
 
