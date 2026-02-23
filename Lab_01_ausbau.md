@@ -2,7 +2,6 @@
 
 ![line](images/banner.png)
 
-
 ### Schritt 5: Reflexion und Erweiterungsaufgaben
 
 Nachdem Sie Cockpit lokal auf einem einzelnen Rechner betrieben haben – ohne weitere Absicherung, Redundanz oder Skalierungsmaßnahmen – ist es Zeit für eine strukturierte Reflexion.
