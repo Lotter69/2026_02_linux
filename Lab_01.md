@@ -164,6 +164,10 @@ Speichern Sie mit `Strg+O`, bestätigen Sie mit `Enter`, beenden Sie mit `Strg+X
 echo 'Willkommen – nur für autorisierte Benutzer!' \
   | sudo tee /etc/cockpit/issue.cockpit
 ```
+> Der angegebene Text 'Willkommen – nur für autorisierte Benutzer!' wird an zwei Stelen 
+> geschrieben:
+> - in die Datei issue.cockpit
+> - auf stdout (Terminal)
 
 #### 3.4 Dienst nach Konfigurationsänderung neu starten
 
