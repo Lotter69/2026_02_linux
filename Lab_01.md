@@ -164,7 +164,7 @@ Speichern Sie mit `Strg+O`, bestätigen Sie mit `Enter`, beenden Sie mit `Strg+X
 echo 'Willkommen – nur für autorisierte Benutzer!' \
   | sudo tee /etc/cockpit/issue.cockpit
 ```
-> Der angegebene Text 'Willkommen – nur für autorisierte Benutzer!' wird an zwei Stelen 
+> Der angegebene Text 'Willkommen – nur für autorisierte Benutzer!' wird an zwei Stellen 
 > geschrieben:
 > - in die Datei issue.cockpit
 > - auf stdout (Terminal)
@@ -252,6 +252,7 @@ Nachdem Sie Cockpit lokal auf einem einzelnen Rechner betrieben haben – ohne w
 **Sicherheit**
 - Das Zertifikat ist selbstsigniert. Welche Risiken birgt das in einem produktiven Umfeld?
 - Cockpit lauscht standardmäßig auf Port 9090. Welche Maßnahmen würden Sie ergreifen, um den Zugriff auf autorisierte Clients zu beschränken? *(Stichwort: Firewall, `ufw`)*
+
 **Skalierbarkeit & Energieeffizienz**
 - Cockpit läuft permanent im Hintergrund. Welche Alternative bietet systemd, um einen Dienst nur dann zu starten, wenn tatsächlich eine Verbindung eingeht? *(Stichwort: Socket-Aktivierung, `cockpit.socket`)*
 - Wie verhält sich Ihr Setup, wenn Sie 50 Server statt eines verwalten möchten? Welche Werkzeuge würden Sie dann einsetzen?
