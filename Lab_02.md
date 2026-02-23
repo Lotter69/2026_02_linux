@@ -30,7 +30,6 @@ Genau das ist eine typische Situation in der Praxis: Eigenentwicklungen, herunte
 ### Schritt 1: Den Ausgangszustand verstehen – was fehlt ohne Unit-Datei?
 
 Bevor Sie eine Unit-Datei schreiben, erleben Sie zunächst, was systemd über einen Dienst ohne Unit-Datei weiß – nämlich nichts.
-
 Bevor Sie das eigentliche Skript erstellen, ein Blick auf den grundlegenden Aufbau eines Bash-Skripts – am einfachsten möglichen Beispiel.
 
 Ein Bash-Skript besteht aus drei wesentlichen Teilen:
@@ -124,7 +123,8 @@ Beide Befehle liefern Fehler – nicht weil der Dienst inaktiv ist, sondern weil
 
 ### Schritt 2: Eine minimale Unit-Datei schreiben
 
-Unit-Dateien für eigene Dienste werden unter `/etc/systemd/system/` angelegt. Das Verzeichnis ist für lokale, administrativ verwaltete Dienste vorgesehen – im Gegensatz zu `/usr/lib/systemd/system/`, wo apt seine Dateien ablegt.
+Unit-Dateien für eigene Dienste werden unter `/etc/systemd/system/` angelegt. Selbst ergänzte **Drop-in-Datein** werden ebenso in `etc/systemd/system/` und hier in einem Unterordner `servicename.d` abgelegt (siehe Lab 01, 5.4 Erweiterungsaufgabe C). 
+Das Verzeichnis ist für lokale, administrativ verwaltete Dienste vorgesehen – im Gegensatz zu `/usr/lib/systemd/system/`, wo bei der Installation z. B. mit apt standardmäßig Dateien ablegt werden.
 
 Erstellen Sie die Unit-Datei:
 
