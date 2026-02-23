@@ -333,7 +333,7 @@ sudo userdel netmon
 
 ## Autoren und Urheberrecht
 
-- Erstellt von: Michael Lotter
+- Erstellt von: Michael Lotter, Florian Reichl
 - Datum: 2025
 - Version: v1.0
 
