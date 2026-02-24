@@ -162,7 +162,7 @@ Diese vier Pakete erfüllen unterschiedliche Aufgaben:
 - `apt-transport-https` ermöglicht es APT, Paketquellen über HTTPS abzurufen. Ohne dieses Paket kann APT nur unverschlüsselte HTTP-Quellen ansprechen.
 - `curl` ist ein Kommandozeilenwerkzeug zum Herunterladen von Dateien über HTTP/HTTPS. Es wird im nächsten Schritt benötigt, um den GPG-Schlüssel und die Repository-Adresse abzurufen.
 
-2. Fügen Sie den öffentlichen GPG-Schlüssel des Caddy-Repositories und die Repository-Adresse hinzu:
+2. Fügen Sie den öffentlichen GPG-Schlüssel des Caddy-Repositories und die Repository-Adresse ihrer Liste der vertrauenswürdign Repositories hinzu.
 
 ```bash
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
