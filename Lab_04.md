@@ -162,7 +162,7 @@ Diese vier Pakete erfüllen unterschiedliche Aufgaben:
 - `apt-transport-https` ermöglicht es APT, Paketquellen über HTTPS abzurufen. Ohne dieses Paket kann APT nur unverschlüsselte HTTP-Quellen ansprechen.
 - `curl` ist ein Kommandozeilenwerkzeug zum Herunterladen von Dateien über HTTP/HTTPS. Es wird im nächsten Schritt benötigt, um den GPG-Schlüssel und die Repository-Adresse abzurufen.
 
-2. Fügen Sie den öffentlichen GPG-Schlüssel des Caddy-Repositories und die Repository-Adresse hinzu:
+2. Fügen Sie den öffentlichen GPG-Schlüssel des Caddy-Repositories und die Repository-Adresse ihrer Liste der vertrauenswürdign Repositories hinzu.
 
 ```bash
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
@@ -179,7 +179,8 @@ Der zweite Befehl trägt die **Repository-Adresse** in die APT-Konfiguration ein
 3. Installieren Sie Caddy:
 
 ```bash
-apt update && apt install caddy -y
+apt update 
+apt install caddy -y
 ```
 
 `apt update` lädt die Paketlisten aller bekannten Repositories neu – darunter jetzt auch das Caddy-Repository. Danach steht `caddy` zur Installation bereit.
@@ -198,9 +199,11 @@ Caddy wird automatisch als systemd-Dienst registriert und gestartet. Die Konfigu
 
 ---
 
-### Schritt 3: Testdienste starten
+### Schritt 3: Testdienste vorbereiten
 
 Hinter dem Reverse Proxy sollen neben Cockpit zwei weitere Dienste erreichbar sein. Für diese Übung simulieren wir sie mit einfachen Python-HTTP-Servern. In einer realen Umgebung würden an dieser Stelle echte Anwendungen laufen – die Konfiguration von Caddy bliebe dabei identisch.
+
+Die Dienste werden hier vollständig vorbereitet. In das Caddyfile werden sie anschließend schrittweise eingebunden: zunächst nur Cockpit, dann Dienst A, zuletzt Dienst B mit Passwortschutz. So wird nachvollziehbar, wie das Caddyfile wächst.
 
 1. Erstellen Sie je ein Verzeichnis für Dienst A und Dienst B:
 
@@ -260,9 +263,9 @@ Beide Befehle sollten die jeweilige HTML-Seite zurückgeben.
 
 ---
 
-### Schritt 4: Einfaches Caddyfile erstellen
+### Schritt 4: Cockpit ins Caddyfile einbinden
 
-Das Caddyfile ist die Konfigurationsdatei von Caddy. In diesem ersten Schritt schreiben Sie eine bewusst einfache Version: nur Domänenname, Zieldienst und Port – ohne weitere Optionen. Das reicht bereits aus, damit Caddy die Zertifikate ausstellt und den Datenverkehr weiterleitet. Sicherheits-Header kommen im nächsten Schritt dazu.
+Das Caddyfile ist die Konfigurationsdatei von Caddy. Sie beginnen mit dem einfachstmöglichen Eintrag – nur Domänenname, Zieldienst und Port. Das reicht bereits aus, damit Caddy ein Zertifikat bei Let's Encrypt anfordert und den Datenverkehr weiterleitet. Alle weiteren Dienste und Optionen kommen in den folgenden Schritten dazu.
 
 Öffnen Sie die Konfigurationsdatei:
 
@@ -270,7 +273,125 @@ Das Caddyfile ist die Konfigurationsdatei von Caddy. In diesem ersten Schritt sc
 nano /etc/caddy/Caddyfile
 ```
 
-Ersetzen Sie den gesamten Inhalt durch folgende Konfiguration. Passen Sie die Domainnamen an Ihre Umgebung an:
+Ersetzen Sie den gesamten vorhandenen Inhalt durch folgenden Block. Passen Sie den Domainnamen an Ihre Umgebung an:
+
+```caddy
+# Cockpit – Administrationsoberfläche
+cockpit.ihre-domain.de {
+    reverse_proxy localhost:9090 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
+}
+```
+
+> **Hinweis zu Cockpit:** Cockpit betreibt intern selbst einen HTTPS-Dienst mit einem selbst signierten Zertifikat auf Port 9090. Caddy muss dieses interne Zertifikat akzeptieren – daher `tls_insecure_skip_verify`. Diese Ausnahme gilt ausschließlich für die interne Verbindung auf `localhost`. Nach außen stellt Caddy ein vollständig vertrauenswürdiges Let's Encrypt-Zertifikat bereit, das der Browser ohne Warnung akzeptiert.
+
+Speichern Sie die Datei (`Strg+O`, `Enter`, `Strg+X`), validieren und laden Sie:
+
+```bash
+caddy validate --config /etc/caddy/Caddyfile
+systemctl reload caddy
+```
+
+Beobachten Sie die Logs, bis das Zertifikat für Cockpit ausgestellt ist:
+
+```bash
+journalctl -u caddy -f
+```
+
+Drücken Sie `Strg+C`, um die Ansicht zu beenden. Rufen Sie dann `https://cockpit.ihre-domain.de` im Browser auf – der Browser sollte jetzt ein gültiges Let's Encrypt-Zertifikat anzeigen, ohne Sicherheitswarnung.
+
+> **Tipp zur Fehlerbehebung:** Wenn das Zertifikat nicht ausgestellt wird:
+> - Prüfen Sie die DNS-Auflösung: `dig cockpit.ihre-domain.de`
+> - Stellen Sie sicher, dass Port 80 in ufw offen ist: `ufw status`
+> - Let's Encrypt hat Ratenlimits – prüfen Sie die Caddy-Logs auf genaue Fehlermeldungen, bevor Sie es erneut versuchen.
+
+---
+
+### Schritt 5: Dienst A einbinden
+
+Cockpit läuft. Jetzt erweitern Sie das Caddyfile um Dienst A. Öffnen Sie die Datei erneut:
+
+```bash
+nano /etc/caddy/Caddyfile
+```
+
+Ergänzen Sie unterhalb des bestehenden Cockpit-Blocks den folgenden Eintrag:
+
+```caddy
+# Dienst A – öffentlich erreichbar
+dienst-a.ihre-domain.de {
+    reverse_proxy localhost:8001
+}
+```
+
+Das vollständige Caddyfile sieht jetzt so aus:
+
+```caddy
+# Cockpit – Administrationsoberfläche
+cockpit.ihre-domain.de {
+    reverse_proxy localhost:9090 {
+        transport http {
+            tls_insecure_skip_verify
+        }
+    }
+}
+
+# Dienst A – öffentlich erreichbar
+dienst-a.ihre-domain.de {
+    reverse_proxy localhost:8001
+}
+```
+
+Speichern Sie (`Strg+O`, `Enter`, `Strg+X`), validieren und laden Sie:
+
+```bash
+caddy validate --config /etc/caddy/Caddyfile
+systemctl reload caddy
+```
+
+Caddy fordert nun auch für `dienst-a.ihre-domain.de` automatisch ein Zertifikat an. Rufen Sie `https://dienst-a.ihre-domain.de` im Browser auf – die Seite sollte direkt und ohne Login laden.
+
+---
+
+### Schritt 6: Dienst B mit Basic Authentication einbinden
+
+Als letzten Dienst fügen Sie Dienst B hinzu. Dieser soll nicht öffentlich zugänglich sein, sondern erst nach Eingabe von Benutzername und Passwort – gesichert durch **Basic Authentication**.
+
+Caddy speichert Passwörter nicht im Klartext, sondern als **bcrypt-Hash**. Generieren Sie diesen zunächst:
+
+```bash
+caddy hash-password --plaintext 'IhrSicheresPasswort!'
+```
+
+Die Ausgabe ist ein Hash-String, der mit `$2a$` beginnt, z. B.:
+
+```
+$2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx4IjWJPDhjvG
+```
+
+Notieren Sie den Hash. Öffnen Sie dann das Caddyfile:
+
+```bash
+nano /etc/caddy/Caddyfile
+```
+
+Ergänzen Sie unterhalb des Dienst-A-Blocks den folgenden Eintrag und ersetzen Sie den Platzhalter durch Ihren Hash:
+
+```caddy
+# Dienst B – nur nach Authentifizierung erreichbar
+dienst-b.ihre-domain.de {
+    basicauth {
+        # Benutzername: admin
+        admin <HASH-AUS-OBIGEM-BEFEHL>
+    }
+    reverse_proxy localhost:8002
+}
+```
+
+Das vollständige Caddyfile sieht jetzt so aus:
 
 ```caddy
 # Cockpit – Administrationsoberfläche
@@ -290,47 +411,26 @@ dienst-a.ihre-domain.de {
 # Dienst B – nur nach Authentifizierung erreichbar
 dienst-b.ihre-domain.de {
     basicauth {
-        # Benutzername: admin
-        # Hash generieren mit: caddy hash-password --plaintext 'IhrPasswort'
-        admin <HASH-HIER-EINFÜGEN>
+        admin <HASH-AUS-OBIGEM-BEFEHL>
     }
     reverse_proxy localhost:8002
 }
 ```
 
-> **Hash generieren:** Caddy speichert Passwörter nicht im Klartext, sondern als bcrypt-Hash. Führen Sie folgenden Befehl aus und ersetzen Sie den Platzhalter im Caddyfile durch die Ausgabe:
-> ```bash
-> caddy hash-password --plaintext 'IhrSicheresPasswort!'
-> ```
-> Der Hash beginnt mit `$2a$` und ist mehrere Zeichen lang.
-
-> **Hinweis zu Cockpit:** Cockpit betreibt intern selbst einen HTTPS-Dienst mit einem selbst signierten Zertifikat auf Port 9090. Caddy muss dieses interne Zertifikat akzeptieren – daher `tls_insecure_skip_verify`. Diese Ausnahme gilt ausschließlich für die interne Verbindung auf `localhost`. Nach außen stellt Caddy ein vollständig vertrauenswürdiges Let's Encrypt-Zertifikat bereit, das der Browser ohne Warnung akzeptiert.
-
-Speichern Sie die Datei (`Strg+O`, `Enter`, `Strg+X`).
-
-Validieren und laden Sie die Konfiguration:
+Speichern Sie (`Strg+O`, `Enter`, `Strg+X`), validieren und laden Sie:
 
 ```bash
 caddy validate --config /etc/caddy/Caddyfile
 systemctl reload caddy
 ```
 
-Beobachten Sie die Logs, bis die Zertifikate ausgestellt sind:
+Rufen Sie `https://dienst-b.ihre-domain.de` im Browser auf – ein Login-Dialog erscheint. Melden Sie sich mit Benutzername `admin` und dem gewählten Passwort an.
 
-```bash
-journalctl -u caddy -f
-```
-
-Drücken Sie `Strg+C`, um die Ansicht zu beenden. Rufen Sie anschließend alle drei Domains im Browser auf und prüfen Sie, ob die Dienste erreichbar sind und der Browser ein gültiges Let's Encrypt-Zertifikat anzeigt.
-
-> **Tipp zur Fehlerbehebung:** Wenn Zertifikate nicht ausgestellt werden:
-> - Prüfen Sie die DNS-Auflösung: `dig cockpit.ihre-domain.de`
-> - Stellen Sie sicher, dass Port 80 in ufw offen ist: `ufw status`
-> - Let's Encrypt hat Ratenlimits – prüfen Sie die Caddy-Logs auf genaue Fehlermeldungen, bevor Sie es erneut versuchen.
+> **Sicherheitshinweis:** Basic Authentication überträgt Anmeldedaten Base64-kodiert. Ohne HTTPS wären diese trivial abfangbar. Da Caddy HTTPS erzwingt und HTTP-Anfragen automatisch auf HTTPS weiterleitet, ist die Kombination aus Basic Auth und TLS hier sicher und praxistauglich.
 
 ---
 
-### Schritt 5: Sicherheits-Header hinzufügen
+### Schritt 7: Sicherheits-Header hinzufügen
 
 Das Caddyfile funktioniert, die Dienste sind erreichbar und TLS-gesichert. In diesem Schritt erweitern Sie die Konfiguration um **HTTP-Sicherheits-Header**. Diese Header werden von Caddy an jede HTTP-Antwort angehängt und weisen den Browser des Benutzers an, bestimmte Schutzmaßnahmen zu aktivieren.
 
@@ -404,7 +504,7 @@ caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
 
 ---
 
-### Schritt 6: Ergebnis im Browser überprüfen
+### Schritt 8: Ergebnis im Browser überprüfen
 
 Rufen Sie nun alle drei Dienste im Browser auf und vergleichen Sie mit dem, was Sie zu Beginn dieser Übung gesehen haben.
 
@@ -424,7 +524,7 @@ Die Seite lädt direkt, ohne Authentifizierung.
 ```
 https://dienst-b.ihre-domain.de
 ```
-Der Browser zeigt einen Login-Dialog. Melden Sie sich mit dem Benutzernamen `admin` und dem Passwort aus Schritt 4 an.
+Der Browser zeigt einen Login-Dialog. Melden Sie sich mit dem Benutzernamen `admin` und dem Passwort aus Schritt 6 an.
 
 Prüfen Sie abschließend die gesetzten HTTP-Sicherheits-Header mit `curl`:
 
@@ -446,9 +546,9 @@ strict-transport-security: max-age=31536000; includeSubDomains
 - **Cockpit** installiert und den unsicheren Direktzugriff mit selbst signiertem Zertifikat als konkretes Problem erlebt.
 - Den Server mit **ufw** auf SSH, HTTP und HTTPS beschränkt und den Zusammenhang zwischen ufw und iptables nachvollzogen.
 - **Caddy** als systemd-Dienst installiert und betrieben.
-- Zunächst ein **einfaches Caddyfile** erstellt – nur Domainnamen, Zieldienst und Port – und damit bereits automatisches HTTPS aktiviert.
-- Drei Dienste (Cockpit, Dienst A, Dienst B) als **virtuelle Hosts** hinter einem Reverse Proxy gebündelt, Dienst B mit **Basic Authentication** geschützt.
-- Das Caddyfile in einem zweiten Schritt um **HTTP-Sicherheits-Header** erweitert und deren Wirkung mit `curl` verifiziert.
+- Das Caddyfile **schrittweise aufgebaut**: zunächst nur Cockpit, dann Dienst A ergänzt, zuletzt Dienst B mit Basic Authentication hinzugefügt.
+- Mit jedem Schritt ein neues **Let's Encrypt-Zertifikat** automatisch erhalten – ohne manuelle Eingriffe.
+- Das Caddyfile um **HTTP-Sicherheits-Header** erweitert und deren Wirkung mit `curl` verifiziert.
 - Cockpit ist jetzt mit einem **vertrauenswürdigen Let's Encrypt-Zertifikat** erreichbar – die Browserwarnung vom Anfang dieser Übung ist verschwunden.
 
 ---
