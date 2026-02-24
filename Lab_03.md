@@ -1,23 +1,23 @@
-# Laborübung: Linux-VM in der Cloud bereitstellen und sicher erreichbar machen
+# Laborübung: Linux-Server in der Cloud bereitstellen und sicher erreichbar machen
 
 ![line](images/banner.png)
 
 ## Einführung
 
-Dienste, die bislang nur im internen Netzwerk erreichbar sind, sollen perspektivisch ortsunabhängig zur Verfügung stehen – ohne dabei Abstriche bei der Sicherheit zu machen. Die Lösung: eine virtuelle Linux-Maschine bei einem Cloud-Anbieter, die als zentrale, dauerhaft erreichbare Plattform dient.
+Als Netzwerkadministrator werden Sie mit der Anforderung konfrontiert, interne Dienste künftig ortsunabhängig bereitzustellen. Mitarbeitende sollen von unterwegs oder aus dem Homeoffice auf Anwendungen zugreifen können – bisher war das nur im Firmennetz möglich. Eine eigene Hardware im Rechenzentrum zu betreiben ist aufwändig und kostenintensiv. Die Alternative: ein gemieteter Linux-Server bei einem Cloud-Anbieter, der rund um die Uhr online ist, eine feste öffentliche IP-Adresse besitzt und von Ihnen vollständig administriert wird.
 
-Dafür braucht es mehr als nur eine laufende VM. Ein sprechender Domänenname macht den Zugriff stabil und unabhängig von wechselnden IP-Adressen. Ein kryptografisch gesicherter SSH-Zugang stellt sicher, dass ausschließlich autorisierte Personen administrieren können – und nicht automatisierte Angriffe aus dem Internet.
+Bevor auf diesem Server Dienste veröffentlicht werden können, müssen drei Dinge geklärt sein: Der Server muss unter einem stabilen, sprechenden Namen erreichbar sein – unabhängig davon, ob sich die IP-Adresse irgendwann ändert. Der administrative Zugriff per SSH muss abgesichert sein, denn ein öffentlich erreichbarer Server ist vom ersten Moment an automatisierten Angriffen ausgesetzt. Und der gesamte Aufbau muss nachvollziehbar und reproduzierbar dokumentiert sein.
 
-Diese Übung legt genau diese Grundlage: Sie stellen eine VM bereit, registrieren einen Domänennamen, verknüpfen ihn mit der öffentlichen IP-Adresse und richten einen passwortlosen, schlüsselbasierten SSH-Zugriff ein. Das Ergebnis ist eine produktionsreife Basis, auf der im nächsten Schritt Dienste sicher veröffentlicht werden können.
+Diese Übung deckt genau diese Grundlage ab: Sie beauftragen einen Server bei einem Cloud-Anbieter, registrieren einen Domänennamen, verknüpfen ihn per DNS-Eintrag mit der öffentlichen IP-Adresse und sichern den SSH-Zugriff mit einem Schlüsselpaar ab. Am Ende dieser Übung haben Sie eine sauber konfigurierte Basis, auf der in den nächsten Schritten Dienste sicher veröffentlicht werden können.
 
 ---
 
 ## Lernziele
 
-- Eine **virtuelle Maschine** bei einem Cloud-Anbieter bereitstellen und grundlegend verstehen, worauf dabei zu achten ist.
+- Einen **Linux-Server** bei einem Cloud-Anbieter beauftragen und verstehen, worauf dabei zu achten ist.
 - Den **Beschaffungsprozess eines Domänennamens** kennen und nachvollziehen.
 - Einen **DNS-A-Record** setzen, der eine Domain auf eine öffentliche IPv4-Adresse zeigt.
-- Ein **SSH-Schlüsselpaar** generieren und den öffentlichen Schlüssel auf der VM hinterlegen.
+- Ein **SSH-Schlüsselpaar** generieren und den öffentlichen Schlüssel auf dem Server hinterlegen.
 - Die **passwortbasierte SSH-Authentifizierung deaktivieren** und ausschließlich Key-basierte Authentifizierung zulassen.
 
 ---
@@ -36,9 +36,9 @@ Diese Übung legt genau diese Grundlage: Sie stellen eine VM bereit, registriere
 
 ## Hintergrundwissen
 
-### Was ist eine virtuelle Maschine in der Cloud?
+### Was ist ein gemieteter Server in der Cloud?
 
-Ein Cloud-Anbieter betreibt physische Server in Rechenzentren und stellt davon Anteile als virtuelle Maschinen bereit. Diese VMs verhalten sich wie eigenständige Computer: Sie haben ein eigenes Betriebssystem, eine eigene öffentliche IP-Adresse und sind rund um die Uhr erreichbar – ohne dass Sie eigene Hardware betreiben müssen. Abgerechnet wird typischerweise nach Stunden oder Monaten.
+Cloud-Anbieter betreiben physische Server in Rechenzentren und stellen darauf Linux-Systeme bereit – entweder als dedizierte Hardware oder als virtualisierte Instanz. Aus Ihrer Sicht als Administrator macht das keinen Unterschied: Sie erhalten einen Linux-Server mit eigenem Betriebssystem, einer öffentlichen IP-Adresse und Root-Zugriff. Der Server ist rund um die Uhr online, ohne dass Sie eigene Hardware betreiben oder warten müssen. Abgerechnet wird typischerweise nach Stunden oder Monaten.
 
 ### Was ist ein Domänenname?
 
@@ -54,11 +54,11 @@ SSH unterstützt zwei Authentifizierungsverfahren: Passwort und Schlüsselpaar. 
 
 ## Aufgaben
 
-### Schritt 1: Virtuelle Maschine bereitstellen
+### Schritt 1: Server bereitstellen
 
-#### 1.1 Anbieter und Tarif wählen
+#### 1.1 Anbieter und Paket wählen
 
-Loggen Sie sich in das Web-Dashboard Ihres Cloud-Anbieters ein und erstellen Sie eine neue virtuelle Maschine. Die genaue Bezeichnung variiert je nach Anbieter (z. B. „Server", „Droplet", „Instance" oder „vServer").
+Loggen Sie sich in das Web-Dashboard Ihres Cloud-Anbieters ein und bestellen Sie einen neuen Linux-Server. Die genaue Bezeichnung variiert je nach Anbieter (z. B. „Server", „Droplet", „Instance" oder „vServer") – technisch erhalten Sie in allen Fällen einen vollständig administrierbaren Linux-Rechner mit öffentlicher IP-Adresse.
 
 Wählen Sie folgende Eckdaten:
 
@@ -70,15 +70,12 @@ Wählen Sie folgende Eckdaten:
 | Standort          | EU-Rechenzentrum (z. B. Deutschland)    |
 | Öffentliche IP    | IPv4 aktivieren                         |
 
-> **Was bedeutet LTS?**
-> LTS steht für *Long Term Support*. Ubuntu LTS-Versionen werden fünf Jahre lang mit Sicherheitsupdates versorgt. Für Serverumgebungen sind sie daher stabilen Non-LTS-Versionen vorzuziehen.
-
 #### 1.2 Initialen Root-Zugriff einrichten
 
-Bei der Erstellung der VM werden Sie nach einer Zugriffsmethode gefragt. Wählen Sie vorerst **Passwort-Authentifizierung** oder einen temporären SSH-Key des Anbieters – dies wird in Schritt 4 durch einen eigenen Key ersetzt.
+Bei der Bestellung des Servers werden Sie nach einer initialen Zugriffsmethode gefragt. Wählen Sie vorerst **Passwort-Authentifizierung** oder einen temporären SSH-Key des Anbieters – dies wird in Schritt 4 durch einen eigenen Key ersetzt.
 
 Notieren Sie sich:
-- Die **öffentliche IPv4-Adresse** der VM (wird nach der Erstellung angezeigt)
+- Die **öffentliche IPv4-Adresse** des Servers (wird nach der Bereitstellung im Dashboard angezeigt)
 - Das **Root-Passwort** (falls vom Anbieter vergeben oder selbst gewählt)
 
 #### 1.3 Host-Key-Fingerprint verifizieren und erste Verbindung herstellen
@@ -97,9 +94,9 @@ Are you sure you want to continue connecting (yes/no/[fingerprint])?
 
 **Schritt 1: Fingerprint auf dem Server ermitteln**
 
-Die meisten Cloud-Anbieter zeigen den Host-Key-Fingerprint im Dashboard direkt nach der VM-Erstellung an (z. B. unter „Server Details", „Console" oder „Activity Log"). Notieren Sie sich diesen Wert.
+Die meisten Cloud-Anbieter zeigen den Host-Key-Fingerprint im Dashboard direkt nach der Bereitstellung des Servers an (z. B. unter „Server Details", „Console" oder „Activity Log"). Notieren Sie sich diesen Wert.
 
-Falls der Anbieter den Fingerprint nicht anzeigt, verbinden Sie sich über die **Web-Konsole des Anbieters** (VNC/KVM – diese Verbindung läuft nicht über das Netzwerk und ist daher vertrauenswürdig) und lesen Sie den Fingerprint direkt aus:
+Falls der Anbieter den Fingerprint nicht anzeigt, verbinden Sie sich über die **Web-Konsole des Anbieters** (VNC/KVM – diese Verbindung läuft nicht über das Netzwerk und ist daher vertrauenswürdig) und lesen Sie den Fingerprint direkt vom Server aus:
 
 ```bash
 ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
@@ -121,15 +118,15 @@ ssh root@<IPv4-ADRESSE-DER-VM>
 Vergleichen Sie den angezeigten Fingerprint **Zeichen für Zeichen** mit dem zuvor notierten Wert aus dem Dashboard oder der Web-Konsole.
 
 - **Fingerprints stimmen überein** → Eingabe von `yes` ist sicher. Der Fingerprint wird in `~/.ssh/known_hosts` gespeichert und bei zukünftigen Verbindungen automatisch geprüft.
-- **Fingerprints stimmen nicht überein** → Verbindung **sofort abbrechen** (`no` eingeben). Klären Sie die Ursache, bevor Sie fortfahren. Mögliche Gründe: falsche IP, VM wurde neu erstellt, oder ein Angriff liegt vor.
+- **Fingerprints stimmen nicht überein** → Verbindung **sofort abbrechen** (`no` eingeben). Klären Sie die Ursache, bevor Sie fortfahren. Mögliche Gründe: falsche IP, Server wurde neu aufgesetzt, oder ein Angriff liegt vor.
 
-Nach bestätigter Verbindung verlassen Sie die VM wieder:
+Nach bestätigter Verbindung verlassen Sie den Server wieder:
 
 ```bash
 exit
 ```
 
-> **Tipp zur Fehlerbehebung:** Wenn die Verbindung abgelehnt wird, prüfen Sie, ob die VM vollständig gestartet ist (Status im Dashboard) und ob Port 22 in einer eventuell vorhandenen Anbieter-Firewall (häufig „Security Group" oder „Firewall" genannt) geöffnet ist.
+> **Tipp zur Fehlerbehebung:** Wenn die Verbindung abgelehnt wird, prüfen Sie, ob der Server vollständig gestartet ist (Status im Dashboard) und ob Port 22 in einer eventuell vorhandenen Anbieter-Firewall (häufig „Security Group" oder „Firewall" genannt) geöffnet ist.
 
 ---
 
@@ -225,9 +222,7 @@ Alternativ können Sie Online-Tools wie [dnschecker.org](https://dnschecker.org)
 
 ### Schritt 4: SSH-Schlüsselpaar generieren und hinterlegen
 
-Passwortbasierte SSH-Zugänge sind ein häufiges Angriffsziel. Automatisierte Bots scannen das Internet kontinuierlich nach offenen SSH-Ports und versuchen gängige Passwörter. In diesem Schritt ersetzen Sie die Passwortauthentifizierung durch ein kryptografisches Schlüsselpaar.
-
-#### 4.1 Schlüsselpaar auf dem lokalen Rechner erzeugen
+Passwortbasierte SSH-Zugänge sind ein häufiges Angriffsziel. Automatisierte Bots scannen das Internet kontinuierlich nach offenen SSH-Ports und versuchen gängige Passwörter. In diesem Schritt ersetzen Sie die Passwortauthentifizierung durch ein kryptografisches Schlüsselpaar.#### 4.1 Schlüsselpaar auf dem lokalen Rechner erzeugen
 
 Öffnen Sie ein Terminal auf Ihrem **lokalen Rechner** (nicht auf der VM):
 
@@ -251,22 +246,22 @@ Nach der Eingabe werden zwei Dateien erstellt:
 | Datei                        | Inhalt          | Verbleib          |
 |------------------------------|-----------------|-------------------|
 | `~/.ssh/id_ed25519`          | Privater Schlüssel | Nur auf Ihrem Rechner |
-| `~/.ssh/id_ed25519.pub`      | Öffentlicher Schlüssel | Wird auf die VM kopiert |
+| `~/.ssh/id_ed25519.pub`      | Öffentlicher Schlüssel | Wird auf den Server kopiert |
 
 > **Warum ed25519?**
 > Ed25519 ist ein modernes Signaturverfahren auf Basis elliptischer Kurven. Es ist schneller, sicherer und erzeugt kürzere Schlüssel als das ältere RSA-Verfahren. Für neue Schlüssel ist ed25519 heute die empfohlene Wahl.
 
 > **⚠️ Wichtig:** Der private Schlüssel (`id_ed25519`) verlässt niemals Ihren Rechner. Geben Sie ihn nicht weiter, laden Sie ihn nicht hoch und kopieren Sie ihn nicht auf Server.
 
-#### 4.2 Öffentlichen Schlüssel auf die VM übertragen
+#### 4.2 Öffentlichen Schlüssel auf den Server übertragen
 
-Kopieren Sie den öffentlichen Schlüssel mit `ssh-copy-id` auf die VM. Dabei wird noch die Passwortauthentifizierung verwendet:
+Kopieren Sie den öffentlichen Schlüssel mit `ssh-copy-id` auf den Server. Dabei wird noch die Passwortauthentifizierung verwendet:
 
 ```bash
 ssh-copy-id -i ~/.ssh/id_ed25519.pub root@server.ihre-domain.de
 ```
 
-Geben Sie das Root-Passwort der VM ein, wenn Sie dazu aufgefordert werden. Der Befehl hängt den öffentlichen Schlüssel automatisch in die Datei `~/.ssh/authorized_keys` auf der VM ein.
+Geben Sie das Root-Passwort des Servers ein, wenn Sie dazu aufgefordert werden. Der Befehl hängt den öffentlichen Schlüssel automatisch in die Datei `~/.ssh/authorized_keys` auf dem Server ein.
 
 **Windows-Alternative** (falls `ssh-copy-id` nicht verfügbar ist):
 
@@ -275,7 +270,7 @@ Geben Sie das Root-Passwort der VM ein, wenn Sie dazu aufgefordert werden. Der B
 Get-Content "$env:USERPROFILE\.ssh\id_ed25519.pub"
 ```
 
-Kopieren Sie die Ausgabe. Verbinden Sie sich dann per SSH mit Passwort auf die VM und fügen Sie den Schlüssel manuell ein:
+Kopieren Sie die Ausgabe. Verbinden Sie sich dann per SSH mit Passwort auf den Server und fügen Sie den Schlüssel manuell ein:
 
 ```bash
 mkdir -p ~/.ssh
@@ -294,7 +289,7 @@ Testen Sie jetzt den Login mit dem Schlüssel – **ohne** Schließen der besteh
 ssh root@server.ihre-domain.de
 ```
 
-Falls eine Passphrase vergeben wurde, werden Sie danach gefragt. Bei erfolgreicher Verbindung erscheint der VM-Prompt.
+Falls eine Passphrase vergeben wurde, werden Sie danach gefragt. Bei erfolgreicher Verbindung erscheint der Server-Prompt.
 
 > **Tipp zur Fehlerbehebung:** Wenn der Login fehlschlägt:
 > - Prüfen Sie die Berechtigungen auf der VM: `chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys`
@@ -303,7 +298,7 @@ Falls eine Passphrase vergeben wurde, werden Sie danach gefragt. Bei erfolgreich
 
 #### 4.4 Passwortauthentifizierung deaktivieren
 
-Sobald der Key-basierte Login erfolgreich funktioniert, deaktivieren Sie die Passwortauthentifizierung auf der VM. Führen Sie die folgenden Befehle **auf der VM** aus:
+Sobald der Key-basierte Login erfolgreich funktioniert, deaktivieren Sie die Passwortauthentifizierung auf dem Server. Führen Sie die folgenden Befehle **auf dem Server** aus:
 
 ```bash
 # Sicherheitskopie der SSH-Konfiguration anlegen
@@ -356,16 +351,16 @@ Bei der zweiten Verbindung sollte die Fehlermeldung `Permission denied (publicke
 
 ### Was Sie erreicht haben
 
-- Eine **virtuelle Maschine** in der Cloud bereitgestellt und verstanden, welche Parameter dabei relevant sind.
+- Einen **Linux-Server** in der Cloud bereitgestellt und verstanden, welche Parameter dabei relevant sind.
 - Den **Beschaffungsprozess eines Domänennamens** nachvollzogen – von der Registrar-Wahl bis zur Registrierung.
-- Einen **DNS-A-Record** angelegt und die Namensauflösung auf die VM-IP erfolgreich geprüft.
-- Ein **ed25519-Schlüsselpaar** erzeugt, den öffentlichen Schlüssel auf der VM hinterlegt und den Key-basierten SSH-Login eingerichtet.
-- Die **Passwortauthentifizierung** für SSH deaktiviert und damit die Angriffsfläche der VM deutlich reduziert.
+- Einen **DNS-A-Record** angelegt und die Namensauflösung auf die Server-IP erfolgreich geprüft.
+- Ein **ed25519-Schlüsselpaar** erzeugt, den öffentlichen Schlüssel auf dem Server hinterlegt und den Key-basierten SSH-Login eingerichtet.
+- Die **Passwortauthentifizierung** für SSH deaktiviert und damit die Angriffsfläche des Servers deutlich reduziert.
 
 ### Reflexion
 
 - Warum ist es sinnvoll, einen Domänennamen statt der IP-Adresse direkt zu verwenden – auch wenn sich die IP selten ändert?
-- Welche Konsequenz hat eine zu hohe TTL, wenn Sie die VM-IP kurzfristig ändern müssen?
+- Welche Konsequenz hat eine zu hohe TTL, wenn Sie die Server-IP kurzfristig ändern müssen?
 - Was würde passieren, wenn Sie den privaten SSH-Schlüssel verlieren und kein Notfallzugang (z. B. Web-Konsole) verfügbar wäre?
 - Warum ist eine Passphrase auf dem privaten Schlüssel sinnvoll, auch wenn sie die tägliche Nutzung etwas aufwändiger macht?
 
@@ -373,9 +368,9 @@ Bei der zweiten Verbindung sollte die Fehlermeldung `Permission denied (publicke
 
 ## Aufräumarbeiten
 
-Wenn Sie die VM nur für diese Übung genutzt haben:
+Wenn Sie den Server nur für diese Übung genutzt haben:
 
-- Löschen Sie die VM im Dashboard Ihres Cloud-Anbieters, um weitere Kosten zu vermeiden.
+- Löschen Sie den Server im Dashboard Ihres Cloud-Anbieters, um weitere Kosten zu vermeiden.
 - Wenn die Domain nicht weiter benötigt wird, kündigen Sie die Verlängerung beim Registrar (Domänennamen laufen bis zum Ende der bezahlten Laufzeit weiter).
 
 ---
