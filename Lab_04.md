@@ -148,7 +148,7 @@ Sie erkennen darin die Regeln, die ufw aus Ihren Befehlen erzeugt hat – unter 
 
 ### Schritt 2: Caddy installieren
 
-Caddy wird über das offizielle APT-Repository installiert, damit Sicherheitsupdates einfach per `apt upgrade` eingespielt werden können.
+Ubuntu bringt Caddy nicht in seinen Standard-Paketquellen mit. Deshalb wird das offizielle Caddy-Repository als zusätzliche Paketquelle eingebunden. Der Vorteil: Einmal eingerichtet, werden Caddy-Updates künftig automatisch über das gewohnte `apt upgrade` eingespielt – genau wie alle anderen Systempakete.
 
 1. Installieren Sie notwendige Hilfswerkzeuge:
 
@@ -156,7 +156,13 @@ Caddy wird über das offizielle APT-Repository installiert, damit Sicherheitsupd
 apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
 ```
 
-2. Fügen Sie den Caddy-GPG-Schlüssel und das Repository hinzu:
+Diese vier Pakete erfüllen unterschiedliche Aufgaben:
+
+- `debian-keyring` und `debian-archive-keyring` stellen sicher, dass APT die kryptografischen Grundwerkzeuge für die Paketverifizierung vollständig zur Verfügung hat. Sie sind auf frischen Serverinstallationen gelegentlich noch nicht vorhanden.
+- `apt-transport-https` ermöglicht es APT, Paketquellen über HTTPS abzurufen. Ohne dieses Paket kann APT nur unverschlüsselte HTTP-Quellen ansprechen.
+- `curl` ist ein Kommandozeilenwerkzeug zum Herunterladen von Dateien über HTTP/HTTPS. Es wird im nächsten Schritt benötigt, um den GPG-Schlüssel und die Repository-Adresse abzurufen.
+
+2. Fügen Sie den öffentlichen GPG-Schlüssel des Caddy-Repositories und die Repository-Adresse hinzu:
 
 ```bash
 curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
@@ -166,11 +172,17 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
   | tee /etc/apt/sources.list.d/caddy-stable.list
 ```
 
+Der erste Befehl lädt den **öffentlichen GPG-Schlüssel** des Caddy-Projekts herunter und speichert ihn im APT-Schlüsselbund. APT verwendet diesen Schlüssel, um die digitale Signatur jedes heruntergeladenen Caddy-Pakets zu prüfen – so wird sichergestellt, dass das Paket tatsächlich vom Caddy-Projekt stammt und nicht nachträglich verändert wurde. `gpg --dearmor` wandelt den Schlüssel dabei vom textuellen PEM-Format in ein binäres Format um, das APT erwartet.
+
+Der zweite Befehl trägt die **Repository-Adresse** in die APT-Konfiguration ein. APT weiß damit künftig, wo es nach Caddy-Paketen und deren Updates suchen soll. Die Datei landet in `/etc/apt/sources.list.d/` – dem Standardort für zusätzliche Paketquellen unter Ubuntu.
+
 3. Installieren Sie Caddy:
 
 ```bash
 apt update && apt install caddy -y
 ```
+
+`apt update` lädt die Paketlisten aller bekannten Repositories neu – darunter jetzt auch das Caddy-Repository. Danach steht `caddy` zur Installation bereit.
 
 4. Überprüfen Sie Installation und Dienststatus:
 
