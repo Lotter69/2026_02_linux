@@ -367,7 +367,7 @@ Wenn Sie den Server nur für diese Übung genutzt haben:
 
 ## Autoren und Urheberrecht
 
-- Erstellt von: *[Ihr Name]*
+- Erstellt von: Michael Lotter, Florian Reichl
 - Datum: 02/2026
 - Version: v1.0
 
