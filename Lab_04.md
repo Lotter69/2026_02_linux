@@ -1,4 +1,4 @@
-# Laborübung: Reverse Proxy mit Caddy
+# Laborübung: Installieren eines Dienstes auf einem öffentlich zugänglichen Linux-Reverse Proxy mit Caddy
 
 ![line](images/banner.png)
 
