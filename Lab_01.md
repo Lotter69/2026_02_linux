@@ -31,7 +31,7 @@ Ihre Aufgabe: Cockpit installieren, den Dienst dauerhaft und zuverlässig betrei
 
 ### Schritt 1: System aktualisieren und Cockpit installieren
 
-#### 1.1 Paketquellen aktualisieren
+#### 1.1 Software aktualisieren
 
 Bevor ein neues Paket installiert wird, synchronisieren Sie die lokale Paketdatenbank. Öffnen Sie ein Terminal und führen Sie aus:
 
@@ -39,8 +39,16 @@ Bevor ein neues Paket installiert wird, synchronisieren Sie die lokale Paketdate
 sudo apt update
 ```
 
+Mit der aktualisierten Paketdatenbank bringen wir die Software auf unserem Rechner auf den aktuellen Stand. Geben Sie im Terminal folgenden Befehl ein:
+
+```bash
+sudo apt upgrade
+```
+
 > **Was passiert hier?**  
 > `apt update` lädt die aktuellen Paketlisten von den konfigurierten Quellen herunter. Es werden dabei **keine** Pakete installiert oder aktualisiert – nur die Metadaten (Paketname, Version, Abhängigkeiten) werden erneuert.
+
+
 
 #### 1.2 Cockpit installieren
 
