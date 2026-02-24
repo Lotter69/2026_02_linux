@@ -36,16 +36,6 @@ Diese Übung deckt genau diese Grundlage ab: Sie beauftragen einen Server bei ei
 
 ## Hintergrundwissen
 
-### Was ist ein gemieteter Server in der Cloud?
-
-Cloud-Anbieter betreiben physische Server in Rechenzentren und stellen darauf Linux-Systeme bereit – entweder als dedizierte Hardware oder als virtualisierte Instanz. Aus Ihrer Sicht als Administrator macht das keinen Unterschied: Sie erhalten einen Linux-Server mit eigenem Betriebssystem, einer öffentlichen IP-Adresse und Root-Zugriff. Der Server ist rund um die Uhr online, ohne dass Sie eigene Hardware betreiben oder warten müssen. Abgerechnet wird typischerweise nach Stunden oder Monaten.
-
-### Was ist ein Domänenname?
-
-Eine öffentliche IP-Adresse wie `49.12.34.56` ist schwer zu merken und kann sich ändern. Ein Domänenname (z. B. `meinserver.de`) ist ein menschenlesbarer Alias dafür. Das **Domain Name System (DNS)** übersetzt diesen Namen in die zugehörige IP-Adresse – ähnlich wie ein Telefonbuch Namen in Nummern übersetzt.
-
-Domänennamen werden bei einem **Registrar** registriert und für einen bestimmten Zeitraum (typischerweise 1 Jahr) gemietet. Für die Namensauflösung wird anschließend ein **DNS-A-Record** gesetzt, der den Namen auf die IP-Adresse zeigt.
-
 ### Was ist SSH-Key-Authentifizierung?
 
 SSH unterstützt zwei Authentifizierungsverfahren: Passwort und Schlüsselpaar. Bei der Schlüsselpaar-Methode wird ein mathematisch zusammenhängendes Schlüsselpaar erzeugt – ein **privater Schlüssel** (verbleibt auf Ihrem Rechner) und ein **öffentlicher Schlüssel** (wird auf dem Server hinterlegt). Beim Login prüft der Server, ob der private Schlüssel zum hinterlegten öffentlichen Schlüssel passt. Da kein Passwort über das Netzwerk übertragen wird, ist diese Methode deutlich sicherer – insbesondere gegenüber Brute-Force-Angriffen.
