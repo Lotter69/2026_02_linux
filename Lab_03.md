@@ -1,4 +1,4 @@
-# Laborübung: Linux-Server in der Cloud bereitstellen und sicher erreichbar machen
+# Lab 03: Linux-Server in der Cloud bereitstellen und sicher erreichbar machen
 
 ![line](images/banner.png)
 
