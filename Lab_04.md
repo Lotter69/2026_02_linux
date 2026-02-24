@@ -4,7 +4,9 @@
 
 ## Einführung
 
-In dieser Laborübung richten Sie einen **Reverse Proxy** auf einer Linux-VM bei einem Cloud-Anbieter (z. B. Hetzner) ein. Als Werkzeug kommt **Caddy** zum Einsatz – ein moderner Webserver und Reverse Proxy, der sich durch automatisches HTTPS via **Let's Encrypt**, eine lesbare Konfigurationssprache und minimalen Betriebsaufwand auszeichnet.
+In dieser Laborübung richten Sie einen Dienst auf einem öffentlich zugänglichen Server im Internet ein.
+
+Dieser Dienst muss mit einem **Reverse Proxy** abgesichert werden. Als Werkzeug kommt **Caddy** zum Einsatz – ein moderner Webserver und Reverse Proxy, der sich durch automatisches HTTPS via **Let's Encrypt**, eine lesbare Konfigurationssprache und minimalen Betriebsaufwand auszeichnet.
 
 Das Szenario orientiert sich an einem realen Anwendungsfall: Sie betreiben mehrere interne Dienste (z. B. eine Webanwendung und ein Monitoring-Dashboard) auf einer VM und möchten diese sicher, zentral und ortsunabhängig über das Internet erreichbar machen – ohne dabei Abstriche bei der Sicherheit zu machen.
 
