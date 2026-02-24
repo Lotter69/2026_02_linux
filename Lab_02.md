@@ -123,8 +123,16 @@ Beide Befehle liefern Fehler – nicht weil der Dienst inaktiv ist, sondern weil
 
 ### Schritt 2: Eine minimale Unit-Datei schreiben
 
-Unit-Dateien für eigene Dienste werden unter `/etc/systemd/system/` angelegt. Selbst ergänzte **Drop-in-Datein** werden ebenso in `etc/systemd/system/` und hier in einem Unterordner `servicename.d` abgelegt (siehe Lab 01, 5.4 Erweiterungsaufgabe C). 
-Das Verzeichnis ist für lokale, administrativ verwaltete Dienste vorgesehen – im Gegensatz zu `/usr/lib/systemd/system/`, wo bei der Installation z. B. mit apt standardmäßig Dateien ablegt werden.
+Es gibt drei Orte, an denen Angaben zum Start von Diensten gemacht werden können:
+
+- Es gibt einen Standard-Ort, an dem die Unit-Dateien abgelegt werden, die vom Software-Entwickler geschrieben wurden und die beim installieren der Software auf dem Rechner abgespeichert werden:<br>`/usr/lib/systemd/system/` <br>Wichtig: Hier sollte man nichts ändern, weil beim nächsten Update die Änderungen überschrieben werden können.
+- Eigene, __vollständige__ Unit-Dateien legt man in<br>`/etc/systemd/system/`<br>ab. Diese Änderungen bleiben auch nach einem Update erhalten.
+- Möchte man nur Teile einer Unit-Datei anpassen oder ändern, dann kann man das in _Drop-in-Dateien_ Dateien machen. Hierfür gibt es folgende Namenskonventionen:
+  - Nehmen wir an, die Unit-Datei für unseren Dienst heißt `mein-dienst.service`
+  - Dann heißt das Verzeichnis, in dem man seine Drop-in-Dateien ablegt `/etc/systemd/system/mein-dienst.service.d/`
+  - In diesem Verzeichnis kann man mehrere Dateien anlegen. Die in diesen Dateien gemachten Einstellungen überschreiben oder ergänzen die ansonsten bereits schon gültigen Einstellungen. Diese Dateien müssen mit der Endung `.conf` versehen sein und haben typischerweise `root` als Eigentümer und die Rechte 644 (siehe `chmod`). Beispiel:<br>`/etc/systemd/system/mein-dienst.service.d/meine-ergaenzung.conf`
+
+Die offizielle Dokumentation zu systemd findet man auf [systemd.io](https://systemd.io/). Weitere Dokumentation zu diesem Thema findet man bei [Red Hat](https://docs.redhat.com/de/documentation/red_hat_enterprise_linux/10/html/using_systemd_unit_files_to_customize_and_optimize_your_system/working-with-systemd-unit-files).
 
 Erstellen Sie die Unit-Datei:
 
