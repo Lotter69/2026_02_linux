@@ -52,45 +52,55 @@ Typische Quellen
 - Container verwalten (`docker ps`, `docker stop`, `docker rm`)
 - Container und Images entfernen (`docker rmi`, `docker system prune`)
 
-## Modul 3: Netzwerk & Datenpersistenz
+## Modul 3: Netzwerk
 - Netzwerkmodi verstehen (`bridge`, `host`, `none`, benutzerdefinierte Netzwerke)
 - Container-Kommunikation im selben Netzwerk
-- Volumes & Bind Mounts (persistente Datenspeicherung, Unterschiede)
 - Port-Mapping im Detail
 
-## Modul 4: Docker Compose & Multi-Container-Setups
-- Docker Compose Grundlagen (`compose.yaml`-Syntax, `docker compose up/down/logs`)
-- Multi-Container-Setups (z. B. Web-App + Datenbank + Cache)
-- Umgebungsvariablen & `.env`-Dateien
+## Modul 4: Datenpersistenz
+- Volumes & Bind Mounts (persistente Datenspeicherung, Unterschiede)
+- Volume-Management (`docker volume ls`, `docker volume rm`, etc.)
+- Daten zwischen Host und Container austauschen
 
-## Modul 5: Eigene Images bauen
+## Modul 5: Docker Compose – Container starten & konfigurieren
+- Grundlagen & Motivation (deklarativ vs. imperativ)
+- `compose.yaml`-Syntax (`services`, `networks`, `volumes`)
+- Container starten, stoppen und verwalten (`docker compose up/down/logs`)
+- Umgebungsvariablen & `.env`-Dateien
+- Multi-Container-Setups (z. B. Web-App + Datenbank + Cache)
+
+## Modul 6: Eigene Images bauen
 - Dockerfile schreiben (`FROM`, `RUN`, `COPY`, `CMD`, `ENTRYPOINT`, `ENV`, `EXPOSE`)
 - Layer-Konzept & Caching verstehen
 - Multi-Stage Builds für schlanke Produktions-Images
 - Best Practices (Image-Größe minimieren, non-root User)
 - Images in einer Registry veröffentlichen (`docker push`, Tagging-Strategien)
 
-## Modul 6: Automatisierung mit systemd
-- Container regelmäßig/automatisch starten über Unit-Files
-- systemd vs. `docker compose` als Alternative
-- Automatischer Neustart bei Ausfall (`restart`-Policy)
+## Modul 7: Docker Compose – Eigene Images bauen
+- `build:`-Direktive in der `compose.yaml`
+- Build-Argumente (`args`) und Build-Kontext
+- Entwicklungs- vs. Produktions-Setups mit Compose
+
+## Modul 8: Automatisierung mit systemd
+- Container automatisch starten über Unit-Files
+- systemd vs. `restart`-Policy in Compose
 - Health Checks (`HEALTHCHECK` im Dockerfile)
 
-## Modul 7: Reverse Proxy mit Traefik
+## Modul 9: Reverse Proxy mit Traefik
 - Traefik-Grundlagen & Architektur
 - Container über Traefik starten und verwalten
 - Konfiguration über Labels in `compose.yaml`
 - TLS & automatische Zertifikate mit Let's Encrypt
 - Middlewares (Authentifizierung, Redirects, Rate Limiting)
 
-## Modul 8: Sicherheit
+## Modul 10: Sicherheit
 - Least-Privilege-Prinzip & non-root Container
 - Read-only Dateisysteme
 - Ressourcenlimits (CPU, RAM)
 - Secrets-Management (keine Secrets in Images!)
 - Image-Scanning mit `trivy` oder `docker scout`
 
-## Modul 9: Betrieb, Monitoring & Backup
+## Modul 11: Betrieb, Monitoring & Backup
 - Logging (`docker logs`, Log-Treiber: journald, syslog)
 - Monitoring & Ressourcenüberwachung (`docker stats`, Prometheus/Grafana)
 - Updates: Images und Container aktualisieren
