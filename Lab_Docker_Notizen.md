@@ -41,7 +41,7 @@ Typische Quellen
 
 ## Modul 1: Grundlagen & Einstieg
 - Docker-Architektur verstehen (Daemon, CLI, Registry; Unterschied zu VMs)
-- Installation auf Linux (Debian/Ubuntu, RHEL/Rocky etc.)
+- Installation auf Linux (Debian/Ubuntu/Linux Mint). (Exkurs zu Windows uns WSL bzw. Docker Desktop?)
 - Post-Install-Schritte (z. B. Nutzer zur Docker-Gruppe hinzufügen)
 - Docker Hub & alternative Registries (GitHub Container Registry, quay.io, etc.)
 - Images suchen, bewerten und laden (offizielle vs. Community-Images, Tags, Image-Größe)
