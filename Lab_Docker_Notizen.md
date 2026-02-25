@@ -17,6 +17,10 @@ Mit `docker run hello-world` kann man einen ersten Funktionstest durchführen.
 - __Image__: Abbild eines Dateisystems in dem das Programm ist, welches man ausführen möchte.
 - __Container__: Abbild eines Computers, der das Dateisystem im Image nutzt.
 
+## Hinweise zur Installation
+
+- Benutzer zur Benutzergruppe `docker` hinzufügen.
+
 ## Quellen für Docker Images
 
 Typische Quellen
