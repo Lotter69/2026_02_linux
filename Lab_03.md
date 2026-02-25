@@ -1,4 +1,4 @@
-# Laborübung: Linux-Server in der Cloud bereitstellen und sicher erreichbar machen
+# Lab 03: Linux-Server in der Cloud bereitstellen und sicher erreichbar machen
 
 ![line](images/banner.png)
 
@@ -35,16 +35,6 @@ Diese Übung deckt genau diese Grundlage ab: Sie beauftragen einen Server bei ei
 ---
 
 ## Hintergrundwissen
-
-### Was ist ein gemieteter Server in der Cloud?
-
-Cloud-Anbieter betreiben physische Server in Rechenzentren und stellen darauf Linux-Systeme bereit – entweder als dedizierte Hardware oder als virtualisierte Instanz. Aus Ihrer Sicht als Administrator macht das keinen Unterschied: Sie erhalten einen Linux-Server mit eigenem Betriebssystem, einer öffentlichen IP-Adresse und Root-Zugriff. Der Server ist rund um die Uhr online, ohne dass Sie eigene Hardware betreiben oder warten müssen. Abgerechnet wird typischerweise nach Stunden oder Monaten.
-
-### Was ist ein Domänenname?
-
-Eine öffentliche IP-Adresse wie `49.12.34.56` ist schwer zu merken und kann sich ändern. Ein Domänenname (z. B. `meinserver.de`) ist ein menschenlesbarer Alias dafür. Das **Domain Name System (DNS)** übersetzt diesen Namen in die zugehörige IP-Adresse – ähnlich wie ein Telefonbuch Namen in Nummern übersetzt.
-
-Domänennamen werden bei einem **Registrar** registriert und für einen bestimmten Zeitraum (typischerweise 1 Jahr) gemietet. Für die Namensauflösung wird anschließend ein **DNS-A-Record** gesetzt, der den Namen auf die IP-Adresse zeigt.
 
 ### Was ist SSH-Key-Authentifizierung?
 
@@ -377,7 +367,7 @@ Wenn Sie den Server nur für diese Übung genutzt haben:
 
 ## Autoren und Urheberrecht
 
-- Erstellt von: *[Ihr Name]*
+- Erstellt von: Michael Lotter, Florian Reichl
 - Datum: 02/2026
 - Version: v1.0
 
