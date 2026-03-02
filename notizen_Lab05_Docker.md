@@ -99,10 +99,67 @@ Container-Update ohne Datenverlust - Vorgehen
 - docker pull neues Image (neues Images ziehen)
 - docker run -d --name mariadb-test -v myvolume://var/lib/mysql mariadb (starten und mit Volume verbinden)
 
+Volumes in eigenen Verzeichnissen
+- Unabhängigkeit des Speicherorts von Docker
+- Verzeichnis anlegen: mkdir /home/<username>/varlibmysql
+- Dann Container einrichten mit einem lokalen Volume-Verzeichnis plus Option -v
+
+`docker run -d -name mariadb-test \ -e MYSQL_ROOT_PASSWORD=geheim \ -v /home/<username>/varlibmysql/:/var/lib/mysql mariadb`
 
 
+Kommunikation zwischen Containern
+- 3 Container in einem Netz
+- Netz erzeugen: `docker network create testnet`
+- MariaDB: `docker run -d --name mariadb-test --network testnet \`
+- `-e MYSQL_RANDOM_ROOT_PASSWORD=1 \`
+- `-e MYSQL_DATABASE=wp \`
+- `-e MYSQL_USER=wpuser \`
+- `-e myvolume:/var/lib/mysql \`
+- `mariadb`
+
+phpMyAdmin
+
+- `docker run -d --name pma --network testnet \`
+- `-p 8080:80 \`
+- `-e PMA_HOST=mariadb-test \`
+- `phpmyadmin/phpmyadmin`
+
+WordPress
+- `docker run -d --name wordpress-test --network-test\`
+- `-h wordpress-test`
+- `-v wp-html:/var/www/html/wp-content` \
+- `-p 8081:80`
+- `-e WORDPRESS_DB_HOST=mariadb-test` \
+- `-e WORDPRESS_DB_USER=wpuser` \
+- `-e WORDPRESS_DB_NAME=wp` \
+- `-e WORDPRESS_DB_PASSWORD=geheim`\
+`wordpress`
+
+Docker stop und docker start geht auch mit mehreren container in einem Befehl
+
+Updates der 3 Container
+- Container stoppen
+- Container löschen
+- mit pull neue Images ziehen 
+
+und dan container neu starten mit docker run. weniger Parameter, weil Daten in Volume "myvolume" erhalten bleiben
+
+Aufräumen 
+- Stoppen
+- container löschen
+- volumes 2x löschen
+- network löschen
+- image löschen
 
 
+Docker administrieren
+- Auflisten und Löschen von Images
+- Auflisten und Löschen von Containern
+- Auflisten und Löschen von Volumes
+- Platzbedarf ermitteln `docker images und docker ps -a -s`
+
+- Volumes verwalten
+- Ungenutzte Speicher freigeben
 
 
 
