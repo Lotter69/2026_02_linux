@@ -212,7 +212,9 @@ Alternativ können Sie Online-Tools wie [dnschecker.org](https://dnschecker.org)
 
 ### Schritt 4: SSH-Schlüsselpaar generieren und hinterlegen
 
-Passwortbasierte SSH-Zugänge sind ein häufiges Angriffsziel. Automatisierte Bots scannen das Internet kontinuierlich nach offenen SSH-Ports und versuchen gängige Passwörter. In diesem Schritt ersetzen Sie die Passwortauthentifizierung durch ein kryptografisches Schlüsselpaar.#### 4.1 Schlüsselpaar auf dem lokalen Rechner erzeugen
+Passwortbasierte SSH-Zugänge sind ein häufiges Angriffsziel. Automatisierte Bots scannen das Internet kontinuierlich nach offenen SSH-Ports und versuchen gängige Passwörter. In diesem Schritt ersetzen Sie die Passwortauthentifizierung durch ein kryptografisches Schlüsselpaar.
+
+#### 4.1 Schlüsselpaar auf dem lokalen Rechner erzeugen
 
 Öffnen Sie ein Terminal auf Ihrem **lokalen Rechner** (nicht auf der VM):
 
@@ -316,7 +318,7 @@ PasswordAuthentication no
 Laden Sie die SSH-Konfiguration neu:
 
 ```bash
-systemctl reload sshd
+systemctl reload ssh
 ```
 
 #### 4.5 Abschließende Überprüfung
