@@ -1,143 +1,271 @@
-# Laborübung 08: Dienste als Container bereitstellen
+# Lab 05: Webdienste als Docker-Container bereitstellen
 
 ![line](images/banner.png)
 
 ## Berufliche Aufgabenstellung
 
-Sie sind als IT-Fachkraft in einem kleinen Betrieb tätig. Die Geschäftsleitung möchte zwei interne Dienste bereitstellen:
+Der Server läuft, Caddy ist eingerichtet, und die ersten Dienste sind per HTTPS erreichbar. Die nächste Anforderung aus dem Betrieb: Zwei weitere Dienste sollen bereitgestellt werden – eine öffentliche **Unternehmenswebseite** und ein internes **Automatisierungs-Dashboard** auf Basis von Node-RED. Anstatt diese Dienste direkt auf dem Host zu installieren, sollen sie als **Docker-Container** betrieben werden.
 
-- Eine **interne Webseite** (statische HTML-Seiten, z. B. Abteilungsinfos oder ein Intranet-Startportal)
-- Eine **Node-RED-Instanz** zur Automatisierung und Visualisierung von Betriebsdaten (z. B. Maschinenstatus, einfache Dashboards)
+Docker ist auf dem Server noch nicht installiert. Das Deployment erfolgt auf dem bestehenden Cloud-Server (z. B. Hetzner) – die Dienste werden hinter dem bereits konfigurierten Caddy als neue Subdomains eingehängt:
 
-Beide Dienste sollen auf demselben Linux-Server laufen und über einen zentralen **Reverse Proxy (Caddy)** erreichbar sein – der Proxy nimmt alle eingehenden Anfragen entgegen und leitet sie je nach Pfad an den richtigen Container weiter.
+- `www.ihre-domain.de` → Unternehmenswebseite (nginx)
+- `dashboard.ihre-domain.de` → Node-RED Automatisierungs-Dashboard
 
-Ihre Aufgabe: Die Dienste als Docker-Container bereitstellen, benennen, mit dem Proxy verbinden und die Erreichbarkeit überprüfen.
+Beide Dienste sind über HTTPS erreichbar – Caddy übernimmt dabei, wie bereits in Lab 04 eingerichtet, automatisch die Zertifikatsverwaltung.
 
 ---
 
 ## Einführung
 
-In dieser Laborübung erleben Sie, wie **containerisierte Dienste** in der Praxis bereitgestellt werden. Statt Dienste direkt auf dem Host zu installieren, laufen sie isoliert in Containern – reproduzierbar, leicht aktualisierbar und unabhängig voneinander.
+Docker erlaubt es, Dienste in **Containern** zu verpacken: isolierte, portable Laufzeitumgebungen, die einen Dienst zusammen mit all seinen Abhängigkeiten enthalten. Statt einen Webserver oder eine Anwendung direkt auf dem Host zu installieren, wird ein fertiges **Image** aus einer Registry geladen und als Container gestartet.
 
-Als Bindeglied nach außen dient **Caddy**: ein moderner Reverse Proxy, der eingehende HTTP-Anfragen anhand des Pfads an den richtigen Container weiterleitet.
-
-```
-Browser
-   │
-   ▼
-Caddy (Port 80)
-   ├── /          →  nginx-web  (Port 8080)
-   └── /nodered/  →  nodered    (Port 1880)
-```
-
-> **Hinweis:** Alle Container laufen im Standard-Bridge-Netzwerk `172.17.0.0/16`. Das Routing zwischen Host und Containern erfolgt über interne IP-Adressen – kein benutzerdefiniertes Netzwerk wird in dieser Übung verwendet. Die sich daraus ergebenden Einschränkungen und Alternativen sind Teil der Reflexion.
+Im Vergleich zur direkten Installation auf dem Host stellt sich dabei eine wichtige Frage zur **Datenpersistenz**: Ein Container ist von Natur aus kurzlebig – wird er gelöscht oder aktualisiert, gehen alle Änderungen am Container-Dateisystem verloren. Docker löst dieses Problem mit **Volumes** und **Bind Mounts**, die Daten außerhalb des Containers speichern und so auch über Container-Neustarts oder Updates hinaus verfügbar halten.
 
 ---
 
 ## Lernziele
 
-- Dienste als benannte Docker-Container bereitstellen und verwalten
-- Eigene Inhalte über ein **Bind Mount** in einen Container einbinden
-- Einen **Caddy Reverse Proxy** als Container konfigurieren und betreiben
-- Container-IP-Adressen ermitteln und deren Herkunft verstehen
-- Speicherbedarf von Containern analysieren
-- Konfigurationsänderungen im Container nachverfolgen und deren Speicherort verstehen
+- Docker auf einem Ubuntu-Server installieren und konfigurieren
+- Den Unterschied zwischen **Bind Mount** und **benanntem Volume** verstehen und praktisch anwenden
+- Die Syntax von **`-p`** (Port-Mapping) und **`-v`** (Volume/Bind Mount) sicher anwenden
+- Eigene Webinhalte über einen Bind Mount in einen Nginx-Container einbinden
+- Node-RED-Daten dauerhaft in einem benannten Volume speichern
+- Den bereits installierten Caddy um neue HTTPS-Subdomains erweitern
 
 ---
 
 ## Voraussetzungen
 
-- Docker ist installiert und läuft (siehe Lab 05)
-- Grundkenntnisse aus Lab 05 (Container starten, benennen, Portweiterleitung)
-- Texteditor auf dem Host (z. B. `nano`)
+| Anforderung | Details |
+|---|---|
+| **Server** | Ubuntu 24.04 LTS, öffentliche IPv4-Adresse (aus Lab 03) |
+| **Caddy** | Installiert und als systemd-Dienst aktiv (aus Lab 04) |
+| **SSH-Zugriff** | Key-Authentifizierung |
+| **DNS** | Verwaltungszugriff für Ihre Domain |
 
 ---
 
 ## Aufgaben
 
-### Schritt 1: Arbeitsverzeichnis anlegen
+### Schritt 1: Docker installieren
 
-Legen Sie eine saubere Verzeichnisstruktur für diese Übung an:
+Docker ist auf dem Server noch nicht vorhanden. In diesem Schritt binden Sie das offizielle Docker-Repository als Paketquelle ein und installieren Docker.
+
+#### 1.1 Paketquellen vorbereiten
+
+Falls ältere oder inoffizielle Docker-Pakete vorhanden sind, entfernen Sie diese zuerst:
 
 ```bash
-mkdir -p ~/lab08/{webseite,caddy}
-cd ~/lab08
+apt remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc 2>/dev/null; true
 ```
 
-Überblick über die Struktur, die am Ende entstehen wird:
+Installieren Sie die benötigten Hilfswerkzeuge:
 
+```bash
+apt install -y ca-certificates curl
 ```
-~/lab08/
-├── webseite/
-│   └── index.html       ← Inhalte für den Webserver
-└── caddy/
-    └── Caddyfile        ← Konfiguration des Reverse Proxy
+
+#### 1.2 Docker-Repository einbinden
+
+Laden Sie den GPG-Schlüssel des Docker-Projekts herunter. APT verwendet ihn, um die digitale Signatur jedes heruntergeladenen Docker-Pakets zu prüfen:
+
+```bash
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
 ```
+
+Tragen Sie das Docker-Repository als Paketquelle ein:
+
+```bash
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+  https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  | tee /etc/apt/sources.list.d/docker.list > /dev/null
+```
+
+#### 1.3 Docker installieren
+
+```bash
+apt update
+apt install -y docker-ce docker-ce-cli containerd.io
+```
+
+Die drei Pakete erfüllen unterschiedliche Aufgaben:
+
+| Paket | Aufgabe |
+|---|---|
+| `docker-ce` | Docker Engine (Community Edition) – der Daemon, der Container und Images verwaltet |
+| `docker-ce-cli` | Kommandozeilen-Schnittstelle (`docker`-Befehl) |
+| `containerd.io` | Container-Laufzeitumgebung, auf der Docker aufbaut |
+
+#### 1.4 Installation prüfen
+
+```bash
+docker version
+docker run --rm hello-world
+```
+
+`docker run --rm hello-world` lädt ein kleines Test-Image herunter, startet es, zeigt eine Erfolgsmeldung und löscht den Container danach automatisch (`--rm`). Wenn Sie die Meldung „Hello from Docker!" sehen, ist die Installation erfolgreich.
+
+#### 1.5 Docker-Netzwerk und ufw
+
+Docker erstellt für Container ein internes Brückennetzwerk (`docker0`). Damit IP-Pakete von diesem Netzwerk an die Container weitergeleitet werden können, muss ufw das Forwarding erlauben. Prüfen Sie die aktuelle Einstellung:
+
+```bash
+grep DEFAULT_FORWARD_POLICY /etc/default/ufw
+```
+
+Falls der Wert `"DROP"` ist, ändern Sie ihn auf `"ACCEPT"`:
+
+```bash
+sed -i 's/DEFAULT_FORWARD_POLICY="DROP"/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
+ufw reload
+```
+
+> **Warum ist das nötig?**
+> Wenn ufw `DEFAULT_FORWARD_POLICY=DROP` setzt, werden IP-Pakete, die über die Docker-Netzwerkbrücke weitergeleitet werden sollen, stillschweigend verworfen. Container können dann nicht mehr nach außen kommunizieren – z. B. keine DNS-Abfragen stellen oder Images herunterladen.
 
 ---
 
-### Schritt 2: Webseite vorbereiten
+### Schritt 2: DNS-Einträge für die neuen Subdomains anlegen
 
-Erstellen Sie eine einfache HTML-Seite, die der Webserver ausliefern soll:
+Die neuen Dienste sollen unter eigenen Subdomains erreichbar sein. Legen Sie beim DNS-Anbieter zwei neue A-Records an, die auf die IPv4-Adresse Ihres Servers zeigen:
+
+| Typ | Name | Wert | TTL |
+|---|---|---|---|
+| `A` | `www` | `<IPv4 Ihres Servers>` | `300` |
+| `A` | `dashboard` | `<IPv4 Ihres Servers>` | `300` |
+
+Prüfen Sie die Auflösung, bevor Sie mit Schritt 5 fortfahren:
 
 ```bash
-nano ~/lab08/webseite/index.html
+dig www.ihre-domain.de +short
+dig dashboard.ihre-domain.de +short
 ```
 
-Inhalt:
+Beide Befehle sollten die IPv4-Adresse Ihres Servers ausgeben.
+
+---
+
+### Schritt 3: Unternehmenswebseite mit nginx-Container bereitstellen
+
+#### 3.1 Webinhalte vorbereiten
+
+Legen Sie ein Verzeichnis auf dem Host für die Webseiten-Dateien an:
+
+```bash
+mkdir -p /srv/www
+nano /srv/www/index.html
+```
+
+Fügen Sie folgenden Inhalt ein und passen Sie ihn frei an:
 
 ```html
 <!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Internes Portal</title>
+  <title>Mein Unternehmen</title>
 </head>
 <body>
-  <h1>Willkommen im internen Portal</h1>
-  <p>Dieser Dienst läuft als Docker-Container.</p>
+  <h1>Willkommen</h1>
+  <p>Diese Seite läuft als Docker-Container hinter Caddy.</p>
 </body>
 </html>
 ```
 
-Speichern mit `Strg+O`, beenden mit `Strg+X`.
+Speichern mit `Strg+O`, `Enter`, beenden mit `Strg+X`.
 
----
+#### 3.2 Was ist ein Bind Mount?
 
-### Schritt 3: Nginx-Webserver-Container starten
+Wenn Sie einen Container starten, enthält er zunächst nur das Dateisystem des Images. Um eigene Dateien – in diesem Fall Ihre HTML-Seite – in den Container einzubinden, verwenden Sie einen **Bind Mount**: Das Verzeichnis `/srv/www` auf dem Host wird direkt in das Verzeichnis `/usr/share/nginx/html` im Container eingehängt. Der Container liest die Dateien unmittelbar vom Host-Dateisystem.
 
-Starten Sie einen **nginx**-Container, der die HTML-Datei vom Host einbindet:
+```
+Host:                    Container:
+/srv/www/           ←→   /usr/share/nginx/html/
+  index.html                index.html
+```
+
+Im Unterschied zu einem **benannten Volume** (siehe Schritt 4) bestimmen Sie beim Bind Mount selbst, wo die Daten auf dem Host liegen. Docker verwaltet diesen Pfad nicht.
+
+#### 3.3 Nginx-Container starten
 
 ```bash
-sudo docker run -d \
+docker run -d \
   --name nginx-web \
   -p 8080:80 \
-  -v ~/lab08/webseite:/usr/share/nginx/html:ro \
+  -v /srv/www:/usr/share/nginx/html:ro \
   nginx
 ```
 
+**Erklärung der Optionen:**
+
 | Option | Bedeutung |
 |---|---|
-| `--name nginx-web` | Container erhält einen sprechenden Namen |
-| `-p 8080:80` | Port 8080 des Hosts leitet auf Port 80 des Containers |
-| `-v ~/lab08/webseite:/usr/share/nginx/html:ro` | Lokales Verzeichnis wird eingebunden, `:ro` = read-only |
+| `-d` | Container läuft im Hintergrund (detached) |
+| `--name nginx-web` | Eindeutiger Name für den Container |
+| `-p 8080:80` | Port-Mapping: Port 8080 des Hosts leitet auf Port 80 im Container |
+| `-v /srv/www:/usr/share/nginx/html:ro` | Bind Mount: Host-Verzeichnis → Container-Verzeichnis, `:ro` = read-only |
 
-#### Webserver direkt testen
+> **Syntax `-p <host-port>:<container-port>`**
+> Der erste Wert ist der Port, über den der Dienst auf dem **Host** erreichbar ist. Der zweite Wert ist der Port, auf dem der Dienst **im Container** lauscht. Mit `-p 8080:80` ist nginx im Container auf Port 80 aktiv – von außen ist er über Port 8080 auf dem Host erreichbar. Caddy, das auf dem Host läuft, kann den Container damit einfach über `localhost:8080` ansprechen.
+
+> **Syntax `-v <quelle>:<ziel>[:ro]`**
+> Beim Bind Mount ist `<quelle>` ein Pfad auf dem **Host**, `<ziel>` ein Pfad **im Container**. Das optionale `:ro` macht den Mount read-only – der Container kann die Dateien lesen, aber nicht verändern. Dies schützt die Webinhalte, die ausschließlich vom Host aus gepflegt werden.
+
+#### 3.4 Webserver testen
 
 ```bash
 curl http://localhost:8080
 ```
 
-Sie sollten den HTML-Inhalt sehen. Alternativ im Browser: `http://localhost:8080`
+Sie sollten den HTML-Inhalt Ihrer Seite sehen.
+
+#### 3.5 Was passiert beim Container-Update?
+
+Wenn nginx aktualisiert wird – Sie also den alten Container löschen und einen neuen aus einem neueren Image starten –, bleiben die Webinhalte in `/srv/www` vollständig erhalten. Sie liegen auf dem Host und werden durch den Bind Mount lediglich eingehängt. Der Container-Neustart hat keinen Einfluss auf das Host-Verzeichnis:
+
+```bash
+docker stop nginx-web && docker rm nginx-web
+docker pull nginx
+docker run -d \
+  --name nginx-web \
+  -p 8080:80 \
+  -v /srv/www:/usr/share/nginx/html:ro \
+  nginx
+```
 
 ---
 
 ### Schritt 4: Node-RED-Container starten
 
-Node-RED benötigt ein Volume, damit erstellte Flows und Einstellungen erhalten bleiben:
+#### 4.1 Was ist ein benanntes Volume?
+
+Node-RED speichert erstellte Flows, Einstellungen und installierte Erweiterungen im Verzeichnis `/data` des Containers. Diese Daten müssen auch dann erhalten bleiben, wenn der Container aktualisiert oder neu erstellt wird.
+
+Dafür wird ein **benanntes Volume** verwendet: Sie vergeben einen Namen (`nodered-data`), und Docker legt das zugehörige Verzeichnis automatisch auf dem Host an – standardmäßig unter `/var/lib/docker/volumes/nodered-data/`. Den genauen Speicherort verwaltet Docker; Sie müssen ihn nicht selbst anlegen.
+
+```
+Docker-Volume:           Container:
+nodered-data/       ←→   /data/
+  flows.json               flows.json
+  settings.js              settings.js
+```
+
+> **Bind Mount vs. benanntes Volume**
+>
+> | | Bind Mount | Benanntes Volume |
+> |---|---|---|
+> | Speicherort | Frei gewählter Pfad auf dem Host | Von Docker verwaltet (`/var/lib/docker/volumes/`) |
+> | Anlegen | Pfad muss angegeben werden | Docker legt das Volume beim ersten Start automatisch an |
+> | Portabilität | Pfad ist host-spezifisch | Volume kann mit `docker volume`-Befehlen verwaltet werden |
+> | Typischer Einsatz | Konfigurationsdateien und Inhalte, die vom Host gepflegt werden | Anwendungsdaten (Flows, Datenbanken) |
+
+#### 4.2 Node-RED starten
 
 ```bash
-sudo docker run -d \
+docker run -d \
   --name nodered \
   -p 1880:1880 \
   -v nodered-data:/data \
@@ -146,253 +274,159 @@ sudo docker run -d \
 
 | Option | Bedeutung |
 |---|---|
-| `--name nodered` | Containername |
-| `-p 1880:1880` | Standardport von Node-RED |
-| `-v nodered-data:/data` | Benanntes Volume für Flows und Einstellungen |
+| `-p 1880:1880` | Port 1880 des Hosts leitet auf Port 1880 im Container |
+| `-v nodered-data:/data` | Benanntes Volume `nodered-data` wird in `/data` im Container eingehängt |
 
-#### Node-RED direkt testen
+Das Volume `nodered-data` existiert zu diesem Zeitpunkt noch nicht – Docker legt es beim ersten Start automatisch an. Prüfen Sie anschließend:
 
-Öffnen Sie im Browser:
-
-```
-http://localhost:1880
+```bash
+docker volume ls
+docker volume inspect nodered-data
 ```
 
-Sie sehen den Node-RED Editor. Erstellen Sie einen einfachen Test-Flow:
+`docker volume inspect` zeigt unter `Mountpoint` den tatsächlichen Pfad auf dem Host, an dem Docker die Daten speichert.
 
-1. Ziehen Sie einen **Inject**-Node auf die Arbeitsfläche
-2. Verbinden Sie ihn mit einem **Debug**-Node
-3. Klicken Sie auf **Deploy**
-4. Klicken Sie auf den Inject-Button – im Debug-Panel erscheint eine Ausgabe
+#### 4.3 Node-RED direkt testen
 
-> Dieser Flow bleibt dank des Volumes `nodered-data` auch nach einem Container-Neustart erhalten.
+```bash
+curl http://localhost:1880
+```
+
+Sie sollten eine HTML-Antwort erhalten. Der Port 1880 ist von außen nicht direkt zugänglich – ufw lässt ihn nicht durch – und das ist gewollt: Der Zugriff aus dem Internet soll ausschließlich über Caddy erfolgen.
+
+> **Warum braucht Node-RED kein eigenes HTTPS?**
+> Node-RED kommuniziert intern zwischen Container und Caddy ausschließlich über `localhost:1880` – eine lokale Verbindung auf dem Server, die nicht das Internet berührt. Die HTTPS-Verschlüsselung gegenüber dem Browser des Benutzers übernimmt vollständig Caddy: Er empfängt die verschlüsselte Anfrage auf Port 443, entschlüsselt sie und leitet sie unverschlüsselt an `localhost:1880` weiter. Node-RED selbst muss sich nicht um Zertifikate kümmern.
+
+#### 4.4 Was passiert beim Container-Update?
+
+Das benannte Volume bleibt beim Update des Containers vollständig erhalten:
+
+```bash
+docker stop nodered && docker rm nodered
+docker pull nodered/node-red
+docker run -d \
+  --name nodered \
+  -p 1880:1880 \
+  -v nodered-data:/data \
+  nodered/node-red
+```
+
+`nodered-data` besteht unabhängig vom Container. Es bleibt so lange bestehen, bis es mit `docker volume rm nodered-data` explizit gelöscht wird. Alle Flows und Einstellungen sind nach dem Update unverändert vorhanden.
 
 ---
 
-### Schritt 5: Container-IPs ermitteln
-
-Bevor Caddy konfiguriert werden kann, benötigen Sie die internen IP-Adressen der Container im Standard-Bridge-Netzwerk:
-
-```bash
-sudo docker inspect -f '{{.Name}}: {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' nginx-web nodered
-```
-
-Notieren Sie die Adressen:
-
-| Container | IP-Adresse |
-|---|---|
-| nginx-web | `172.17.0.___` |
-| nodered | `172.17.0.___` |
-
-> **Warum brauchen wir die IP?** Im Standard-Bridge-Netzwerk gibt es keine Namensauflösung zwischen Containern. Caddy muss die Ziel-Container daher über ihre IP-Adresse ansprechen. Was das bedeutet und welche Alternative es gibt, ist Teil der Reflexion am Ende dieser Übung.
+> **Exkurs: Benutzerverwaltung in Node-RED**
+>
+> Standardmäßig ist der Node-RED Editor ohne Authentifizierung zugänglich. Wer den Zugriff auf autorisierte Benutzer beschränken möchte, kann in der Konfigurationsdatei `settings.js` eine Benutzerverwaltung aktivieren.
+>
+> Die Datei liegt im Volume und ist direkt auf dem Host bearbeitbar:
+>
+> ```bash
+> nano /var/lib/docker/volumes/nodered-data/_data/settings.js
+> ```
+>
+> Suchen Sie den auskommentierten Abschnitt `adminAuth` und aktivieren Sie ihn:
+>
+> ```javascript
+> adminAuth: {
+>     type: "credentials",
+>     users: [{
+>         username: "admin",
+>         password: "$2b$08$...",  // bcrypt-Hash des Passworts
+>         permissions: "*"
+>     }]
+> },
+> ```
+>
+> Den bcrypt-Hash für Ihr Passwort erzeugen Sie direkt im Container:
+>
+> ```bash
+> docker exec -it nodered node-red admin hash-pw
+> ```
+>
+> Starten Sie den Container nach der Änderung neu:
+>
+> ```bash
+> docker restart nodered
+> ```
+>
+> Der Node-RED Editor verlangt beim nächsten Aufruf Benutzername und Passwort.
 
 ---
 
-### Schritt 6: Caddy konfigurieren
+### Schritt 5: Caddy für die neuen Subdomains konfigurieren
 
-Erstellen Sie das Caddyfile mit den ermittelten IP-Adressen:
+Die Container laufen und sind intern über `localhost:8080` bzw. `localhost:1880` erreichbar. Erweitern Sie nun das Caddyfile um die beiden neuen Subdomains.
+
+Öffnen Sie die Konfigurationsdatei:
 
 ```bash
-nano ~/lab08/caddy/Caddyfile
+nano /etc/caddy/Caddyfile
 ```
 
-Inhalt (ersetzen Sie die IP-Adressen durch Ihre notierten Werte):
+Fügen Sie am Ende der Datei die folgenden Blöcke hinzu:
 
-```
-:80 {
-    # Anfragen an /nodered/ werden an den Node-RED Container weitergeleitet
-    handle /nodered/* {
-        reverse_proxy 172.17.0.X:1880
-    }
+```caddy
+# Unternehmenswebseite
+www.ihre-domain.de {
+    reverse_proxy localhost:8080
+}
 
-    # Alle anderen Anfragen gehen an den Nginx-Webserver
-    handle {
-        reverse_proxy 172.17.0.Y:80
-    }
+# Node-RED Dashboard
+dashboard.ihre-domain.de {
+    reverse_proxy localhost:1880
 }
 ```
 
-> **Hinweis:** Ersetzen Sie `172.17.0.X` und `172.17.0.Y` durch die tatsächlichen IP-Adressen aus Schritt 5.
+> **Warum funktioniert `localhost:8080` – und sind keine Container-IP-Adressen nötig?**
+> Mit `-p 8080:80` bindet Docker den Container-Port 80 an den Host-Port 8080. Caddy läuft auf demselben Host und erreicht den Container daher einfach über `localhost:8080` – genau wie jeder andere lokale Prozess. Container-IP-Adressen werden nur benötigt, wenn Container direkt miteinander kommunizieren sollen, ohne Port-Mapping über den Host.
+
+Validieren und laden Sie die Konfiguration:
+
+```bash
+caddy validate --config /etc/caddy/Caddyfile
+systemctl reload caddy
+```
+
+Caddy fordert nun automatisch TLS-Zertifikate für `www.ihre-domain.de` und `dashboard.ihre-domain.de` bei Let's Encrypt an.
+
+> **Tipp zur Fehlerbehebung:** Die DNS-Einträge aus Schritt 2 müssen propagiert sein, bevor Caddy Zertifikate ausstellen kann. Beobachten Sie die Logs mit `journalctl -u caddy -f`.
 
 ---
 
-### Schritt 7: Caddy-Container starten
+### Schritt 6: Ergebnis im Browser überprüfen
+
+#### 6.1 Laufende Container prüfen
 
 ```bash
-sudo docker run -d \
-  --name caddy \
-  -p 80:80 \
-  -v ~/lab08/caddy/Caddyfile:/etc/caddy/Caddyfile:ro \
-  caddy
+docker ps
 ```
 
-#### Routing testen
+Sie sollten zwei laufende Container sehen: `nginx-web` und `nodered`.
 
-```bash
-# Webserver über Caddy
-curl http://localhost/
-
-# Node-RED über Caddy
-curl http://localhost/nodered/
-```
-
-Oder im Browser:
+#### 6.2 Dienste im Browser aufrufen
 
 ```
-http://localhost/           → Interne Webseite
-http://localhost/nodered/   → Node-RED Editor
+https://www.ihre-domain.de          →  Ihre Unternehmenswebseite
+https://dashboard.ihre-domain.de    →  Node-RED Editor
 ```
 
-#### Caddy-Logs prüfen
-
-```bash
-sudo docker logs caddy
-```
-
-> **Tipp zur Fehlerbehebung:** Wenn Caddy einen Verbindungsfehler meldet, prüfen Sie die IP-Adressen in Ihrem Caddyfile mit `docker inspect` erneut. Container können beim Neustart andere IPs erhalten.
-
----
-
-### Schritt 8: Betrieb überprüfen und dokumentieren
-
-#### 8.1 Alle laufenden Container anzeigen
-
-```bash
-sudo docker ps
-```
-
-Sie sollten drei laufende Container sehen: `caddy`, `nginx-web`, `nodered`.
-
-#### 8.2 Speicherbedarf der Container ermitteln
-
-```bash
-# Speicherbedarf aller Container (inkl. beschreibbarer Schicht)
-sudo docker ps -a -s
-```
-
-Die Spalte `SIZE` zeigt zwei Werte:
-
-```
-123kB (virtual 45MB)
-```
-
-| Wert | Bedeutung |
-|---|---|
-| `123kB` | Größe der **beschreibbaren Container-Schicht** (was sich seit Image-Start verändert hat) |
-| `virtual 45MB` | Gesamtgröße inkl. Image (wird von allen Containern desselben Images geteilt) |
-
-```bash
-# Gesamtübersicht Speicher
-sudo docker system df
-```
-
-#### 8.3 IP-Adressen aller Container tabellarisch ausgeben
-
-```bash
-sudo docker inspect \
-  --format '{{.Name}}: {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \
-  caddy nginx-web nodered
-```
-
----
-
-### Schritt 9: Konfigurationsänderung nachverfolgen
-
-In diesem Schritt erleben Sie, **wo und wie** Änderungen innerhalb eines Containers gespeichert werden – und was das für den Betrieb bedeutet.
-
-#### 9.1 Nginx-Konfiguration im laufenden Container ändern
-
-Öffnen Sie eine Shell im nginx-Container und schauen Sie sich die Standard-Konfiguration an:
-
-```bash
-sudo docker exec -it nginx-web bash
-
-# Konfigurationsdatei anzeigen
-cat /etc/nginx/nginx.conf
-
-# Eine kleine Änderung vornehmen: eigenen Header hinzufügen
-# (nur zur Demonstration – nicht produktiv empfohlen)
-echo "# geaendert am $(date)" >> /etc/nginx/nginx.conf
-
-# Änderung prüfen
-tail -3 /etc/nginx/nginx.conf
-
-exit
-```
-
-#### 9.2 Änderung im Container-Dateisystem sichtbar machen
-
-Docker speichert alle Änderungen gegenüber dem Original-Image in einer **beschreibbaren Schicht** (Container Layer). Diese Änderungen können angezeigt werden:
-
-```bash
-sudo docker diff nginx-web
-```
-
-Die Ausgabe zeigt alle veränderten Dateien mit Kennzeichnung:
-
-| Buchstabe | Bedeutung |
-|---|---|
-| `A` | Added – neu hinzugefügt |
-| `C` | Changed – verändert |
-| `D` | Deleted – gelöscht |
-
-🔍 **Beobachten Sie:** Die geänderte Konfigurationsdatei erscheint mit `C` – sie existiert als Kopie in der Container-Schicht, das Original-Image bleibt unverändert.
-
-#### 9.3 Was passiert beim Löschen des Containers?
-
-```bash
-# Container stoppen und löschen
-sudo docker stop nginx-web
-sudo docker rm nginx-web
-
-# Container neu aus dem Image starten
-sudo docker run -d \
-  --name nginx-web \
-  -p 8080:80 \
-  -v ~/lab08/webseite:/usr/share/nginx/html:ro \
-  nginx
-
-# Änderung prüfen – sie ist weg
-sudo docker exec nginx-web tail -3 /etc/nginx/nginx.conf
-```
-
-🔍 **Erkenntnis:** Änderungen direkt im Container sind **flüchtig** – sie verschwinden, wenn der Container gelöscht wird. Nur Daten in Volumes oder Bind Mounts überleben das Löschen eines Containers.
+Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden – ohne Sicherheitswarnung im Browser.
 
 ---
 
 ## Reflexion und weiterführende Fragen
 
-Die folgenden Fragen greifen die Beobachtungen aus der Übung auf und öffnen den Blick auf vertiefende Themen:
+**Zu Volumes und Bind Mounts:**
 
----
+- Warum wird für die Webseite ein Bind Mount verwendet, für Node-RED-Daten aber ein benanntes Volume? Welche Anforderungen bestimmen diese Wahl?
+- Was passiert, wenn Sie `docker rm nodered` ausführen? Was passiert zusätzlich, wenn Sie `docker volume rm nodered-data` ausführen?
+- Wie können Sie die Daten eines benannten Volumes sichern?
 
-**Zu den IP-Adressen:**
+**Zu den Containern und Caddy:**
 
-- Aus welchem Netz stammen die IP-Adressen der Container – und warum?
-- Was passiert mit den IP-Adressen, wenn die Container neu gestartet werden?
-- Warum ist es problematisch, IP-Adressen fest in das Caddyfile einzutragen?
-- Wie könnte das Problem der wechselnden IPs gelöst werden?
-
-> 💡 *Hinweis: Die Antwort führt zum Thema **benutzerdefinierte Docker-Netzwerke**, in denen Container über ihre Namen angesprochen werden können – Thema der nächsten Laborübung.*
-
----
-
-**Zum Speicher:**
-
-- Was ist der Unterschied zwischen der kleinen und der großen Zahl in der `SIZE`-Spalte von `docker ps -s`?
-- Wo auf dem Host liegt die beschreibbare Container-Schicht?
-- Warum ist es sinnvoll, Konfigurationsdateien nicht im Container zu ändern, sondern über Bind Mounts einzubinden?
-- Was spricht dafür, Node-RED-Daten in einem Volume zu speichern?
-
-> 💡 *Hinweis: Die Antworten führen zu den Themen **Docker Volumes**, **Bind Mounts** und dem **Union Filesystem** – dem Schichtsystem, auf dem Container-Images aufgebaut sind.*
-
----
-
-**Zum Reverse Proxy:**
-
-- Warum ist es sinnvoll, einen Reverse Proxy vor die Container zu schalten, statt alle Ports direkt freizugeben?
-- Was müsste geändert werden, wenn ein dritter Dienst hinzukommt?
-- Caddy unterstützt auch automatisches HTTPS – wann wäre das relevant?
+- Was müsste sich ändern, wenn Sie Caddy ebenfalls als Container betreiben wollten – warum wäre `localhost:8080` dann nicht mehr ausreichend?
+- Was spricht dafür, Caddy auf dem Host zu installieren statt als Container – insbesondere im Hinblick auf systemd-Integration und TLS?
 
 ---
 
@@ -400,25 +434,28 @@ Die folgenden Fragen greifen die Beobachtungen aus der Übung auf und öffnen de
 
 ### Was Sie erreicht haben
 
-- Zwei Dienste (**nginx**, **Node-RED**) als benannte Docker-Container bereitgestellt
-- Eigene HTML-Inhalte über einen **Bind Mount** in den Webserver-Container eingebunden
-- **Caddy** als Reverse Proxy konfiguriert und das Routing über Pfade eingerichtet
-- Container-**IP-Adressen** ermittelt und deren Herkunft im Standard-Bridge-Netzwerk verstanden
-- Den **Speicherbedarf** von Containern analysiert und die beschreibbare Container-Schicht erkundet
-- Erlebt, dass direkte Änderungen im Container **flüchtig** sind
+- **Docker** aus dem offiziellen Repository installiert und die Paketstruktur verstanden
+- Den Unterschied zwischen **Bind Mount** und **benanntem Volume** verstanden und praktisch angewendet
+- Die Syntax von **`-p`** (Port-Mapping) und **`-v`** (Volume/Bind Mount) sicher angewendet
+- Nginx mit eigenem HTML-Inhalt über einen **Bind Mount** bereitgestellt
+- Node-RED-Daten dauerhaft in einem **benannten Volume** gespeichert
+- Den bereits installierten **Caddy** um zwei neue HTTPS-Subdomains erweitert
+- Verstanden, warum **`localhost`** ausreicht und Container-IP-Adressen hier nicht benötigt werden
 
 ### Zentrale Befehle dieser Übung
 
 | Befehl | Bedeutung |
 |---|---|
-| `docker run --name <n>` | Container mit Name starten |
-| `docker run -v <host>:<container>:ro` | Bind Mount (read-only) einbinden |
-| `docker inspect -f '{{...}}' <c>` | Gezielt Informationen auslesen |
-| `docker ps -s` | Container mit Speicherbedarf anzeigen |
-| `docker system df` | Gesamtübersicht Speicher |
-| `docker diff <c>` | Änderungen im Container-Dateisystem anzeigen |
-| `docker exec -it <c> bash` | Shell im laufenden Container öffnen |
-| `docker logs <c>` | Container-Logs anzeigen |
+| `docker run -d --name <n>` | Container im Hintergrund starten und benennen |
+| `docker run -p <host>:<container>` | Port des Hosts an Container weiterleiten |
+| `docker run -v <pfad>:<ziel>:ro` | Bind Mount (read-only) einbinden |
+| `docker run -v <name>:<ziel>` | Benanntes Volume einbinden (wird ggf. automatisch angelegt) |
+| `docker ps` | Laufende Container anzeigen |
+| `docker volume ls` | Vorhandene Volumes anzeigen |
+| `docker volume inspect <name>` | Speicherort und Details eines Volumes anzeigen |
+| `docker stop <n> && docker rm <n>` | Container stoppen und löschen |
+| `docker pull <image>` | Aktuelles Image herunterladen |
+| `docker restart <n>` | Container neu starten |
 
 ---
 
@@ -426,23 +463,29 @@ Die folgenden Fragen greifen die Beobachtungen aus der Übung auf und öffnen de
 
 ```bash
 # Container stoppen und löschen
-sudo docker stop caddy nginx-web nodered
-sudo docker rm caddy nginx-web nodered
+docker stop nginx-web nodered
+docker rm nginx-web nodered
 
-# Volume löschen
-sudo docker volume rm nodered-data
+# Volume löschen (Achtung: alle Node-RED-Daten gehen verloren)
+docker volume rm nodered-data
 
-# Arbeitsverzeichnis löschen (optional)
-rm -rf ~/lab08
+# Webinhalte löschen
+rm -rf /srv/www
+
+# Caddy-Konfiguration: die hinzugefügten Blöcke für www und dashboard entfernen
+nano /etc/caddy/Caddyfile
+caddy validate --config /etc/caddy/Caddyfile
+systemctl reload caddy
 ```
 
 ## Autoren und Urheberrecht
-- Erstellt für den Einsatz im Unterricht
-- Date: 09/2025
+
+- Erstellt von: Michael Lotter, Florian Reichl
+- Datum: 02/2026
 - Version: v1.0
 
 ![line](images/banner.png)
 <p align="center">
-<a href="Lab07_Docker_Netzwerk.md"><img src="images/previous.png" width="150px"></a>
-<a href="Lab09.md"><img src="images/next.png" width="150px"></a>
+<a href="Lab_04.md"><img src="images/previous.png" width="150px"></a>
+<a href="Lab_06.md"><img src="images/next.png" width="150px"></a>
 </p>
