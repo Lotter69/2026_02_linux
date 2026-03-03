@@ -1,0 +1,38 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Repository Purpose
+
+This is a German-language Linux administration lab course (ALP – 2026 cohort). The repository contains practical exercises for students learning Linux system administration, targeting **Linux Mint 21.x (Ubuntu-based)** environments.
+
+## Content Structure
+
+All lab content is written in **Markdown** and follows a consistent format:
+- Lab introduction and learning objectives
+- Prerequisites table
+- Step-by-step tasks with embedded shell commands
+- Reflection questions
+- Cleanup instructions
+- Navigation footer linking to adjacent labs
+
+Current labs:
+- `Lab_01.md` – Installing and managing Cockpit via systemd (main exercise)
+- `Lab_01_ausbau.md` – Extensions: socket activation, ufw firewall, drop-in files, journalctl analysis
+- `Lab_02.md` – Writing custom systemd unit files from scratch
+
+Images (banner, navigation arrows, screenshots) are stored in `images/`.
+
+## Authoring Conventions
+
+- Language: **German** throughout (instructions, comments, headings)
+- Shell commands are shown in fenced code blocks with `bash` syntax highlighting
+- `.ini`/`.conf` snippets use `ini` syntax highlighting
+- Explanatory callouts use `>` blockquotes with bold lead-in, e.g. `> **Was passiert hier?**`
+- Tables use standard Markdown pipe syntax
+- Each lab ends with a navigation footer using `images/previous.png` and `images/next.png`
+- Lab metadata footer: authors (Michael Lotter, Florian Reichl), year, version
+
+## Lab Numbering and File Names
+
+Labs follow the pattern `Lab_NN.md` for core exercises and `Lab_NN_ausbau.md` for extension tasks. When creating new labs, maintain this naming convention and update navigation links in adjacent files.
