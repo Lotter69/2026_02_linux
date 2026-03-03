@@ -194,6 +194,7 @@ Im Unterschied zu einem **benannten Volume** (siehe Schritt 4) bestimmen Sie bei
 ```bash
 docker run -d \
   --name nginx-web \
+  --restart unless-stopped \
   -p 8080:80 \
   -v /srv/www:/usr/share/nginx/html:ro \
   nginx
@@ -205,8 +206,21 @@ docker run -d \
 |---|---|
 | `-d` | Container läuft im Hintergrund (detached) |
 | `--name nginx-web` | Eindeutiger Name für den Container |
+| `--restart unless-stopped` | Container startet automatisch neu (siehe Hinweis unten) |
 | `-p 8080:80` | Port-Mapping: Port 8080 des Hosts leitet auf Port 80 im Container |
 | `-v /srv/www:/usr/share/nginx/html:ro` | Bind Mount: Host-Verzeichnis → Container-Verzeichnis, `:ro` = read-only |
+
+> **Automatischer Neustart mit `--restart`**
+> Ohne diese Option startet ein Container nach einem Serverneustart **nicht** automatisch wieder. Docker kennt vier Restart-Richtlinien:
+>
+> | Wert | Verhalten |
+> |---|---|
+> | `no` | Kein automatischer Neustart (Standardwert) |
+> | `always` | Immer neu starten – auch nach manuellem `docker stop` |
+> | `unless-stopped` | Neu starten, außer wenn der Container manuell gestoppt wurde |
+> | `on-failure` | Nur neu starten, wenn der Container mit einem Fehler beendet wurde |
+>
+> Für Produktivdienste ist `unless-stopped` die empfohlene Wahl: Der Container startet nach einem Serverneustart automatisch, lässt sich aber für Wartungsarbeiten mit `docker stop` ohne unerwünschte Neustarts anhalten.
 
 > **Syntax `-p <host-port>:<container-port>`**
 > Der erste Wert ist der Port, über den der Dienst auf dem **Host** erreichbar ist. Der zweite Wert ist der Port, auf dem der Dienst **im Container** lauscht. Mit `-p 8080:80` ist nginx im Container auf Port 80 aktiv – von außen ist er über Port 8080 auf dem Host erreichbar. Caddy, das auf dem Host läuft, kann den Container damit einfach über `localhost:8080` ansprechen.
@@ -231,6 +245,7 @@ docker stop nginx-web && docker rm nginx-web
 docker pull nginx
 docker run -d \
   --name nginx-web \
+  --restart unless-stopped \
   -p 8080:80 \
   -v /srv/www:/usr/share/nginx/html:ro \
   nginx
@@ -267,6 +282,7 @@ nodered-data/       ←→   /data/
 ```bash
 docker run -d \
   --name nodered \
+  --restart unless-stopped \
   -p 1880:1880 \
   -v nodered-data:/data \
   nodered/node-red
@@ -274,6 +290,7 @@ docker run -d \
 
 | Option | Bedeutung |
 |---|---|
+| `--restart unless-stopped` | Automatischer Neustart nach Serverneustart (siehe Schritt 3.3) |
 | `-p 1880:1880` | Port 1880 des Hosts leitet auf Port 1880 im Container |
 | `-v nodered-data:/data` | Benanntes Volume `nodered-data` wird in `/data` im Container eingehängt |
 
@@ -306,6 +323,7 @@ docker stop nodered && docker rm nodered
 docker pull nodered/node-red
 docker run -d \
   --name nodered \
+  --restart unless-stopped \
   -p 1880:1880 \
   -v nodered-data:/data \
   nodered/node-red
@@ -447,6 +465,7 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 | Befehl | Bedeutung |
 |---|---|
 | `docker run -d --name <n>` | Container im Hintergrund starten und benennen |
+| `docker run --restart unless-stopped` | Container nach Serverneustart automatisch starten |
 | `docker run -p <host>:<container>` | Port des Hosts an Container weiterleiten |
 | `docker run -v <pfad>:<ziel>:ro` | Bind Mount (read-only) einbinden |
 | `docker run -v <name>:<ziel>` | Benanntes Volume einbinden (wird ggf. automatisch angelegt) |
