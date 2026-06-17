@@ -284,7 +284,7 @@ Fügen Sie folgenden Inhalt ein, speichern Sie mit `Strg+O`, `Enter`, `Strg+X`:
 <!DOCTYPE html>
 <html><body>
 <h1>Dienst A</h1>
-<p>Dieser Dienst ist öffentlich über Caddy erreichbar.</p>
+<p>Dieser Dienst ist oeffentlich ueber Caddy erreichbar.</p>
 </body></html>
 ```
 
