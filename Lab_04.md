@@ -62,9 +62,9 @@ Die Lösung ist ein **Reverse Proxy**: Ein einziger Dienst nimmt alle eingehende
   - `cockpit.ihre-domain.de`
   - `dienst-a.ihre-domain.de`
   - `dienst-b.ihre-domain.de`
-- SSH-Zugriff mit Key-Authentifizierung (Ergebnis aus Laborübung 01)
+- SSH-Zugriff mit Key-Authentifizierung (Ergebnis aus vorausgehender Laborübung Lab 03)
 
-> **Hinweis:** Die DNS-Einträge müssen propagiert sein, bevor Caddy TLS-Zertifikate ausstellen kann. Prüfen Sie die Auflösung mit `dig cockpit.ihre-domain.de` bevor Sie fortfahren.
+> **Hinweis:** Diese drei Einträge legen Sie analog zu Laborübung 03, Schritt 3.1 an – einmal pro Hostname. Alternativ deckt ein einzelner Wildcard-Eintrag (Name *, Typ A, Wert = Server-IP) alle drei Namen gleichzeitig ab. Prüfen Sie vorab mit dig cockpit.ihre-domain.de bzw. Resolve-DnsName -Name cockpit.ihre-domain.de -Server 8.8.8.8, ob die Namen bereits auflösen, bevor Sie neue Einträge anlegen – sonst entstehen unnötig doppelte oder widersprüchliche Records.
 
 ---
 

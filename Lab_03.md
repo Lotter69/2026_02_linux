@@ -150,12 +150,12 @@ Folgende Domainnamen werden im weiteren Verlauf benötigt:
 
 | Verwendungszweck       | Beispiel-Hostname          |
 |------------------------|----------------------------|
-| SSH-Zugriff auf die VM | `server.ihre-domain.de`    |
-| Spätere Dienste        | `app.ihre-domain.de`       |
-|                        | `monitor.ihre-domain.de`   |
+| SSH-Zugriff auf die VM | `cockpit.ihre-domain.de`    |
+| Spätere Dienste        | `dienst-a.ihre-domain.de`       |
+|                        | `dienst-b.ihre-domain.de`   |
 
 > **Keine eigene Domain zur Hand?**
-> Für Test- und Übungszwecke bieten Dienste wie **nip.io** oder **sslip.io** eine kostenlose Alternative: Sie kodieren die IP-Adresse direkt im Hostnamen. Zum Beispiel löst `server.49-12-34-56.nip.io` automatisch auf `49.12.34.56` auf – ohne DNS-Konfiguration. Diese Methode eignet sich für lokale Tests, nicht aber für produktive Umgebungen oder Let's Encrypt-Zertifikate.
+> Für Test- und Übungszwecke bieten Dienste wie **nip.io** oder **sslip.io** eine kostenlose Alternative: Sie kodieren die IP-Adresse direkt im Hostnamen. Zum Beispiel löst `cockpit.49-12-34-56.nip.io` automatisch auf `49.12.34.56` auf – ohne DNS-Konfiguration. Diese Methode eignet sich für lokale Tests, nicht aber für produktive Umgebungen oder Let's Encrypt-Zertifikate.
 
 ---
 
@@ -179,6 +179,9 @@ Nun verknüpfen Sie den Domänennamen mit der öffentlichen IPv4-Adresse Ihrer V
 
 > **Was ist TTL?**
 > Die *Time to Live* gibt in Sekunden an, wie lange DNS-Resolver diesen Eintrag zwischenspeichern dürfen, bevor sie ihn erneut abfragen. Ein niedriger Wert (z. B. 300) ermöglicht schnelle Änderungen, erzeugt aber mehr Anfragen. Für stabile Produktivumgebungen sind Werte von 3600 (1 Stunde) üblich.
+
+> **Exkurs: Wildcard statt Einzeleinträge**
+>Statt für jeden zukünftigen Hostnamen einen eigenen A-Record anzulegen, könnten Sie auch einen einzigen Wildcard-Record setzen: Name *, Typ A, Wert <IPv4-Adresse>. Damit löst jede beliebige Subdomain von ihre-domain.de automatisch auf diese IP auf – auch solche, die Sie nie angelegt haben. Für diese Übung verwenden wir bewusst einen expliziten Einzeleintrag, damit der Zusammenhang zwischen DNS-Konfiguration und Namensauflösung nachvollziehbar bleibt. Prüfen Sie in späteren Übungen, ob in Ihrer Zone bereits ein Wildcard-Eintrag existiert, bevor Sie dort neue Einzeleinträge anlegen.
 
 #### 3.2 DNS-Propagierung abwarten und prüfen
 
