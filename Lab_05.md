@@ -142,9 +142,11 @@ Die neuen Dienste sollen unter eigenen Subdomains erreichbar sein. Legen Sie bei
 > Falls in Ihrer DNS-Zone bereits ein Wildcard-Eintrag (Name `*`, Typ `A`) existiert, lösen automatisch *alle* Subdomains auf dieselbe IP auf – auch ohne dass Sie für die hier benötigten Namen eigene Einträge anlegen. Prüfen Sie das vorab mit einer frei erfundenen Subdomain:
 >
 > ```powershell
+> powershell
 > Resolve-DnsName -Name irgendwas-zufaelliges123.ihre-domain.de -Server 8.8.8.8
 > ```
 > ```bash
+> bash
 >dig @8.8.8.8 irgendwas-zufaelliges123.ihre-domain.de
 >````
 > Kommt hier eine IP-Adresse zurück, ist Ihre Zone bereits per Wildcard abgedeckt – Sie können diesen Schritt überspringen und direkt mit dem nächsten Schritt fortfahren. Kommt `NXDOMAIN` zurück, legen Sie die A-Records wie unten beschrieben einzeln an.
