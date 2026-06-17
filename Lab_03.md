@@ -273,7 +273,7 @@ chmod 600 ~/.ssh/authorized_keys
 
 #### 4.3 Key-basierte Verbindung testen
 
-Testen Sie jetzt den Login mit dem Schlüssel – **ohne** Schließen der bestehenden Session (Sicherheitsnetz):
+Testen Sie jetzt den Login mit dem Schlüssel – **ohne** Schließen der bestehenden Session (zum Zweck der Verfügbarkeit der ssh-Verbindung im Fehlerfall):
 
 Öffnen Sie ein **neues** Terminalfenster und verbinden Sie sich:
 
