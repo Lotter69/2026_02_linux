@@ -21,6 +21,7 @@ Docker erlaubt es, Dienste in **Containern** zu verpacken: isolierte, portable L
 
 Im Vergleich zur direkten Installation auf dem Host stellt sich dabei eine wichtige Frage zur **Datenpersistenz**: Ein Container ist von Natur aus kurzlebig – wird er gelöscht oder aktualisiert, gehen alle Änderungen am Container-Dateisystem verloren. Docker löst dieses Problem mit **Volumes** und **Bind Mounts**, die Daten außerhalb des Containers speichern und so auch über Container-Neustarts oder Updates hinaus verfügbar halten.
 
+> **Hinweis**: Eine Registry ist im Docker-Kontext ein zentraler Speicherort, von dem fertige Container-Images heruntergeladen (und bei eigenen Images auch hochgeladen) werden könne 
 ---
 
 ## Lernziele
