@@ -411,7 +411,7 @@ Ergänzen Sie unterhalb des Dienst-A-Blocks den folgenden Eintrag und ersetzen S
 ```caddy
 # Dienst B – nur nach Authentifizierung erreichbar
 dienst-b.ihre-domain.de {
-    basicauth {
+    basic_auth {
         # Benutzername: admin
         admin <HASH-AUS-OBIGEM-BEFEHL>
     }
@@ -438,7 +438,7 @@ dienst-a.ihre-domain.de {
 
 # Dienst B – nur nach Authentifizierung erreichbar
 dienst-b.ihre-domain.de {
-    basicauth {
+    basic_auth {
         admin <HASH-AUS-OBIGEM-BEFEHL>
     }
     reverse_proxy localhost:8002
@@ -520,7 +520,7 @@ dienst-a.ihre-domain.de {
 
 # Dienst B – nur nach Authentifizierung erreichbar
 dienst-b.ihre-domain.de {
-    basicauth {
+    basic_auth {
         admin $2a$14$...IhrHashHier...
     }
     reverse_proxy localhost:8002
