@@ -21,7 +21,7 @@ Docker erlaubt es, Dienste in **Containern** zu verpacken: isolierte, portable L
 
 Im Vergleich zur direkten Installation auf dem Host stellt sich dabei eine wichtige Frage zur **Datenpersistenz**: Ein Container ist von Natur aus kurzlebig – wird er gelöscht oder aktualisiert, gehen alle Änderungen am Container-Dateisystem verloren. Docker löst dieses Problem mit **Volumes** und **Bind Mounts**, die Daten außerhalb des Containers speichern und so auch über Container-Neustarts oder Updates hinaus verfügbar halten.
 
-> **Hinweis**: Eine Registry ist im Docker-Kontext ein zentraler Speicherort, von dem fertige Container-Images heruntergeladen (und bei eigenen Images auch hochgeladen) werden könne 
+> **Hinweis**: Eine Registry ist im Docker-Kontext ein zentraler Speicherort, von dem fertige Container-Images heruntergeladen (und bei eigenen Images auch hochgeladen) werden können. 
 ---
 
 ## Lernziele
@@ -71,9 +71,10 @@ apt install -y ca-certificates curl
 Laden Sie den GPG-Schlüssel des Docker-Projekts herunter. APT verwendet ihn, um die digitale Signatur jedes heruntergeladenen Docker-Pakets zu prüfen:
 
 ```bash
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+  https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  | tee /etc/apt/sources.list.d/docker.list > /dev/null
 ```
 
 Tragen Sie das Docker-Repository als Paketquelle ein:
