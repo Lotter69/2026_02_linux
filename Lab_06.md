@@ -10,7 +10,7 @@ Erstens: Die TLS-Zertifikate werden vollständig automatisiert über Caddy bezog
 
 Zweitens: Sämtliche Docker-Container laufen im selben, nicht weiter unterteilten Standardnetzwerk; mehrere Backend-Dienste sind zudem über Host-Ports erreichbar, obwohl das nicht erforderlich wäre. Für Control **A.8.22 (Segregation of Networks)**, in Verbindung mit **A.8.20 (Networks Security)**, verlangt der Auditor eine erkennbare, begründete Trennung zusammengehöriger Dienste in eigene Netzwerksegmente.
 
-Die Geschäftsführung beauftragt das Betriebsteam, beide Feststellungen vor dem Zertifizierungsaudit zu beheben: Caddy wird durch nginx mit dem nativen ACME-Modul abgelöst, wodurch Zertifikatsanbieter und -protokoll explizit konfiguriert und damit auditierbar dokumentiert werden. Gleichzeitig werden zusammengehörige Container-Dienste bewusst in eigenen Docker-Netzwerken gebündelt, statt unkontrolliert im Default-Netz zu laufen.
+Im Rahmen des Risikobehandlungsplans gibt die Leitungsebene die Umsetzung frei; das Betriebsteam wird als Maßnahmenverantwortlicher (Risk Owner) für beide Feststellungen benannt, mit dem Ziel, sie vor dem Zertifizierungsaudit zu beheben: Caddy wird durch nginx mit dem nativen ACME-Modul abgelöst, wodurch Zertifikatsanbieter und -protokoll explizit konfiguriert und damit auditierbar dokumentiert werden. Gleichzeitig werden zusammengehörige Container-Dienste bewusst in eigenen Docker-Netzwerken gebündelt, statt unkontrolliert im Default-Netz zu laufen.
 
 ---
 
