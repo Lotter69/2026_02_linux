@@ -252,17 +252,19 @@ Sie sollten den HTML-Inhalt Ihrer Seite sehen.
 
 #### 3.5 Was passiert beim Container-Update?
 
-Wenn nginx aktualisiert wird – Sie also den alten Container löschen und einen neuen aus einem neueren Image starten –, bleiben die Webinhalte in `/srv/www` vollständig erhalten. Sie liegen auf dem Host und werden durch den Bind Mount lediglich eingehängt. Der Container-Neustart hat keinen Einfluss auf das Host-Verzeichnis:
+Wenn nginx aktualisiert wird – Sie also den alten Container löschen und einen neuen aus einem neueren Image starten –, bleiben die Webinhalte in `/srv/www` vollständig erhalten. Sie liegen auf dem Host und werden durch den Bind Mount lediglich eingehängt. Der Container-Neustart hat keinen Einfluss auf das Host-Verzeichnis. Testen und verifizieren Sie das beschriebene Verhalten.
 
 ```bash
-docker stop nginx-web && docker rm nginx-web
-docker pull nginx
-docker run -d \
-  --name nginx-web \
-  --restart unless-stopped \
-  -p 8080:80 \
-  -v /srv/www:/usr/share/nginx/html:ro \
-  nginx
+docker stop nginx-web && docker rm nginx-web   # laufenden Container stoppen und anschließend löschen (Container-Schicht geht verloren, Bind Mounts/Volumes bleiben erhalten)
+
+docker pull nginx                              # Image vorab aus der Registry (Docker Hub) herunterladen, bevor der Container gestartet wird
+
+docker run -d \                                # Container im Hintergrund (detached) starten
+  --name nginx-web \                           # sprechender Name, damit der Container später leicht angesprochen werden kann (statt zufälliger ID)
+  --restart unless-stopped \                   # Neustart-Policy: Container startet automatisch neu (z. B. nach Docker-Neustart oder Systemboot), außer er wurde manuell gestoppt
+  -p 8080:80 \                                 # Port-Mapping: Host-Port 8080 → Container-Port 80 (nginx lauscht intern auf 80)
+  -v /srv/www:/usr/share/nginx/html:ro \        # Bind Mount: Host-Verzeichnis wird read-only in den Container eingebunden, ersetzt die nginx-Standardseite
+  nginx                                        # zu verwendendes Image (zuvor per pull geladen, daher kein erneuter Download nötig)
 ```
 
 ---
