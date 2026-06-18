@@ -522,7 +522,7 @@ Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (d
 
 ### Schritt 8: Lastverteilung einrichten und Last erzeugen
 
-Ergänzen Sie zunächst den DNS-A-Record `demo.ihre-domain.de` analog zu den bisherigen Einträgen und prüfen Sie die Auflösung:
+In der Fortsetzung arbeiten Sie mit `demo.ihre-domain.de` analog zu den bisherigen Einträgen. Im Registrar existiert ein Wildcard-Eintrag *.ihre-domain.de, d.h. folgene Übperprüfung sollte erfolgeich sein.
 
 ```bash
 dig demo.ihre-domain.de +short
