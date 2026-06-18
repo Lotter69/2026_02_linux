@@ -513,7 +513,7 @@ Dieser Befehl liefert **keine** Auflösung. Der einzige, aber entscheidende Unte
 ```bash
 ss -tlnp | grep 6379
 ```
-
+>**Hinweis:** 6379 ist der Standard-Port für Redis
 Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (die bewusst über `-p` veröffentlicht wurden) ist hier gar kein Host-Port nötig – `redis-cache` muss ausschließlich für `nodered` erreichbar sein, und das funktioniert vollständig innerhalb von `app-net`, ohne dass der Host überhaupt einen offenen Port dafür braucht.
 
 > **Warum trotzdem mindestens ein Dienst sichtbar bleiben muss:** `app-net` selbst macht nach außen gar nichts sichtbar. Die einzige Verbindung zur Außenwelt bleibt `nodered` – er gehört weiterhin zusätzlich dem Standard-Netzwerk an und ist dort über `-p 1880:1880` für Caddy erreichbar (aus Lab 05). `nodered` fungiert damit als Brücke zwischen beiden Welten: nach außen sichtbar über sein Host-Port-Mapping, nach innen verbunden mit `redis-cache` über `app-net`. `redis-cache` selbst braucht diese Brücke nicht – er muss nur von `nodered` aus erreichbar sein, nicht von irgendwo sonst.
