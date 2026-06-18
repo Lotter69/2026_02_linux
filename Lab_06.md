@@ -94,7 +94,19 @@ echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx
   | tee /etc/apt/sources.list.d/nginx.list
 ```
 
-Damit apt bei künftigen Updates konsequent das offizielle nginx-Paket statt der älteren Ubuntu-Variante bevorzugt, legen Sie eine Pinning-Regel an:
+> **Tipp zur Fehlerbehebung:** Bricht `apt update` anschließend mit einer Meldung wie „The repository ... does not have a Release file" ab, prüfen Sie zunächst die tatsächliche Distribution Ihres Systems:
+> ```bash
+> cat /etc/os-release
+> ```
+> Steht dort `ID=ubuntu`, muss `VERSION_CODENAME` einen echten Ubuntu-Codename liefern (für 24.04 LTS: `noble`) – weicht der von `lsb_release -cs` gelieferte Wert davon ab, tragen Sie „noble" händisch in die Repository-Zeile ein. Steht dort hingegen `ID=debian` (z. B. `VERSION_CODENAME=trixie` für Debian 13), testen Sie auf einem Debian- statt einem Ubuntu-System wie in Lab 03 vorgesehen. nginx.org pflegt für Debian einen eigenen Pfad – ersetzen Sie in der Repository-Zeile `/ubuntu` durch `/debian`:
+> ```bash
+> rm /etc/apt/sources.list.d/nginx.list
+> echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian $(lsb_release -cs) nginx" \
+>   | tee /etc/apt/sources.list.d/nginx.list
+> apt update
+> ```
+
+Damit apt bei künftigen Updates konsequent das offizielle nginx-Paket statt der älteren Distributionsvariante bevorzugt, legen Sie eine Pinning-Regel an:
 
 ```bash
 printf 'Package: *\nPin: origin nginx.org\nPin-Priority: 900\n' \
