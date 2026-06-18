@@ -432,53 +432,91 @@ Der Dienst muss als `inactive (dead)` gemeldet sein.
 
 ### Schritt 7: Eigenes Docker-Netzwerk anlegen und Dienste bewusst bündeln
 
-Legen Sie ein eigenes Netzwerk für zusammengehörige Dienste an:
+Bisher waren alle Container über `-p <host-port>:<container-port>` für den Host (und damit für Caddy) erreichbar. In diesem Schritt lernen Sie das Gegenteil: einen Dienst, der **ausschließlich für andere Container** erreichbar sein soll – nicht für den Host, nicht für das Internet.
+
+#### 7.1 Eigenes Netzwerk anlegen
 
 ```bash
 docker network create app-net
 ```
 
-Hängen Sie den bereits laufenden `nodered`-Container zusätzlich an dieses Netzwerk an – ohne ihn neu erstellen zu müssen, ein Container kann mehreren Netzwerken gleichzeitig angehören:
+Damit legen Sie ein eigenes, benutzerdefiniertes Docker-Netzwerk namens `app-net` an. Container, die diesem Netzwerk beitreten, können sich gegenseitig über ihren Containernamen erreichen – Docker betreibt dafür intern einen eigenen DNS-Server pro Netzwerk.
+
+#### 7.2 Bestehenden Container zusätzlich anbinden
 
 ```bash
 docker network connect app-net nodered
 ```
 
-Starten Sie einen kleinen, rein internen Datenhaltungsdienst, der **bewusst keinen Host-Port** veröffentlicht – er soll ausschließlich innerhalb von `app-net` erreichbar sein:
+`nodered` läuft bereits (aus Lab 05) mit `-p 1880:1880` im Standard-Netzwerk – darüber bleibt er für Caddy auf dem Host erreichbar. Mit diesem Befehl bekommt `nodered` ein zweites Standbein: Er gehört jetzt **gleichzeitig** zwei Netzwerken an. Ein Container kann beliebig vielen Netzwerken angehören, ohne neu erstellt werden zu müssen.
+
+#### 7.3 Neuen, rein internen Dienst starten
 
 ```bash
 docker run -d \
-  --name redis-cache \          #gewaehlter Containername
+  --name redis-cache \
   --restart unless-stopped \
-  --network app-net \           #Zuweisung in das Netz mit dem Namen app-net 
-  redis:7                       #Image-Name 
+  --network app-net \
+  redis:7
 ```
 
-> **Vorgriff:** In einer späteren Übung übernehmen eine Zeitreihendatenbank (z. B. InfluxDB), ein Connector-Dienst und eine Visualisierung (z. B. Grafana) genau dieses Muster – mehrere zusammenspielende Container in einem eigenen Netzwerk, von denen nur die Visualisierung nach außen erreichbar sein muss. `redis-cache` steht hier stellvertretend für diesen späteren Datenhaltungsdienst.
+| Element | Bedeutung |
+|---|---|
+| `redis:7` | Das **Image** – der Bauplan für die Redis-Software, Version 7. Wird von Docker Hub geladen. |
+| `--name redis-cache` | Der Name, den der daraus erstellte **Container** bekommt. Innerhalb von `app-net` ist das zugleich der Hostname, unter dem dieser Container per DNS auffindbar ist. |
+| `--network app-net` | Der Container wird direkt bei seiner Erstellung diesem Netzwerk zugewiesen – im Unterschied zu `nodered`, der nachträglich per `network connect` hinzugefügt wurde. |
+| (kein `-p`) | Bewusst weggelassen: Es gibt keinen Host-Port. Der Container ist außerhalb von `app-net` nicht erreichbar – nicht vom Host, nicht aus dem Internet. |
 
-Prüfen Sie die Namensauflösung innerhalb von `app-net` mit einem flüchtigen Test-Container:
+> **Image, Container, Software – was ist hier eigentlich was?**
+> Diese drei Begriffe werden leicht vermischt:
+> - **Image** (`redis:7`): ein unveränderlicher Bauplan, der auf Docker Hub liegt.
+> - **Container** (`redis-cache`): die laufende, konkrete Instanz, die aus diesem Bauplan erzeugt wurde – mit eigenem Namen und eigenem Lebenszyklus.
+> - **Software** (Redis): das Programm, das innerhalb dieses Containers tatsächlich läuft – eine In-Memory-Datenbank, die in der Praxis meist als schneller Zwischenspeicher (Cache) vor einer langsameren Hauptdatenbank eingesetzt wird.
+>
+> Es gibt in diesem Abschnitt also nur **einen** Container: `redis-cache`. „Redis" und „redis-cache" meinen praktisch dasselbe Ding – einmal als Produktname, einmal als der konkrete Name, den dieser eine Container in Ihrer Umgebung trägt.
+
+> **Vorgriff:** In einer späteren Übung übernehmen eine Zeitreihendatenbank (z. B. InfluxDB), ein Connector-Dienst und eine Visualisierung (z. B. Grafana) genau dieses Muster – mehrere zusammenspielende Container in einem eigenen Netzwerk, von denen nur die Visualisierung nach außen erreichbar sein muss. `redis-cache` steht hier stellvertretend für diesen späteren Datenhaltungsdienst – nicht als sinnvoller Produktiv-Cache für `nodered`, sondern als einfaches Beispiel-Image für das Bündelungsprinzip.
+
+#### 7.4 Namensauflösung innerhalb des Netzwerks prüfen
 
 ```bash
 docker run --rm --network app-net alpine getent hosts redis-cache
 ```
 
-Die Ausgabe zeigt die interne IP-Adresse von `redis-cache`. Prüfen Sie nun zur Gegenprobe, ob ein Container **außerhalb** von `app-net` denselben Namen auflösen kann:
->**Hinweis:** `alpine` ist das Image, aus dem der Container gestartet wird. `getent hosts redis-cache` ist der Befehl, der innerhalb dieses Alpine-Containers ausgeführt wird. getent hosts <name> ist ein Linux-Befehl, der eine Namensauflösung durchführt – er fragt: "Welche IP-Adresse gehört zum Namen X? `redis-cache` ist der Name der dem Container zugewiesen wurde.
+| Element | Bedeutung |
+|---|---|
+| `alpine` | Das **Image** – eine minimale Linux-Distribution. Hier nicht als Dienst gedacht, sondern als kleines, schnell startendes Test-Werkzeug. |
+| (kein `--name`) | Der daraus gestartete Container bekommt einen von Docker zufällig vergebenen Namen – unwichtig, da er sich gleich wieder selbst löscht. |
+| `--rm` | Der Container wird sofort nach Beendigung des Befehls automatisch gelöscht. Er existiert nur für die Dauer dieses einen Aufrufs. |
+| `getent hosts redis-cache` | Der Befehl, der **innerhalb** des Alpine-Containers ausgeführt wird. `getent hosts <name>` fragt: „Welche IP-Adresse gehört zu diesem Namen?" – gefragt wird hier nach dem Namen des **Redis-Containers**. |
+
+> **Achtung bei der Eingabe:** Die Datenbank heißt `hosts` (mit „s" am Ende). `getent host redis-cache` (ohne „s") führt zu einer Fehlermeldung, weil `host` keine gültige Datenbank ist – das ist ein Tippfehler, kein Problem der Namensauflösung selbst.
+
+Die Ausgabe zeigt die interne IP-Adresse von `redis-cache`, z. B.:
+
+```
+172.18.0.3      redis-cache
+```
+
+#### 7.5 Gegenprobe: Auflösung außerhalb von `app-net`
 
 ```bash
 docker run --rm alpine getent hosts redis-cache
 ```
 
-Dieser Befehl liefert keine Auflösung – der Name ist nur innerhalb des Netzwerks bekannt, dem `redis-cache` zugewiesen wurde.
+Dieser Befehl liefert **keine** Auflösung. Der einzige, aber entscheidende Unterschied zum vorherigen Befehl: Hier fehlt `--network app-net`. Ohne diese Angabe verwendet Docker automatisch das Standard-Bridge-Netzwerk – ein komplett anderes Netzwerk als `app-net`, mit einem eigenen, separaten internen DNS. `redis-cache` ist dort nicht bekannt, weil er ausschließlich Mitglied von `app-net` ist.
 
-Bestätigen Sie zusätzlich, dass `redis-cache` auf dem Host selbst keinen offenen Port hinterlässt:
+> **Bildlich:** `app-net` ist ein Konferenzraum mit eigenem internen Telefonbuch. `redis-cache` (und zeitweise `nodered`) sitzen in diesem Raum und stehen im Telefonbuch. Ein Alpine-Container ohne `--network app-net` betritt diesen Raum gar nicht – er bleibt im Foyer (Standard-Bridge-Netz) mit einem eigenen, anderen Telefonbuch, in dem `redis-cache` schlicht nicht eingetragen ist.
+
+#### 7.6 Port-Check auf dem Host
 
 ```bash
 ss -tlnp | grep 6379
 ```
 
-Die Ausgabe sollte leer sein – im Unterschied zu den Containern aus Lab 05, die bewusst über `-p` veröffentlicht wurden, ist hier gar kein Host-Port nötig, weil nur `nodered` als Partner im selben Netzwerk darauf zugreifen muss.
+Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (die bewusst über `-p` veröffentlicht wurden) ist hier gar kein Host-Port nötig – `redis-cache` muss ausschließlich für `nodered` erreichbar sein, und das funktioniert vollständig innerhalb von `app-net`, ohne dass der Host überhaupt einen offenen Port dafür braucht.
 
+> **Warum trotzdem mindestens ein Dienst sichtbar bleiben muss:** `app-net` selbst macht nach außen gar nichts sichtbar. Die einzige Verbindung zur Außenwelt bleibt `nodered` – er gehört weiterhin zusätzlich dem Standard-Netzwerk an und ist dort über `-p 1880:1880` für Caddy erreichbar (aus Lab 05). `nodered` fungiert damit als Brücke zwischen beiden Welten: nach außen sichtbar über sein Host-Port-Mapping, nach innen verbunden mit `redis-cache` über `app-net`. `redis-cache` selbst braucht diese Brücke nicht – er muss nur von `nodered` aus erreichbar sein, nicht von irgendwo sonst.
 ---
 
 ### Schritt 8: Lastverteilung einrichten und Last erzeugen
