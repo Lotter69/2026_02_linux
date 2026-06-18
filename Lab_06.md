@@ -149,7 +149,7 @@ load_module modules/ngx_http_acme_module.so;
 > **Warum ganz oben?**  
 > `load_module` muss im Hauptkontext stehen, bevor `events {}` oder `http {}` beginnen – nginx lädt dynamische Module beim Start, nicht zur Laufzeit.
 
-Legen Sie ein Verzeichnis für die Zertifikatsdaten an und übergeben Sie es dem nginx-Benutzer (das offizielle nginx-Paket führt Worker-Prozesse unter dem Benutzer `nginx`, nicht `www-data`):
+Legen Sie ein Verzeichnis für die Zertifikatsdaten an und übergeben Sie es dem nginx-Benutzer (das offizielle nginx-Paket führt Worker-Prozesse unter dem Benutzer `nginx`, nicht `www-data`- das wäre der Benutzer bei der Debian-eigenen nginx-Variante):
 
 ```bash
 mkdir -p /var/lib/nginx/acme-letsencrypt
