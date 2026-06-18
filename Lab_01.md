@@ -39,7 +39,7 @@ Bevor ein neues Paket installiert wird, synchronisieren Sie die lokale Paketdate
 sudo apt update
 ```
 
-Mit der aktualisierten Paketdatenbank bringen wir die Software auf unserem Rechner auf den aktuellen Stand. Geben Sie im Terminal folgenden Befehl ein:
+Mit der aktualisierten Paketdatenbank bringen wir die Software des Rechners auf den aktuellen Stand. Geben Sie im Terminal folgenden Befehl ein:
 
 ```bash
 sudo apt upgrade

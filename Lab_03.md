@@ -150,12 +150,12 @@ Folgende Domainnamen werden im weiteren Verlauf benötigt:
 
 | Verwendungszweck       | Beispiel-Hostname          |
 |------------------------|----------------------------|
-| SSH-Zugriff auf die VM | `cockpit.ihre-domain.de`    |
+| SSH-Zugriff auf die VM | `server.ihre-domain.de`    |
 | Spätere Dienste        | `dienst-a.ihre-domain.de`       |
 |                        | `dienst-b.ihre-domain.de`   |
 
 > **Keine eigene Domain zur Hand?**
-> Für Test- und Übungszwecke bieten Dienste wie **nip.io** oder **sslip.io** eine kostenlose Alternative: Sie kodieren die IP-Adresse direkt im Hostnamen. Zum Beispiel löst `cockpit.49-12-34-56.nip.io` automatisch auf `49.12.34.56` auf – ohne DNS-Konfiguration. Diese Methode eignet sich für lokale Tests, nicht aber für produktive Umgebungen oder Let's Encrypt-Zertifikate.
+> Für Test- und Übungszwecke bieten Dienste wie **nip.io** oder **sslip.io** eine kostenlose Alternative: Sie kodieren die IP-Adresse direkt im Hostnamen. Zum Beispiel löst `server.49-12-34-56.nip.io` automatisch auf `49.12.34.56` auf – ohne DNS-Konfiguration. Diese Methode eignet sich für lokale Tests, nicht aber für produktive Umgebungen oder Let's Encrypt-Zertifikate.
 
 ---
 
