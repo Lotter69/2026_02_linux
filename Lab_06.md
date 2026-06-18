@@ -185,10 +185,23 @@ nano /etc/nginx/conf.d/challenge.conf
 ```
 
 ```nginx
+# Virtueller Host für unverschlüsselte HTTP-Anfragen (Port 80)
 server {
+    # Lauscht auf Port 80. "default_server" macht diesen Block zum
+    # Auffangbecken für ALLE Anfragen auf Port 80, die keinem anderen
+    # Server-Block (z. B. cockpit.conf, dienst-a.conf) über server_name
+    # zugeordnet werden können.
     listen 80 default_server;
 
+    # Gilt für jeden angefragten Pfad - "/" fängt alles ab, was nicht
+    # durch eine spezifischere location-Regel abgedeckt ist.
     location / {
+        # Antwortet mit HTTP-Statuscode 301 (dauerhafte Weiterleitung)
+        # und leitet auf dieselbe Adresse, aber über HTTPS, um.
+        # $host        = der angefragte Hostname, z. B. cockpit.ihre-domain.de
+        # $request_uri = der vollständige ursprüngliche Pfad inkl. Query-String
+        # Beispiel: http://dienst-a.ihre-domain.de/seite?x=1
+        #        -> https://dienst-a.ihre-domain.de/seite?x=1
         return 301 https://$host$request_uri;
     }
 }
