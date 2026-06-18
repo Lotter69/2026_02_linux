@@ -448,10 +448,10 @@ Starten Sie einen kleinen, rein internen Datenhaltungsdienst, der **bewusst kein
 
 ```bash
 docker run -d \
-  --name redis-cache \
+  --name redis-cache \          #gewaehlter Containername
   --restart unless-stopped \
-  --network app-net \
-  redis:7
+  --network app-net \           #Zuweisung in das Netz mit dem Namen app-net 
+  redis:7                       #Image-Name 
 ```
 
 > **Vorgriff:** In einer späteren Übung übernehmen eine Zeitreihendatenbank (z. B. InfluxDB), ein Connector-Dienst und eine Visualisierung (z. B. Grafana) genau dieses Muster – mehrere zusammenspielende Container in einem eigenen Netzwerk, von denen nur die Visualisierung nach außen erreichbar sein muss. `redis-cache` steht hier stellvertretend für diesen späteren Datenhaltungsdienst.
@@ -463,6 +463,7 @@ docker run --rm --network app-net alpine getent hosts redis-cache
 ```
 
 Die Ausgabe zeigt die interne IP-Adresse von `redis-cache`. Prüfen Sie nun zur Gegenprobe, ob ein Container **außerhalb** von `app-net` denselben Namen auflösen kann:
+>**Hinweis:** `alpine` ist das Image, aus dem der Container gestartet wird. `getent hosts redis-cache` ist der Befehl, der innerhalb dieses Alpine-Containers ausgeführt wird. getent hosts <name> ist ein Linux-Befehl, der eine Namensauflösung durchführt – er fragt: "Welche IP-Adresse gehört zum Namen X? `redis-cache` ist der Name der dem Container zugewiesen wurde.
 
 ```bash
 docker run --rm alpine getent hosts redis-cache
