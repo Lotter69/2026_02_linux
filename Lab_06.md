@@ -247,6 +247,19 @@ server {
     }
 }
 ```
+#### Diese Konfiguration im Detail
+
+Die wichtigste Eigenschaft dieser Konfiguration vorab: Sie müssen das Zertifikat nicht manuell erneuern. Wie genau das funktioniert, erschließt sich aus den einzelnen Direktiven.
+
+`listen 443 ssl;` lässt diesen Server-Block verschlüsselte Verbindungen auf Port 443 annehmen – das `ssl` weist nginx an, hier einen TLS-Handshake durchzuführen, bevor irgendein Inhalt ausgeliefert wird. `server_name cockpit.ihre-domain.de;` legt fest, dass dieser Block nur für Anfragen mit genau diesem Hostnamen zuständig ist – anhand des SNI beim TLS-Handshake entscheidet nginx, welcher von mehreren Server-Blöcken auf Port 443 eine konkrete Anfrage bearbeitet.
+
+`acme_certificate letsencrypt;` ist die zentrale Direktive: Sie weist das ACME-Modul an, für `cockpit.ihre-domain.de` (der Name wird automatisch aus `server_name` übernommen) jederzeit ein gültiges Zertifikat über den zuvor definierten Issuer `letsencrypt` bereitzuhalten. Das Modul überwacht die Restlaufzeit selbst und stößt die Erneuerung rechtzeitig vor Ablauf der 90 Tage an, ohne dass Sie eingreifen müssen.
+
+`ssl_certificate $acme_certificate;` und `ssl_certificate_key $acme_certificate_key;` verweisen – im Unterschied zu sonst üblichen, statischen Dateipfaden – auf **Variablen**, die das ACME-Modul bereitstellt. Bei einer Erneuerung tauscht das Modul den Inhalt dieser Variablen aus; neue Verbindungen erhalten sofort das aktuelle Zertifikat, ohne dass ein `nginx -t` oder `systemctl reload` nötig wäre. Das unterscheidet diese Lösung von einer klassischen, statischen Konfiguration mit Certbot, bei der nach jeder Erneuerung ein Reload erforderlich ist. `ssl_certificate_cache max=2;` ist eine reine Performance-Einstellung: nginx hält bis zu zwei geparste Zertifikate im Cache vor, unter anderem für die kurze Übergangsphase zwischen altem und neu ausgestelltem Zertifikat.
+
+Damit diese Automatik dauerhaft funktioniert, müssen drei Voraussetzungen erhalten bleiben: Port 80 muss über `ufw` weiterhin für die HTTP-01-Challenge erreichbar sein, die DNS-A-Records müssen weiterhin auf diesen Server zeigen, und das Verzeichnis `/var/lib/nginx/acme-letsencrypt` darf nicht gelöscht werden, da dort Konto-Schlüssel und Status liegen.
+
+Im `location`-Block regelt `proxy_pass https://127.0.0.1:9090;` die Weiterleitung an Cockpit. `proxy_ssl_verify off;` ist das nginx-Äquivalent zu Caddys `tls_insecure_skip_verify` aus Lab 04 – Cockpit betreibt intern weiterhin ein selbst signiertes Zertifikat auf Port 9090, das nur für diese lokale Verbindung akzeptiert werden muss; unkritisch, da diese Verbindung nie den Server verlässt. `proxy_set_header X-Real-IP $remote_addr;` gibt die tatsächliche Client-IP an Cockpit weiter – ohne diese Zeile würde Cockpit in seinen eigenen Logs nur die IP von nginx selbst sehen, was der im Audit geforderten Nachvollziehbarkeit widerspräche. Die drei Zeilen `proxy_http_version 1.1;`, `proxy_set_header Upgrade $http_upgrade;` und `proxy_set_header Connection "upgrade";` ermöglichen WebSocket-Verbindungen durch den Proxy hindurch, die Cockpit für Live-Updates (z. B. Terminal, Ressourcen-Graphen) benötigt.
 
 > **Vergleich mit Caddy:** `proxy_ssl_verify off;` ist das nginx-Äquivalent zu Caddys `tls_insecure_skip_verify` aus Lab 04 – Cockpit betreibt intern weiterhin ein selbst signiertes Zertifikat auf Port 9090, das nur für diese lokale Verbindung akzeptiert werden muss.
 
