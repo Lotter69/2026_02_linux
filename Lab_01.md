@@ -27,6 +27,30 @@ Ihre Aufgabe: Cockpit installieren, den Dienst dauerhaft und zuverlässig betrei
 | **Browser** | Firefox oder Chromium (lokal installiert) |
 | **Terminal** | GNOME Terminal, Konsole oder vergleichbar |
 
+## Inhalt
+
+- [Aufgaben](#aufgaben)
+  - [Schritt 1: System aktualisieren und Cockpit installieren](#schritt-1-system-aktualisieren-und-cockpit-installieren)
+    - [1.1 Software aktualisieren](#11-software-aktualisieren)
+    - [1.2 Cockpit installieren](#12-cockpit-installieren)
+    - [1.3 Installation überprüfen](#13-installation-überprüfen)
+  - [Schritt 2: Den Cockpit-Dienst mit systemd verwalten](#schritt-2-den-cockpit-dienst-mit-systemd-verwalten)
+    - [2.1 Aktuellen Dienststatus prüfen](#21-aktuellen-dienststatus-prüfen)
+    - [2.2 Dienst starten](#22-dienst-starten)
+    - [2.3 Dienst dauerhaft beim Systemstart aktivieren](#23-dienst-dauerhaft-beim-systemstart-aktivieren)
+    - [2.4 Neustart simulieren und Persistenz prüfen](#24-neustart-simulieren-und-persistenz-prüfen)
+    - [2.5 Cockpit im Browser aufrufen](#25-cockpit-im-browser-aufrufen)
+  - [Schritt 3: Konfigurationsänderungen und sicherer Dienstneustart](#schritt-3-konfigurationsänderungen-und-sicherer-dienstneustart)
+    - [3.1 Konfigurationsverzeichnis kennenlernen](#31-konfigurationsverzeichnis-kennenlernen)
+    - [3.2 Neue Konfigurationsdatei anlegen](#32-neue-konfigurationsdatei-anlegen)
+    - [3.3 Login-Banner erstellen](#33-login-banner-erstellen)
+    - [3.4 Dienst nach Konfigurationsänderung neu starten](#34-dienst-nach-konfigurationsänderung-neu-starten)
+    - [3.5 Ergebnis überprüfen](#35-ergebnis-überprüfen)
+  - [Schritt 4: systemd – Unit-Datei analysieren und Befehle nachschlagen](#schritt-4-systemd--unit-datei-analysieren-und-befehle-nachschlagen)
+    - [4.1 Die Unit-Datei von Cockpit analysieren](#41-die-unit-datei-von-cockpit-analysieren)
+    - [4.2 Wichtige systemctl-Befehle im Überblick](#42-wichtige-systemctl-befehle-im-überblick)
+- [Autoren und Urheberrecht](#autoren-und-urheberrecht)
+
 ## Aufgaben
 
 ### Schritt 1: System aktualisieren und Cockpit installieren
@@ -65,6 +89,8 @@ dpkg -l cockpit
 ```
 
 > **Tipp:** Achten Sie auf den Status `ii` am Zeilenanfang – das bedeutet: **i**nstalliert und korrekt konfiguriert. Ein `rc` würde bedeuten, das Paket wurde entfernt, aber Konfigurationsdateien sind noch vorhanden.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -132,6 +158,8 @@ https://localhost:9090
 
 Melden Sie sich mit Ihrem Linux-Benutzernamen und -Passwort an. Da das Zertifikat selbstsigniert ist, müssen Sie im Browser eine **Sicherheitsausnahme** bestätigen.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 3: Konfigurationsänderungen und sicherer Dienstneustart
@@ -198,6 +226,8 @@ ss -tlnp | grep 9090   # Erzeugen: aktive Listener anzeigen | Filtern: nur Zeile
 
 Rufen Sie `https://localhost:9090` erneut im Browser auf und prüfen Sie, ob das Banner beim Login erscheint.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 4: systemd – Unit-Datei analysieren und Befehle nachschlagen
@@ -244,6 +274,8 @@ journalctl -u cockpit              # Alle Logs des Dienstes
 journalctl -u cockpit -f           # Logs live verfolgen (follow)
 journalctl -b -u cockpit           # Logs nur vom aktuellen Boot
 ```
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 

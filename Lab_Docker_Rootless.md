@@ -32,6 +32,24 @@ In diesem Lab installieren Sie Rootless Docker und Docker Compose auf Linux Mint
 
 ---
 
+## Inhalt
+
+- [Aufgaben](#aufgaben)
+  - [Schritt 1: Voraussetzungen installieren](#schritt-1-voraussetzungen-installieren)
+  - [Schritt 2: Ältere Docker-Pakete entfernen](#schritt-2-ältere-docker-pakete-entfernen)
+  - [Schritt 3: Dockers offizielles APT-Repository einrichten](#schritt-3-dockers-offizielles-apt-repository-einrichten)
+    - [3.1 GPG-Schlüssel hinzufügen](#31-gpg-schlüssel-hinzufügen)
+    - [3.2 Repository eintragen](#32-repository-eintragen)
+  - [Schritt 4: Docker Engine und Compose installieren](#schritt-4-docker-engine-und-compose-installieren)
+  - [Schritt 5: Rootless Docker einrichten](#schritt-5-rootless-docker-einrichten)
+  - [Schritt 6: Installation prüfen](#schritt-6-installation-prüfen)
+- [Reflexion und weiterführende Fragen](#reflexion-und-weiterführende-fragen)
+- [Rückblick und Zusammenfassung](#rückblick-und-zusammenfassung)
+- [Aufräumarbeiten](#aufräumarbeiten)
+- [Autoren und Urheberrecht](#autoren-und-urheberrecht)
+
+---
+
 ## Aufgaben
 
 ### Schritt 1: Voraussetzungen installieren
@@ -42,6 +60,8 @@ Installieren Sie die benötigten Pakete. Das Paket `uidmap` ist für den Rootles
 sudo apt update
 sudo apt install -y curl ca-certificates fuse uidmap
 ```
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -60,6 +80,8 @@ done
 | `for pkg in <liste>` | Schleifenkopf: die Variable `pkg` nimmt nacheinander jeden Wert aus der Liste an |
 | `do ... done` | Rahmen: alles dazwischen wird einmal **pro Wert** der Liste ausgeführt |
 | `sudo apt-get remove -y $pkg` | Schleifenrumpf: `$pkg` wird durch den jeweils aktuellen Listenwert ersetzt (erster Durchlauf: `docker.io`, zweiter: `docker-doc`, …) |
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -127,6 +149,8 @@ echo "deb [arch=$(dpkg --print-architecture) \
 ```
 (gleiche Befehlsstruktur wie oben – nur `${UBUNTU_CODENAME}` durch den fest eingetragenen Codenamen `noble` ersetzt)
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 4: Docker Engine und Compose installieren
@@ -145,6 +169,8 @@ sudo apt install -y docker-ce docker-ce-cli containerd.io \
 | `docker-buildx-plugin` | Erweitertes Build-System |
 | `docker-compose-plugin` | Docker Compose als CLI-Plugin |
 | `docker-ce-rootless-extras` | Zusätzliche Tools für den Rootless-Betrieb |
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -180,6 +206,8 @@ sudo loginctl enable-linger $USER
 > **`loginctl enable-linger`**  
 > Standardmäßig werden Benutzer-Systemdienste (`systemd --user`) beendet, sobald sich der Benutzer abmeldet. `enable-linger` verhindert das: Ihr Docker-Daemon läuft auch ohne aktive Anmeldesitzung weiter.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 6: Installation prüfen
@@ -211,6 +239,8 @@ systemctl --user status docker
 
 Der Dienst muss als `active (running)` gemeldet sein.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ## Reflexion und weiterführende Fragen
@@ -226,6 +256,8 @@ Der Dienst muss als `active (running)` gemeldet sein.
 - Warum kann man Docker auf Linux Mint nicht direkt aus den Standard-Paketquellen installieren? Was ist der Vorteil der offiziellen Docker-Paketquelle?
 - Was bedeutet `2>/dev/null` in einem Shell-Befehl? Warum wird es beim Ermitteln des Ubuntu-Codenamens verwendet?
 - Was ist der Unterschied zwischen `systemctl --user` und `sudo systemctl`? Wann wird welches verwendet?
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -253,6 +285,8 @@ Der Dienst muss als `active (running)` gemeldet sein.
 | `docker compose version` | Compose-Plugin prüfen |
 | `systemctl --user status docker` | Status des Rootless-Daemons prüfen |
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ## Aufräumarbeiten
@@ -274,6 +308,8 @@ sudo rm /etc/apt/keyrings/docker.gpg
 # Umgebungsvariablen aus ~/.bashrc entfernen (manuell mit nano)
 nano ~/.bashrc
 ```
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 

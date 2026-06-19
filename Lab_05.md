@@ -46,6 +46,38 @@ Im Vergleich zur direkten Installation auf dem Host stellt sich dabei eine wicht
 
 ---
 
+## Inhalt
+
+- [Aufgaben](#aufgaben)
+  - [Schritt 1: Docker installieren](#schritt-1-docker-installieren)
+    - [1.1 Paketquellen vorbereiten](#11-paketquellen-vorbereiten)
+    - [1.2 Docker-Repository einbinden](#12-docker-repository-einbinden)
+    - [1.3 Docker installieren](#13-docker-installieren)
+    - [1.4 Installation prüfen](#14-installation-prüfen)
+    - [1.5 Docker-Netzwerk und ufw](#15-docker-netzwerk-und-ufw)
+  - [Schritt 2: DNS-Einträge für die neuen Subdomains anlegen](#schritt-2-dns-einträge-für-die-neuen-subdomains-anlegen)
+  - [Schritt 3: Unternehmenswebseite mit nginx-Container bereitstellen](#schritt-3-unternehmenswebseite-mit-nginx-container-bereitstellen)
+    - [3.1 Webinhalte vorbereiten](#31-webinhalte-vorbereiten)
+    - [3.2 Was ist ein Bind Mount?](#32-was-ist-ein-bind-mount)
+    - [3.3 Nginx-Container starten](#33-nginx-container-starten)
+    - [3.4 Webserver testen](#34-webserver-testen)
+    - [3.5 Was passiert beim Container-Update?](#35-was-passiert-beim-container-update)
+  - [Schritt 4: Node-RED-Container starten](#schritt-4-node-red-container-starten)
+    - [4.1 Was ist ein benanntes Volume?](#41-was-ist-ein-benanntes-volume)
+    - [4.2 Node-RED starten](#42-node-red-starten)
+    - [4.3 Node-RED direkt testen](#43-node-red-direkt-testen)
+    - [4.4 Was passiert beim Container-Update?](#44-was-passiert-beim-container-update-1)
+  - [Schritt 5: Caddy für die neuen Subdomains konfigurieren](#schritt-5-caddy-für-die-neuen-subdomains-konfigurieren)
+  - [Schritt 6: Ergebnis im Browser überprüfen](#schritt-6-ergebnis-im-browser-überprüfen)
+    - [6.1 Laufende Container prüfen](#61-laufende-container-prüfen)
+    - [6.2 Dienste im Browser aufrufen](#62-dienste-im-browser-aufrufen)
+- [Reflexion und weiterführende Fragen](#reflexion-und-weiterführende-fragen)
+- [Rückblick und Zusammenfassung](#rückblick-und-zusammenfassung)
+- [Aufräumarbeiten](#aufräumarbeiten)
+- [Autoren und Urheberrecht](#autoren-und-urheberrecht)
+
+---
+
 ## Aufgaben
 
 ### Schritt 1: Docker installieren
@@ -139,6 +171,8 @@ ufw reload
 > **Warum ist das nötig?**
 > Wenn ufw `DEFAULT_FORWARD_POLICY=DROP` setzt, werden IP-Pakete, die über die Docker-Netzwerkbrücke weitergeleitet werden sollen, stillschweigend verworfen. Container können dann nicht mehr nach außen kommunizieren – z. B. keine DNS-Abfragen stellen oder Images herunterladen.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 2: DNS-Einträge für die neuen Subdomains anlegen
@@ -171,6 +205,8 @@ dig dashboard.<IHRE-DOMAIN> +short
 ```
 
 Beide Befehle sollten die IPv4-Adresse Ihres Servers ausgeben.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -278,6 +314,8 @@ docker run -d \                                # Container im Hintergrund (detac
   -v /srv/www:/usr/share/nginx/html:ro \        # Bind Mount: Host-Verzeichnis wird read-only in den Container eingebunden, ersetzt die nginx-Standardseite
   nginx                                        # zu verwendendes Image (zuvor per pull geladen, daher kein erneuter Download nötig)
 ```
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -399,6 +437,8 @@ docker run -d \
 >
 > Der Node-RED Editor verlangt beim nächsten Aufruf Benutzername und Passwort.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 5: Caddy für die neuen Subdomains konfigurieren
@@ -439,6 +479,8 @@ Caddy fordert nun automatisch TLS-Zertifikate für `www.<IHRE-DOMAIN>` und `dash
 
 > **Tipp zur Fehlerbehebung:** Die DNS-Einträge aus Schritt 2 müssen propagiert sein, bevor Caddy Zertifikate ausstellen kann. Beobachten Sie die Logs mit `journalctl -u caddy -f`.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 6: Ergebnis im Browser überprüfen
@@ -460,6 +502,8 @@ https://dashboard.<IHRE-DOMAIN>    →  Node-RED Editor
 
 Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden – ohne Sicherheitswarnung im Browser.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ## Reflexion und weiterführende Fragen
@@ -474,6 +518,8 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 
 - Was müsste sich ändern, wenn Sie Caddy ebenfalls als Container betreiben wollten – warum wäre `localhost:8080` dann nicht mehr ausreichend?
 - Was spricht dafür, Caddy auf dem Host zu installieren statt als Container – insbesondere im Hinblick auf systemd-Integration und TLS?
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -505,6 +551,8 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 | `docker pull <image>` | Aktuelles Image herunterladen |
 | `docker restart <n>` | Container neu starten |
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ## Aufräumarbeiten
@@ -525,6 +573,8 @@ nano /etc/caddy/Caddyfile
 caddy validate --config /etc/caddy/Caddyfile
 systemctl reload caddy
 ```
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ## Autoren und Urheberrecht
 

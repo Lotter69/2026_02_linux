@@ -34,11 +34,41 @@ Diese Übung deckt genau diese Grundlage ab: Sie beauftragen einen Server bei ei
 
 ---
 
+## Inhalt
+
+- [Hintergrundwissen](#hintergrundwissen)
+  - [Was ist SSH-Key-Authentifizierung?](#was-ist-ssh-key-authentifizierung)
+- [Aufgaben](#aufgaben)
+  - [Schritt 1: Server bereitstellen](#schritt-1-server-bereitstellen)
+    - [1.1 Anbieter und Paket wählen](#11-anbieter-und-paket-wählen)
+    - [1.2 Initialen Root-Zugriff einrichten](#12-initialen-root-zugriff-einrichten)
+    - [1.3 Host-Key-Fingerprint verifizieren und erste Verbindung herstellen](#13-host-key-fingerprint-verifizieren-und-erste-verbindung-herstellen)
+  - [Schritt 2: Domänenname beschaffen (theoretischer Überblick)](#schritt-2-domänenname-beschaffen-theoretischer-überblick)
+    - [2.1 Registrar auswählen](#21-registrar-auswählen)
+    - [2.2 Domain-Verfügbarkeit prüfen und registrieren](#22-domain-verfügbarkeit-prüfen-und-registrieren)
+    - [2.3 DNS-Verwaltung verstehen](#23-dns-verwaltung-verstehen)
+  - [Schritt 3: DNS-A-Record setzen](#schritt-3-dns-a-record-setzen)
+    - [3.1 A-Record anlegen](#31-a-record-anlegen)
+    - [3.2 DNS-Propagierung abwarten und prüfen](#32-dns-propagierung-abwarten-und-prüfen)
+  - [Schritt 4: SSH-Schlüsselpaar generieren und hinterlegen](#schritt-4-ssh-schlüsselpaar-generieren-und-hinterlegen)
+    - [4.1 Schlüsselpaar auf dem lokalen Rechner erzeugen](#41-schlüsselpaar-auf-dem-lokalen-rechner-erzeugen)
+    - [4.2 Öffentlichen Schlüssel auf den Server übertragen](#42-öffentlichen-schlüssel-auf-den-server-übertragen)
+    - [4.3 Key-basierte Verbindung testen](#43-key-basierte-verbindung-testen)
+    - [4.4 Passwortauthentifizierung deaktivieren](#44-passwortauthentifizierung-deaktivieren)
+    - [4.5 Abschließende Überprüfung](#45-abschließende-überprüfung)
+- [Rückblick und Zusammenfassung](#rückblick-und-zusammenfassung)
+- [Aufräumarbeiten](#aufräumarbeiten)
+- [Autoren und Urheberrecht](#autoren-und-urheberrecht)
+
+---
+
 ## Hintergrundwissen
 
 ### Was ist SSH-Key-Authentifizierung?
 
 SSH unterstützt zwei Authentifizierungsverfahren: Passwort und Schlüsselpaar. Bei der Schlüsselpaar-Methode wird ein mathematisch zusammenhängendes Schlüsselpaar erzeugt – ein **privater Schlüssel** (verbleibt auf Ihrem Rechner) und ein **öffentlicher Schlüssel** (wird auf dem Server hinterlegt). Beim Login prüft der Server, ob der private Schlüssel zum hinterlegten öffentlichen Schlüssel passt. Da kein Passwort über das Netzwerk übertragen wird, ist diese Methode deutlich sicherer – insbesondere gegenüber Brute-Force-Angriffen.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -118,6 +148,8 @@ exit
 
 > **Tipp zur Fehlerbehebung:** Wenn die Verbindung abgelehnt wird, prüfen Sie, ob der Server vollständig gestartet ist (Status im Dashboard) und ob Port 22 in einer eventuell vorhandenen Anbieter-Firewall (häufig „Security Group" oder „Firewall" genannt) geöffnet ist.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 2: Domänenname beschaffen (theoretischer Überblick)
@@ -156,6 +188,8 @@ Folgende Domainnamen werden im weiteren Verlauf benötigt:
 
 > **Keine eigene Domain zur Hand?**
 > Für Test- und Übungszwecke bieten Dienste wie **nip.io** oder **sslip.io** eine kostenlose Alternative: Sie kodieren die IP-Adresse direkt im Hostnamen. Zum Beispiel löst `cockpit.49-12-34-56.nip.io` automatisch auf `49.12.34.56` auf – ohne DNS-Konfiguration. Diese Methode eignet sich für lokale Tests, nicht aber für produktive Umgebungen oder Let's Encrypt-Zertifikate.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -210,6 +244,8 @@ Alternativ können Sie Online-Tools wie [dnschecker.org](https://dnschecker.org)
 > - Warten Sie weitere 5 Minuten und versuchen Sie es erneut.
 > - Prüfen Sie im DNS-Interface des Registrars, ob der Eintrag korrekt gespeichert wurde.
 > - Leeren Sie ggf. den lokalen DNS-Cache: `sudo dscacheutil -flushcache` (macOS) bzw. `ipconfig /flushdns` (Windows).
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -354,6 +390,8 @@ Bei der zweiten Verbindung sollte die Fehlermeldung `Permission denied (publicke
 
 > **⚠️ Wichtig:** Trennen Sie Ihre bestehende SSH-Session erst, wenn Sie den Key-basierten Login erfolgreich getestet haben. Wenn Sie sich zu früh ausloggen und der Login mit Key nicht funktioniert, sperren Sie sich möglicherweise aus. Die meisten Cloud-Anbieter bieten in diesem Fall eine Web-Konsole (VNC/KVM) als Notfallzugang.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ## Rückblick und Zusammenfassung
@@ -373,6 +411,8 @@ Bei der zweiten Verbindung sollte die Fehlermeldung `Permission denied (publicke
 - Was würde passieren, wenn Sie den privaten SSH-Schlüssel verlieren und kein Notfallzugang (z. B. Web-Konsole) verfügbar wäre?
 - Warum ist eine Passphrase auf dem privaten Schlüssel sinnvoll, auch wenn sie die tägliche Nutzung etwas aufwändiger macht?
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ## Aufräumarbeiten
@@ -381,6 +421,8 @@ Wenn Sie den Server nur für diese Übung genutzt haben:
 
 - Löschen Sie den Server im Dashboard Ihres Cloud-Anbieters, um weitere Kosten zu vermeiden.
 - Wenn die Domain nicht weiter benötigt wird, kündigen Sie die Verlängerung beim Registrar (Domänennamen laufen bis zum Ende der bezahlten Laufzeit weiter).
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 

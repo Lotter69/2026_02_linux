@@ -25,6 +25,24 @@ Genau das ist eine typische Situation in der Praxis: Eigenentwicklungen, herunte
 
 ---
 
+## Inhalt
+
+- [Aufgaben](#aufgaben)
+  - [Schritt 1: Den Ausgangszustand verstehen – was fehlt ohne Unit-Datei?](#schritt-1-den-ausgangszustand-verstehen--was-fehlt-ohne-unit-datei)
+  - [Schritt 2: Eine minimale Unit-Datei schreiben](#schritt-2-eine-minimale-unit-datei-schreiben)
+  - [Schritt 3: Die Unit-Datei schrittweise verbessern](#schritt-3-die-unit-datei-schrittweise-verbessern)
+    - [3.1 Benutzerkontext festlegen](#31-benutzerkontext-festlegen)
+    - [3.2 Neustartverhalten definieren](#32-neustartverhalten-definieren)
+    - [3.3 Abhängigkeiten und Startreihenfolge festlegen](#33-abhängigkeiten-und-startreihenfolge-festlegen)
+    - [3.4 Vollständige Unit-Datei](#34-vollständige-unit-datei)
+  - [Schritt 4: Autostart aktivieren und Persistenz prüfen](#schritt-4-autostart-aktivieren-und-persistenz-prüfen)
+  - [Schritt 5: Fehler in Unit-Dateien diagnostizieren](#schritt-5-fehler-in-unit-dateien-diagnostizieren)
+- [Rückblick und Zusammenfassung](#rückblick-und-zusammenfassung)
+- [Aufräumarbeiten](#aufräumarbeiten)
+- [Autoren und Urheberrecht](#autoren-und-urheberrecht)
+
+---
+
 ## Aufgaben
 
 ### Schritt 1: Den Ausgangszustand verstehen – was fehlt ohne Unit-Datei?
@@ -145,6 +163,8 @@ sudo systemctl is-enabled netmon
 
 Beide Befehle liefern Fehler – nicht weil der Dienst inaktiv ist, sondern weil er für systemd nicht existiert.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 2: Eine minimale Unit-Datei schreiben
@@ -200,6 +220,8 @@ Prüfen Sie, ob das Skript tatsächlich Einträge ins Syslog schreibt:
 ```bash
 journalctl -t netmon -f
 ```
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -277,6 +299,8 @@ sudo systemctl restart netmon
 sudo systemctl status netmon
 ```
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 4: Autostart aktivieren und Persistenz prüfen
@@ -294,6 +318,8 @@ journalctl -t netmon --since '5 minutes ago'
 ```
 
 Läuft der Dienst? Sind Einträge im Syslog vorhanden?
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -336,6 +362,8 @@ journalctl -b -u netmon -p err
 
 Korrigieren Sie den Pfad, laden Sie neu und starten Sie den Dienst erneut.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ## Rückblick und Zusammenfassung
@@ -353,6 +381,8 @@ Korrigieren Sie den Pfad, laden Sie neu und starten Sie den Dienst erneut.
 – Welche Konsequenz hat es, wenn `After=network.target` fehlt und das Skript Netzwerkverbindungen aufbaut?  
 – Wie würden Sie vorgehen, wenn ein Dienst zwar startet, aber nach 30 Sekunden still stirbt – ohne Fehlermeldung im Journal?
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ## Aufräumarbeiten
@@ -364,6 +394,8 @@ sudo systemctl daemon-reload
 sudo rm -rf /opt/netmon
 sudo userdel netmon
 ```
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ## Autoren und Urheberrecht
 

@@ -2,6 +2,20 @@
 
 ![line](images/banner.png)
 
+## Inhalt
+
+- [Schritt 5: Reflexion und Erweiterungsaufgaben](#schritt-5-reflexion-und-erweiterungsaufgaben)
+  - [5.1 Reflexionsfragen](#51-reflexionsfragen)
+  - [5.2 Erweiterungsaufgabe A: Socket-Aktivierung](#52-erweiterungsaufgabe-a-socket-aktivierung)
+  - [5.3 Erweiterungsaufgabe B: Firewall mit ufw konfigurieren](#53-erweiterungsaufgabe-b-firewall-mit-ufw-konfigurieren)
+  - [5.4 Erweiterungsaufgabe C: Automatischen Neustart konfigurieren](#54-erweiterungsaufgabe-c-automatischen-neustart-konfigurieren)
+  - [5.5 Erweiterungsaufgabe D: Logs mit journalctl analysieren](#55-erweiterungsaufgabe-d-logs-mit-journalctl-analysieren)
+- [Rückblick und Zusammenfassung](#rückblick-und-zusammenfassung)
+- [Aufräumarbeiten](#aufräumarbeiten)
+- [Autoren und Urheberrecht](#autoren-und-urheberrecht)
+
+---
+
 ### Schritt 5: Reflexion und Erweiterungsaufgaben
 
 Nachdem Sie Cockpit lokal auf einem einzelnen Rechner betrieben haben – ohne weitere Absicherung, Redundanz oder Skalierungsmaßnahmen – ist es Zeit für eine strukturierte Reflexion.
@@ -25,6 +39,8 @@ Nachdem Sie Cockpit lokal auf einem einzelnen Rechner betrieben haben – ohne w
 - Was wäre notwendig, um Cockpit hochverfügbar zu betreiben (kein Single Point of Failure)?
 - Welche Rolle spielen Backups der `/etc/cockpit/`-Konfiguration für die Wiederherstellung nach einem Systemausfall?
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 #### 5.2 Erweiterungsaufgabe A: Socket-Aktivierung
@@ -37,6 +53,8 @@ sudo systemctl enable --now cockpit.socket
 ```
 
 Beobachten Sie mit `journalctl -u cockpit -f`, **wann** der Dienst startet. Was stellen Sie fest? Welche Auswirkungen hat das auf den Ressourcenverbrauch?
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -59,6 +77,8 @@ sudo ufw status verbose
 | `port 9090` | Zielport: nur dieser Port ist von der Regel betroffen |
 
 > **Tipp zur Fehlerbehebung:** Passen Sie das Subnetz `192.168.0.0/24` an Ihr tatsächliches lokales Netzwerk an. Prüfen Sie Ihre IP-Adresse mit `ip addr show`.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -95,6 +115,8 @@ sleep 6
 sudo systemctl status cockpit
 ```
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 #### 5.5 Erweiterungsaufgabe D: Logs mit journalctl analysieren
@@ -106,6 +128,8 @@ journalctl -b -u cockpit
 ```
 
 Beantworten Sie: Welche Informationen finden Sie in den Logs? Wann und aus welchem Grund wurde Cockpit gestartet oder gestoppt?
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -124,6 +148,8 @@ Beantworten Sie: Welche Informationen finden Sie in den Logs? Wann und aus welch
 – In welchen Szenarien ist ein dauerhaft laufender Dienst sinnvoll – und wann ist Socket-Aktivierung die bessere Wahl?  
 – Wie würden Sie dieses Setup automatisiert auf mehreren Servern ausrollen? *(Stichwort: Ansible)*  
 – Was würde sich ändern, wenn Cockpit in einem Container statt direkt auf dem Host betrieben würde?
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -145,6 +171,8 @@ sudo rm -rf /etc/systemd/system/cockpit.service.d/
 ```
 
 > **Tipp:** Mit `dpkg -l cockpit` können Sie nach dem Aufräumen prüfen, ob das Paket vollständig entfernt wurde. Der Status `rc` zeigt an, dass das Paket entfernt wurde, aber Konfigurationsdateien noch vorhanden sind (entfernt werden diese mit `purge`).
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 ## Autoren und Urheberrecht

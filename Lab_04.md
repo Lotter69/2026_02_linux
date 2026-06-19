@@ -30,6 +30,8 @@ Der Browser wird eine Sicherheitswarnung anzeigen. Klicken Sie sich durch die Wa
 
 Halten Sie Ihre Beobachtungen kurz fest. Sie werden am Ende dieser Übung die gleiche Oberfläche erneut aufrufen – dann jedoch mit einem gültigen, vertrauenswürdigen Zertifikat und ohne Browserwarnung.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Berufliche Aufgabenstellung
@@ -39,6 +41,8 @@ Der Server steht bereit und ist per SSH administrierbar. Die nächste Anforderun
 Gleichzeitig gilt: Nicht jeder Dienst soll öffentlich zugänglich sein. Einer der beiden Zusatzdienste soll nur nach Eingabe eines Benutzernamens und Passworts erreichbar sein. Und der Server selbst soll nach außen so wenig Angriffsfläche bieten wie möglich – nur die wirklich benötigten Ports dürfen offen sein.
 
 Die Lösung ist ein **Reverse Proxy**: Ein einziger Dienst nimmt alle eingehenden HTTPS-Anfragen entgegen und leitet sie intern an den jeweils zuständigen Dienst weiter. Als Reverse Proxy kommt **Caddy** zum Einsatz – er übernimmt dabei auch die Verwaltung der TLS-Zertifikate vollautomatisch über Let's Encrypt.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -68,6 +72,28 @@ Die Lösung ist ein **Reverse Proxy**: Ein einziger Dienst nimmt alle eingehende
 
 ---
 
+## Inhalt
+
+- [Hintergrundwissen](#hintergrundwissen)
+  - [Was ist ein Reverse Proxy?](#was-ist-ein-reverse-proxy)
+  - [Was ist Caddy?](#was-ist-caddy)
+  - [Was ist ufw und wie hängt es mit iptables zusammen?](#was-ist-ufw-und-wie-hängt-es-mit-iptables-zusammen)
+- [Aufgaben](#aufgaben)
+  - [Schritt 1: Firewall mit ufw einrichten](#schritt-1-firewall-mit-ufw-einrichten)
+  - [Schritt 2: Caddy installieren](#schritt-2-caddy-installieren)
+  - [Schritt 3: Cockpit ins Caddyfile einbinden](#schritt-3-cockpit-ins-caddyfile-einbinden)
+  - [Schritt 4: Dienst A vorbereiten und ins Caddyfile einbinden](#schritt-4-dienst-a-vorbereiten-und-ins-caddyfile-einbinden)
+  - [Schritt 5: Dienst B vorbereiten und mit Basic Authentication einbinden](#schritt-5-dienst-b-vorbereiten-und-mit-basic-authentication-einbinden)
+  - [Schritt 6: Ergebnis im Browser überprüfen](#schritt-6-ergebnis-im-browser-überprüfen)
+- [Rückblick und Zusammenfassung](#rückblick-und-zusammenfassung)
+  - [Das vollständige Caddyfile](#das-vollständige-caddyfile)
+  - [Reflexion](#reflexion)
+- [Aufräumarbeiten](#aufräumarbeiten)
+- [Weiterführende Ressourcen](#weiterführende-ressourcen)
+- [Autoren und Urheberrecht](#autoren-und-urheberrecht)
+
+---
+
 ## Hintergrundwissen
 
 ### Was ist ein Reverse Proxy?
@@ -83,6 +109,8 @@ Caddy ist ein moderner Webserver und Reverse Proxy, der sich durch drei Eigensch
 ### Was ist ufw und wie hängt es mit iptables zusammen?
 
 Der Linux-Kernel enthält mit **netfilter** ein eingebautes Paketfiltersystem. **iptables** ist das klassische Kommandozeilenwerkzeug, um netfilter-Regeln zu verwalten – es ist mächtig, aber für einfache Szenarien unhandlich. **ufw** (*Uncomplicated Firewall*) ist ein vereinfachtes Frontend für iptables: Befehle wie `ufw allow https` werden intern in konkrete iptables-Regeln übersetzt. Die tatsächlich aktiven Regeln können jederzeit mit `iptables -L -n -v` eingesehen werden – ufw und iptables arbeiten auf derselben Regelgrundlage.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -145,6 +173,8 @@ Sie erkennen darin die Regeln, die ufw aus Ihren Befehlen erzeugt hat – unter 
 
 > **Tipp zur Fehlerbehebung:** Wenn Sie nach `ufw enable` keinen SSH-Zugang mehr haben, hat SSH gefehlt. Nutzen Sie die Web-Konsole Ihres Anbieters (VNC/KVM) als Notfallzugang und ergänzen Sie die Regel mit `ufw allow ssh`.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 2: Caddy installieren
@@ -202,6 +232,8 @@ Caddy wird automatisch als systemd-Dienst registriert und gestartet. Die Konfigu
 
 > **Was ist systemd?**
 > systemd ist das Init-System moderner Linux-Distributionen. Es verwaltet Dienste, die beim Systemstart automatisch gestartet, überwacht und bei Absturz neu gestartet werden. Mit `systemctl start | stop | restart | status caddy` steuern Sie den Caddy-Dienst.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -262,6 +294,8 @@ Rufen Sie jetzt `https://cockpit.<IHRE-DOMAIN>` im Browser auf und vergleichen S
 > - Prüfen Sie die DNS-Auflösung: `dig cockpit.<IHRE-DOMAIN>`
 > - Stellen Sie sicher, dass Port 80 in ufw offen ist: `ufw status`
 > - Let's Encrypt hat Ratenlimits – prüfen Sie die Caddy-Logs auf genaue Fehlermeldungen, bevor Sie es erneut versuchen.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -348,6 +382,8 @@ systemctl reload caddy
 ```
 
 Caddy fordert nun auch für `dienst-a.<IHRE-DOMAIN>` automatisch ein Zertifikat an. Rufen Sie `https://dienst-a.<IHRE-DOMAIN>` im Browser auf – die Seite sollte direkt und ohne Login laden.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -459,6 +495,8 @@ Rufen Sie `https://dienst-b.<IHRE-DOMAIN>` im Browser auf – ein Login-Dialog e
 
 > **Sicherheitshinweis:** Basic Authentication überträgt Anmeldedaten Base64-kodiert. Ohne HTTPS wären diese trivial abfangbar und die Base64-codierte Zeichenfolge kann wieder in Benutzername und Passwort zurückgerechnet werden. Da Caddy HTTPS erzwingt und HTTP-Anfragen automatisch auf HTTPS weiterleitet, ist die Kombination aus Basic Auth und TLS hier sicher und praxistauglich.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 > **Weiterführend: HTTP-Sicherheits-Header mit Caddy**
@@ -488,6 +526,8 @@ Die Seite lädt direkt, ohne Authentifizierung.
 https://dienst-b.<IHRE-DOMAIN>
 ```
 Der Browser zeigt einen Login-Dialog. Melden Sie sich mit dem Benutzernamen `admin` und dem Passwort aus Schritt 5 an.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -539,6 +579,8 @@ dienst-b.<IHRE-DOMAIN> {
 - Was würde passieren, wenn jemand versucht, Dienst B direkt über `http://localhost:8002` aufzurufen – von außen, ohne Caddy?
 - ufw erlaubt Port 80, obwohl alle Dienste über Port 443 erreichbar sind. Warum ist Port 80 trotzdem notwendig, und was passiert mit einer HTTP-Anfrage auf Port 80 nach der Caddy-Konfiguration?
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ## Aufräumarbeiten
@@ -564,6 +606,8 @@ systemctl disable caddy
 ```
 
 4. Falls der Server nicht mehr benötigt wird: Löschen Sie ihn im Dashboard Ihres Cloud-Anbieters, um weitere Kosten zu vermeiden.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
