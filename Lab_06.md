@@ -518,12 +518,64 @@ ss -tlnp | grep 6379
 Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (die bewusst über `-p` veröffentlicht wurden) ist hier gar kein Host-Port nötig – `redis-cache` muss ausschließlich für `nodered` erreichbar sein, und das funktioniert vollständig innerhalb von `app-net`, ohne dass der Host überhaupt einen offenen Port dafür braucht.
 
 > **Warum trotzdem mindestens ein Dienst sichtbar bleiben muss:** `app-net` selbst macht nach außen gar nichts sichtbar. Die einzige Verbindung zur Außenwelt bleibt `nodered` – er gehört weiterhin zusätzlich dem Standard-Netzwerk an und ist dort über `-p 1880:1880` für Caddy erreichbar (aus Lab 05). `nodered` fungiert damit als Brücke zwischen beiden Welten: nach außen sichtbar über sein Host-Port-Mapping, nach innen verbunden mit `redis-cache` über `app-net`. `redis-cache` selbst braucht diese Brücke nicht – er muss nur von `nodered` aus erreichbar sein, nicht von irgendwo sonst.
+
+#### 7.7 Hintergrund: IP-Vergabe und Routing in Docker-Netzwerken
+
+Die IP-Adresse `172.18.0.3`, die in Schritt 7.4 für `redis-cache` aufgetaucht ist, kam nicht von irgendwoher – sie wurde Docker beim Anlegen von `app-net` automatisch aus einem eigenen Adresspool zugewiesen. Jedes Docker-Netzwerk bekommt dabei ein eigenes Subnetz; das Standard-Netzwerk `bridge` belegt meist `172.17.0.0/16`, eigene Netzwerke wie `app-net` erhalten automatisch das nächste freie Subnetz (z. B. `172.18.0.0/16`).
+
+Innerhalb eines solchen Netzwerks ist das, was wie „Routing" wirkt, eigentlich **Switching auf Layer 2**: Alle Container eines Netzwerks hängen an derselben virtuellen Linux-Bridge und liegen im selben Subnetz – es muss also nichts zwischen unterschiedlichen Netzbereichen vermittelt werden. Die Namensauflösung (Containername → IP), die Sie in 7.4 mit `getent hosts` genutzt haben, übernimmt dabei der eingebaute Docker-DNS-Server.
+
+Zwischen zwei eigenständigen, unterschiedlichen Netzwerken gibt es dagegen **kein automatisches Routing** – sie sind grundsätzlich voneinander isoliert. Genau das war in 7.5 zu sehen: Ohne `--network app-net` landet ein Container im Standard-Netzwerk, einem komplett anderen Adressbereich mit eigenem, separaten DNS. Nur ein Container, der – wie `nodered` – Mitglied in beiden Netzwerken ist, kann zwischen ihnen vermitteln.
+
+Folgende Befehle helfen, sich jederzeit einen Überblick über die vorhandenen Docker-Netzwerke und ihre IP-Vergabe zu verschaffen:
+
+| Befehl | Bedeutung |
+|---|---|
+| `docker network ls` | Alle Netzwerke anzeigen, inkl. der Standardnetze `bridge`, `host` und `none` |
+| `docker network create <name>` | Eigenes Netzwerk anlegen |
+| `docker network rm <name>` | Netzwerk löschen (nur möglich, wenn keine Container mehr verbunden sind) |
+| `docker network inspect <name>` | Vollständige Details zu einem Netzwerk: Subnetz, IPAM-Konfiguration, verbundene Container |
+| `docker network connect <netz> <container>` | Laufenden Container zusätzlich an ein Netzwerk anhängen |
+| `docker network disconnect <netz> <container>` | Container aus einem Netzwerk entfernen |
+| `docker network prune` | Alle nicht genutzten (verwaisten) Netzwerke aufräumen |
+
+Zunächst ein Überblick über alle vorhandenen Netzwerke – auch über die von Docker immer automatisch angelegten Standardnetze, in deren Liste `app-net` erst nach dem Anlegen in Schritt 7.1 auftaucht:
+
+```bash
+docker network ls
+```
+
+Das einem Netzwerk zugewiesene Subnetz lässt sich gezielt abfragen, ohne sich durch die vollständige, unübersichtliche `inspect`-Ausgabe zu lesen:
+
+```bash
+docker network inspect app-net --format '{{(index .IPAM.Config 0).Subnet}}'
+```
+
+Beispielausgabe:
+
+```
+172.18.0.0/16
+```
+
+Und die IP-Adressen aller Container, die aktuell Mitglied von `app-net` sind:
+
+```bash
+docker network inspect app-net --format '{{range .Containers}}{{.Name}} -> {{.IPv4Address}}{{"\n"}}{{end}}'
+```
+
+Beispielausgabe:
+
+```
+redis-cache -> 172.18.0.2/16
+nodered -> 172.18.0.3/16
+```
+
 ---
 
 ### Schritt 8: Lastverteilung einrichten und Last erzeugen
 
 In der Fortsetzung arbeiten Sie mit `demo.ihre-domain.de` analog zu den bisherigen Einträgen. 
-Im Registrar existiert ein Wildcard-Eintrag *.ihre-domain.de, d.h. folgene Übperprüfung sollte erfolgeich sein.
+Im Registrar existiert ein Wildcard-Eintrag *.ihre-domain.de, d.h. folgene Überprüfung sollte erfolgeich sein.
 
 ```bash
 dig demo.ihre-domain.de +short
@@ -655,7 +707,9 @@ Wiederholen Sie den Testlauf aus diesem Schritt – `demo4` erscheint erst jetzt
 | `acme_certificate issuer;` | Zertifikat für den aktuellen Server-Block anfordern |
 | `nginx -t` | Konfiguration auf Syntaxfehler prüfen |
 | `systemctl reload nginx` | Konfiguration ohne Prozessneustart übernehmen |
+| `docker network ls` | Alle Netzwerke anzeigen, inkl. Standardnetze |
 | `docker network create <name>` | Eigenes Docker-Netzwerk anlegen |
+| `docker network inspect <name>` | Subnetz, IPAM-Konfiguration und verbundene Container eines Netzwerks anzeigen |
 | `docker network connect <netz> <container>` | Laufenden Container zusätzlich an ein Netzwerk anhängen |
 | `docker run --network <netz>` | Container von Anfang an einem bestimmten Netzwerk zuweisen |
 | `getent hosts <name>` | Namensauflösung innerhalb eines Containers prüfen |
