@@ -35,7 +35,7 @@ In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisc
 | **Caddy** | Aktuell noch aktiv – wird in diesem Lab abgelöst |
 | **Docker** | Installiert und betriebsbereit (aus Lab 05), inklusive der Container `nginx-web` und `nodered` |
 | **SSH-Zugriff** | Key-Authentifizierung |
-| **DNS** | Bestehende A-Records aus Lab 03–05 (`cockpit`, `dienst-a`, `dienst-b`, `www`, `dashboard`), zusätzlich ein neuer A-Record `demo.ihre-domain.de` |
+| **DNS** | Bestehende A-Records aus Lab 03–05 (`cockpit`, `dienst-a`, `dienst-b`, `www`, `dashboard`), zusätzlich ein neuer A-Record `demo.<IHRE-DOMAIN>` |
 
 ---
 
@@ -73,7 +73,7 @@ systemctl disable caddy
 Prüfen Sie, dass die Ports 80 und 443 frei sind:
 
 ```bash
-ss -tlnp | grep -E ':80 |:443 '
+ss -tlnp | grep -E ':80 |:443 '   # Erzeugen: aktive Listener anzeigen | Filtern: nur Port 80/443
 ```
 
 Die Ausgabe sollte leer sein.
@@ -87,12 +87,16 @@ Wie schon bei Caddy (Lab 04) und Docker (Lab 05) installieren Sie nginx nicht au
 ```bash
 apt install -y curl gnupg2 ca-certificates lsb-release
 
-curl -fsSL https://nginx.org/keys/nginx_signing.key \
+curl -fsSL https://nginx.org/keys/nginx_signing.key \    # Erzeugen: Schlüssel-Datei laden
   | gpg --dearmor | tee /usr/share/keyrings/nginx-archive-keyring.gpg > /dev/null
+    # Filtern/Umwandeln: in Binärformat wandeln | Ablegen: in Datei schreiben (Bildschirmausgabe unterdrückt)
 
 echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/ubuntu $(lsb_release -cs) nginx" \
   | tee /etc/apt/sources.list.d/nginx.list
+    # Erzeugen: Repository-Zeile (inkl. Command Substitution $(lsb_release -cs)) | Ablegen: in Datei schreiben + anzeigen
 ```
+
+> Dieselbe Grundstruktur **[Text erzeugen] → (filtern/umwandeln) → [ablegen]** wie im Exkurs zu Lab 02 – nur mit anderen Befehlen (`curl`/`echo` statt `echo`, `gpg --dearmor` statt `grep`, `tee` statt `logger`).
 
 > **Tipp zur Fehlerbehebung:** Bricht `apt update` anschließend mit einer Meldung wie „The repository ... does not have a Release file" ab, prüfen Sie zunächst die tatsächliche Distribution Ihres Systems:
 > ```bash
@@ -105,12 +109,13 @@ echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx
 >   | tee /etc/apt/sources.list.d/nginx.list
 > apt update
 > ```
+> (gleiche Befehlsstruktur wie oben – nur `/ubuntu` durch `/debian` ersetzt)
 
 Damit apt bei künftigen Updates konsequent das offizielle nginx-Paket statt der älteren Distributionsvariante bevorzugt, legen Sie eine Pinning-Regel an:
 
 ```bash
-printf 'Package: *\nPin: origin nginx.org\nPin-Priority: 900\n' \
-  | tee /etc/apt/preferences.d/99nginx
+printf 'Package: *\nPin: origin nginx.org\nPin-Priority: 900\n' \    # Erzeugen: drei Zeilen Pinning-Konfiguration
+  | tee /etc/apt/preferences.d/99nginx                                # Ablegen: in neue Datei schreiben
 ```
 
 Paketliste aktualisieren und nginx mitsamt ACME-Modul installieren:
@@ -169,7 +174,7 @@ acme_shared_zone zone=acme_shared:1M;
 
 acme_issuer letsencrypt {
     uri https://acme-v02.api.letsencrypt.org/directory;
-    contact mailto:admin@ihre-domain.de;
+    contact mailto:admin@<IHRE-DOMAIN>;
     state_path /var/lib/nginx/acme-letsencrypt;
     accept_terms_of_service;
 }
@@ -198,10 +203,10 @@ server {
     location / {
         # Antwortet mit HTTP-Statuscode 301 (dauerhafte Weiterleitung)
         # und leitet auf dieselbe Adresse, aber über HTTPS, um.
-        # $host        = der angefragte Hostname, z. B. cockpit.ihre-domain.de
+        # $host        = der angefragte Hostname, z. B. cockpit.<IHRE-DOMAIN>
         # $request_uri = der vollständige ursprüngliche Pfad inkl. Query-String
-        # Beispiel: http://dienst-a.ihre-domain.de/seite?x=1
-        #        -> https://dienst-a.ihre-domain.de/seite?x=1
+        # Beispiel: http://dienst-a.<IHRE-DOMAIN>/seite?x=1
+        #        -> https://dienst-a.<IHRE-DOMAIN>/seite?x=1
         return 301 https://$host$request_uri;
     }
 }
@@ -229,7 +234,7 @@ nano /etc/nginx/conf.d/cockpit.conf
 ```nginx
 server {
     listen 443 ssl;
-    server_name cockpit.ihre-domain.de;
+    server_name cockpit.<IHRE-DOMAIN>;
 
     acme_certificate letsencrypt;
     ssl_certificate $acme_certificate;
@@ -251,9 +256,9 @@ server {
 
 `listen 443 ssl;` lässt diesen Server-Block verschlüsselte Verbindungen auf Port 443 annehmen – das `ssl` weist nginx an, hier einen TLS-Handshake durchzuführen, bevor irgendein Inhalt ausgeliefert wird. 
 
-`server_name cockpit.ihre-domain.de;` legt fest, dass dieser Block nur für Anfragen mit genau diesem Hostnamen zuständig ist – anhand des SNI beim TLS-Handshake entscheidet nginx, welcher von mehreren Server-Blöcken auf Port 443 eine konkrete Anfrage bearbeitet.
+`server_name cockpit.<IHRE-DOMAIN>;` legt fest, dass dieser Block nur für Anfragen mit genau diesem Hostnamen zuständig ist – anhand des SNI beim TLS-Handshake entscheidet nginx, welcher von mehreren Server-Blöcken auf Port 443 eine konkrete Anfrage bearbeitet.
 
-`acme_certificate letsencrypt;` ist die zentrale Anweisung: Sie teilt dem ACME-Modul mit, für `cockpit.ihre-domain.de` (der Name wird automatisch aus `server_name` übernommen) jederzeit ein gültiges Zertifikat über den zuvor definierten Issuer `letsencrypt` bereitzuhalten. Das Modul überwacht die Restlaufzeit selbst und stößt die Erneuerung rechtzeitig vor **Ablauf der 90 Tage** an, ohne dass Sie eingreifen müssen.
+`acme_certificate letsencrypt;` ist die zentrale Anweisung: Sie teilt dem ACME-Modul mit, für `cockpit.<IHRE-DOMAIN>` (der Name wird automatisch aus `server_name` übernommen) jederzeit ein gültiges Zertifikat über den zuvor definierten Issuer `letsencrypt` bereitzuhalten. Das Modul überwacht die Restlaufzeit selbst und stößt die Erneuerung rechtzeitig vor **Ablauf der 90 Tage** an, ohne dass Sie eingreifen müssen.
 
 `ssl_certificate $acme_certificate;` und `ssl_certificate_key $acme_certificate_key;` verweisen – im Unterschied zu sonst üblichen, statischen Dateipfaden – auf **Variablen**, die das ACME-Modul bereitstellt. Bei einer Erneuerung tauscht das Modul den Inhalt dieser Variablen aus; neue Verbindungen erhalten sofort das aktuelle Zertifikat, ohne dass ein `nginx -t` oder `systemctl reload` nötig wäre. Das unterscheidet diese Lösung von einer klassischen, statischen Konfiguration mit Certbot (alter Lösungsansatz für ACME), bei der nach jeder Erneuerung ein Reload erforderlich ist. 
 
@@ -280,7 +285,7 @@ Beobachten Sie die Ausstellung des Zertifikats:
 journalctl -u nginx -f
 ```
 
-Rufen Sie anschließend `https://cockpit.ihre-domain.de` im Browser auf und prüfen Sie im Zertifikat: Aussteller Let's Encrypt, keine Sicherheitswarnung.
+Rufen Sie anschließend `https://cockpit.<IHRE-DOMAIN>` im Browser auf und prüfen Sie im Zertifikat: Aussteller Let's Encrypt, keine Sicherheitswarnung.
 
 ---
 
@@ -293,7 +298,7 @@ Wiederholen Sie das Muster für die restlichen vier Dienste.
 ```nginx
 server {
     listen 443 ssl;
-    server_name dienst-a.ihre-domain.de;
+    server_name dienst-a.<IHRE-DOMAIN>;
 
     acme_certificate letsencrypt;
     ssl_certificate $acme_certificate;
@@ -312,7 +317,7 @@ server {
 
 ```bash
 apt install -y apache2-utils
-htpasswd -B -c /etc/nginx/.htpasswd admin
+htpasswd -B -c /etc/nginx/.htpasswd admin   # -B: bcrypt-Hash, -c: Datei neu anlegen, admin: Benutzername
 ```
 
 > **Vergleich mit Caddy:** Caddy hat den bcrypt-Hash mit `caddy hash-password` direkt ins Caddyfile geschrieben. nginx benötigt dafür eine separate Datei und das Werkzeug `htpasswd` aus den Apache-Hilfsprogrammen – derselbe Hash-Algorithmus (bcrypt, Option `-B`), aber ein anderer Aufbewahrungsort.
@@ -322,7 +327,7 @@ htpasswd -B -c /etc/nginx/.htpasswd admin
 ```nginx
 server {
     listen 443 ssl;
-    server_name dienst-b.ihre-domain.de;
+    server_name dienst-b.<IHRE-DOMAIN>;
 
     acme_certificate letsencrypt;
     ssl_certificate $acme_certificate;
@@ -345,7 +350,7 @@ server {
 ```nginx
 server {
     listen 443 ssl;
-    server_name www.ihre-domain.de;
+    server_name www.<IHRE-DOMAIN>;
 
     acme_certificate letsencrypt;
     ssl_certificate $acme_certificate;
@@ -365,7 +370,7 @@ server {
 ```nginx
 server {
     listen 443 ssl;
-    server_name dashboard.ihre-domain.de;
+    server_name dashboard.<IHRE-DOMAIN>;
 
     acme_certificate letsencrypt;
     ssl_certificate $acme_certificate;
@@ -413,11 +418,11 @@ ls -la /etc/nginx/conf.d/
 Rufen Sie alle fünf Domains auf und prüfen Sie jeweils das Zertifikat (Aussteller: Let's Encrypt, keine Browserwarnung):
 
 ```
-https://cockpit.ihre-domain.de
-https://dienst-a.ihre-domain.de
-https://dienst-b.ihre-domain.de
-https://www.ihre-domain.de
-https://dashboard.ihre-domain.de
+https://cockpit.<IHRE-DOMAIN>
+https://dienst-a.<IHRE-DOMAIN>
+https://dienst-b.<IHRE-DOMAIN>
+https://www.<IHRE-DOMAIN>
+https://dashboard.<IHRE-DOMAIN>
 ```
 
 Vergewissern Sie sich, dass Caddy nicht mehr läuft:
@@ -523,7 +528,7 @@ Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (d
 
 Die IP-Adresse `172.18.0.3`, die in Schritt 7.4 für `redis-cache` aufgetaucht ist, kam nicht von irgendwoher – sie wurde Docker beim Anlegen von `app-net` automatisch aus einem eigenen Adresspool zugewiesen. Jedes Docker-Netzwerk bekommt dabei ein eigenes Subnetz; das Standard-Netzwerk `bridge` belegt meist `172.17.0.0/16`, eigene Netzwerke wie `app-net` erhalten automatisch das nächste freie Subnetz (z. B. `172.18.0.0/16`).
 
-Innerhalb eines solchen Netzwerks findet **Switching auf Layer 2** statt: Alle Container eines Netzwerks hängen an derselben virtuellen Linux-Bridge und liegen im selben Subnetz. Die Namensauflösung (Containername → IP), die Sie in 7.4 mit `getent hosts` genutzt haben, übernimmt dabei der eingebaute Docker-DNS-Server.
+Innerhalb eines solchen Netzwerks ist das, was wie „Routing" wirkt, eigentlich **Switching auf Layer 2**: Alle Container eines Netzwerks hängen an derselben virtuellen Linux-Bridge und liegen im selben Subnetz – es muss also nichts zwischen unterschiedlichen Netzbereichen vermittelt werden. Die Namensauflösung (Containername → IP), die Sie in 7.4 mit `getent hosts` genutzt haben, übernimmt dabei der eingebaute Docker-DNS-Server.
 
 Zwischen zwei eigenständigen, unterschiedlichen Netzwerken gibt es dagegen **kein automatisches Routing** – sie sind grundsätzlich voneinander isoliert. Genau das war in 7.5 zu sehen: Ohne `--network app-net` landet ein Container im Standard-Netzwerk, einem komplett anderen Adressbereich mit eigenem, separaten DNS. Nur ein Container, der – wie `nodered` – Mitglied in beiden Netzwerken ist, kann zwischen ihnen vermitteln.
 
@@ -574,11 +579,11 @@ nodered -> 172.18.0.3/16
 
 ### Schritt 8: Lastverteilung einrichten und Last erzeugen
 
-In der Fortsetzung arbeiten Sie mit `demo.ihre-domain.de` analog zu den bisherigen Einträgen. 
-Im Registrar existiert ein Wildcard-Eintrag *.ihre-domain.de, d.h. folgene Überprüfung sollte erfolgeich sein.
+In der Fortsetzung arbeiten Sie mit `demo.<IHRE-DOMAIN>` analog zu den bisherigen Einträgen. 
+Im Registrar existiert ein Wildcard-Eintrag *.<IHRE-DOMAIN>, d.h. folgene Überprüfung sollte erfolgeich sein.
 
 ```bash
-dig demo.ihre-domain.de +short
+dig demo.<IHRE-DOMAIN> +short
 ```
 
 Starten Sie drei Instanzen eines einfachen Demo-Dienstes, der bei jeder Antwort seinen eigenen Containernamen zurückgibt:
@@ -587,6 +592,8 @@ Starten Sie drei Instanzen eines einfachen Demo-Dienstes, der bei jeder Antwort 
 docker run -d --name demo1 --restart unless-stopped -p 9001:80 traefik/whoami
 docker run -d --name demo2 --restart unless-stopped -p 9002:80 traefik/whoami
 docker run -d --name demo3 --restart unless-stopped -p 9003:80 traefik/whoami
+# -d: im Hintergrund | --name: Containername | --restart: Neustart-Policy | -p: Host-Port:Container-Port
+# (ausführlich erklärt in Lab 05, Schritt 3.3)
 ```
 
 Tragen Sie alle drei Instanzen händisch als Upstream-Gruppe in nginx ein:
@@ -604,7 +611,7 @@ upstream demo_backend {
 
 server {
     listen 443 ssl;
-    server_name demo.ihre-domain.de;
+    server_name demo.<IHRE-DOMAIN>;
 
     acme_certificate letsencrypt;
     ssl_certificate $acme_certificate;
@@ -627,19 +634,20 @@ systemctl reload nginx
 Erzeugen Sie mehrere Anfragen und beobachten Sie die Verteilung anhand des jeweils zurückgegebenen Containernamens:
 
 ```bash
-for i in $(seq 1 12); do curl -s https://demo.ihre-domain.de | grep Hostname; done
+for i in $(seq 1 12); do curl -s https://demo.<IHRE-DOMAIN> | grep Hostname; done
 ```
 
 Sie sollten alle drei Container-Hostnamen im Round-Robin-Wechsel sehen. Optional können Sie mit einem echten Lasttest-Werkzeug eine größere Anfragenzahl erzeugen:
 
 ```bash
-ab -n 100 -c 10 https://demo.ihre-domain.de/
+ab -n 100 -c 10 https://demo.<IHRE-DOMAIN>/
 ```
 
 Fügen Sie nun bewusst eine vierte Instanz hinzu:
 
 ```bash
 docker run -d --name demo4 --restart unless-stopped -p 9004:80 traefik/whoami
+# gleiches Muster wie demo1-demo3, nur neuer Name und neuer Host-Port
 ```
 
 Tragen Sie sie händisch in die Upstream-Gruppe ein:

@@ -59,12 +59,12 @@ Die Lösung ist ein **Reverse Proxy**: Ein einziger Dienst nimmt alle eingehende
 - Ein Linux-Server (Ubuntu 24.04 LTS) mit öffentlicher IPv4-Adresse, administrierbar per SSH
 - Ein Domänenname mit DNS-Verwaltungszugriff
 - Folgende DNS-A-Records zeigen bereits auf die IP-Adresse des Servers:
-  - `cockpit.ihre-domain.de`
-  - `dienst-a.ihre-domain.de`
-  - `dienst-b.ihre-domain.de`
+  - `cockpit.<IHRE-DOMAIN>`
+  - `dienst-a.<IHRE-DOMAIN>`
+  - `dienst-b.<IHRE-DOMAIN>`
 - SSH-Zugriff mit Key-Authentifizierung (Ergebnis aus vorausgehender Laborübung Lab 03)
 
-> **Hinweis:** Diese drei Einträge legen Sie analog zu Laborübung 03, Schritt 3.1 an – einmal pro Hostname. Alternativ deckt ein einzelner Wildcard-Eintrag (Name *, Typ A, Wert = Server-IP) alle drei Namen gleichzeitig ab. Prüfen Sie vorab mit dig cockpit.ihre-domain.de bzw. Resolve-DnsName -Name cockpit.ihre-domain.de -Server 8.8.8.8, ob die Namen bereits auflösen, bevor Sie neue Einträge anlegen – sonst entstehen unnötig doppelte oder widersprüchliche Records.
+> **Hinweis:** Diese drei Einträge legen Sie analog zu Laborübung 03, Schritt 3.1 an – einmal pro Hostname. Alternativ deckt ein einzelner Wildcard-Eintrag (Name *, Typ A, Wert = Server-IP) alle drei Namen gleichzeitig ab. Prüfen Sie vorab mit dig cockpit.<IHRE-DOMAIN> bzw. Resolve-DnsName -Name cockpit.<IHRE-DOMAIN> -Server 8.8.8.8, ob die Namen bereits auflösen, bevor Sie neue Einträge anlegen – sonst entstehen unnötig doppelte oder widersprüchliche Records.
 
 ---
 
@@ -138,6 +138,7 @@ To                         Action      From
 
 ```bash
 iptables -L -n -v
+# -L: Regeln auflisten | -n: IP-Adressen statt Hostnamen | -v: ausführliche Ausgabe (u. a. Paketzähler)
 ```
 
 Sie erkennen darin die Regeln, die ufw aus Ihren Befehlen erzeugt hat – unter anderem die Erlaubnis für Port 22, 80 und 443 in der Kette `INPUT`.
@@ -162,14 +163,16 @@ Diese vier Pakete erfüllen unterschiedliche Aufgaben:
 - `apt-transport-https` ermöglicht es APT, Paketquellen über HTTPS abzurufen. Ohne dieses Paket kann APT nur unverschlüsselte HTTP-Quellen ansprechen.
 - `curl` ist ein Kommandozeilenwerkzeug zum Herunterladen von Dateien über HTTP/HTTPS. Es wird im nächsten Schritt benötigt, um den GPG-Schlüssel und die Repository-Adresse abzurufen.
 
-2. Fügen Sie den öffentlichen GPG-Schlüssel des Caddy-Repositories und die Repository-Adresse Ihrer Liste der vertrauenswürdign Repositories hinzu.
+2. Fügen Sie den öffentlichen GPG-Schlüssel des Caddy-Repositories und die Repository-Adresse ihrer Liste der vertrauenswürdign Repositories hinzu.
 
 ```bash
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \    # Erzeugen: Schlüssel-Datei laden
   | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  # Filtern/Umwandeln: in Binärformat wandeln | Ablegen: per -o direkt in Datei schreiben
 
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \    # Erzeugen: Repository-Zeile laden
   | tee /etc/apt/sources.list.d/caddy-stable.list
+  # Ablegen: in Datei schreiben + zur Kontrolle auf dem Bildschirm anzeigen
 ```
 
 Der erste Befehl lädt den **öffentlichen GPG-Schlüssel** des Caddy-Projekts herunter und speichert ihn im APT-Schlüsselbund. APT verwendet diesen Schlüssel, um die digitale Signatur jedes heruntergeladenen Caddy-Pakets zu prüfen – so wird sichergestellt, dass das Paket tatsächlich vom Caddy-Projekt stammt und nicht nachträglich verändert wurde. `gpg --dearmor` wandelt den Schlüssel dabei vom textuellen PEM-Format in ein binäres Format um, das APT erwartet.
@@ -216,7 +219,7 @@ Ersetzen Sie den gesamten vorhandenen Inhalt durch folgenden Block. Passen Sie d
 
 ```caddy
 # Cockpit – Administrationsoberfläche
-cockpit.ihre-domain.de {
+cockpit.<IHRE-DOMAIN> {
     reverse_proxy localhost:9090 {
         transport http {
             tls_insecure_skip_verify
@@ -244,19 +247,19 @@ Drücken Sie `Strg+C`, um die Ansicht zu beenden.
 
 **Ergebnis im Browser verifizieren:**
 
-Rufen Sie jetzt `https://cockpit.ihre-domain.de` im Browser auf und vergleichen Sie bewusst mit dem, was Sie zu Beginn dieser Übung gesehen haben:
+Rufen Sie jetzt `https://cockpit.<IHRE-DOMAIN>` im Browser auf und vergleichen Sie bewusst mit dem, was Sie zu Beginn dieser Übung gesehen haben:
 
 1. **Keine Sicherheitswarnung** – der Browser zeigt die Cockpit-Login-Maske direkt, ohne Unterbrechung durch eine Zertifikatswarnung.
 
 2. **Zertifikat prüfen** – klicken Sie in der Adressleiste auf das Schloss-Symbol und rufen Sie die Zertifikatsinformationen auf. Sie sehen jetzt:
    - **Ausgestellt von:** Let's Encrypt
-   - **Ausgestellt für:** `cockpit.ihre-domain.de`
+   - **Ausgestellt für:** `cockpit.<IHRE-DOMAIN>`
    - **Gültigkeitszeitraum:** 90 Tage ab heute (Let's Encrypt stellt Zertifikate mit 90 Tagen Laufzeit aus; Caddy erneuert sie automatisch vor Ablauf)
 
    Vergleichen Sie mit dem selbst signierten Zertifikat vom Anfang der Übung: Dort war als Aussteller der Server selbst eingetragen, keine anerkannte Zertifizierungsstelle – weshalb der Browser gewarnt hat. Jetzt bestätigt eine öffentlich vertrauenswürdige Stelle die Identität des Servers.
 
 > **Tipp zur Fehlerbehebung:** Wenn das Zertifikat nicht ausgestellt wird:
-> - Prüfen Sie die DNS-Auflösung: `dig cockpit.ihre-domain.de`
+> - Prüfen Sie die DNS-Auflösung: `dig cockpit.<IHRE-DOMAIN>`
 > - Stellen Sie sicher, dass Port 80 in ufw offen ist: `ufw status`
 > - Let's Encrypt hat Ratenlimits – prüfen Sie die Caddy-Logs auf genaue Fehlermeldungen, bevor Sie es erneut versuchen.
 
@@ -314,7 +317,7 @@ Ergänzen Sie unterhalb des bestehenden Cockpit-Blocks den folgenden Eintrag:
 
 ```caddy
 # Dienst A – öffentlich erreichbar
-dienst-a.ihre-domain.de {
+dienst-a.<IHRE-DOMAIN> {
     reverse_proxy localhost:8001
 }
 ```
@@ -323,7 +326,7 @@ Das vollständige Caddyfile sieht jetzt so aus:
 
 ```caddy
 # Cockpit – Administrationsoberfläche
-cockpit.ihre-domain.de {
+cockpit.<IHRE-DOMAIN> {
     reverse_proxy localhost:9090 {
         transport http {
             tls_insecure_skip_verify
@@ -332,7 +335,7 @@ cockpit.ihre-domain.de {
 }
 
 # Dienst A – öffentlich erreichbar
-dienst-a.ihre-domain.de {
+dienst-a.<IHRE-DOMAIN> {
     reverse_proxy localhost:8001
 }
 ```
@@ -344,7 +347,7 @@ caddy validate --config /etc/caddy/Caddyfile
 systemctl reload caddy
 ```
 
-Caddy fordert nun auch für `dienst-a.ihre-domain.de` automatisch ein Zertifikat an. Rufen Sie `https://dienst-a.ihre-domain.de` im Browser auf – die Seite sollte direkt und ohne Login laden.
+Caddy fordert nun auch für `dienst-a.<IHRE-DOMAIN>` automatisch ein Zertifikat an. Rufen Sie `https://dienst-a.<IHRE-DOMAIN>` im Browser auf – die Seite sollte direkt und ohne Login laden.
 
 ---
 
@@ -391,7 +394,7 @@ curl http://localhost:8002
 Caddy speichert Passwörter nicht im Klartext, sondern als **bcrypt-Hash**. Generieren Sie diesen mit:
 
 ```bash
-caddy hash-password --plaintext 'IhrSicheresPasswort!'
+caddy hash-password --plaintext '<IHR-PASSWORT>'
 ```
 
 Die Ausgabe ist ein Hash-String, der mit `$2a$` beginnt, z. B.:
@@ -410,7 +413,7 @@ Ergänzen Sie unterhalb des Dienst-A-Blocks den folgenden Eintrag und ersetzen S
 
 ```caddy
 # Dienst B – nur nach Authentifizierung erreichbar
-dienst-b.ihre-domain.de {
+dienst-b.<IHRE-DOMAIN> {
     basic_auth {
         # Benutzername: admin
         admin <HASH-AUS-OBIGEM-BEFEHL>
@@ -423,7 +426,7 @@ Das vollständige Caddyfile sieht jetzt so aus:
 
 ```caddy
 # Cockpit – Administrationsoberfläche
-cockpit.ihre-domain.de {
+cockpit.<IHRE-DOMAIN> {
     reverse_proxy localhost:9090 {
         transport http {
             tls_insecure_skip_verify
@@ -432,12 +435,12 @@ cockpit.ihre-domain.de {
 }
 
 # Dienst A – öffentlich erreichbar
-dienst-a.ihre-domain.de {
+dienst-a.<IHRE-DOMAIN> {
     reverse_proxy localhost:8001
 }
 
 # Dienst B – nur nach Authentifizierung erreichbar
-dienst-b.ihre-domain.de {
+dienst-b.<IHRE-DOMAIN> {
     basic_auth {
         admin <HASH-AUS-OBIGEM-BEFEHL>
     }
@@ -452,7 +455,7 @@ caddy validate --config /etc/caddy/Caddyfile
 systemctl reload caddy
 ```
 
-Rufen Sie `https://dienst-b.ihre-domain.de` im Browser auf – ein Login-Dialog erscheint. Melden Sie sich mit Benutzername `admin` und dem gewählten Passwort an.
+Rufen Sie `https://dienst-b.<IHRE-DOMAIN>` im Browser auf – ein Login-Dialog erscheint. Melden Sie sich mit Benutzername `admin` und dem gewählten Passwort an.
 
 > **Sicherheitshinweis:** Basic Authentication überträgt Anmeldedaten Base64-kodiert. Ohne HTTPS wären diese trivial abfangbar und die Base64-codierte Zeichenfolge kann wieder in Benutzername und Passwort zurückgerechnet werden. Da Caddy HTTPS erzwingt und HTTP-Anfragen automatisch auf HTTPS weiterleitet, ist die Kombination aus Basic Auth und TLS hier sicher und praxistauglich.
 
@@ -470,19 +473,19 @@ Rufen Sie nun alle drei Dienste im Browser auf und vergleichen Sie mit dem, was 
 
 **Cockpit:**
 ```
-https://cockpit.ihre-domain.de
+https://cockpit.<IHRE-DOMAIN>
 ```
 Der Browser zeigt jetzt ein gültiges Zertifikat, ausgestellt von **Let's Encrypt**. Es erscheint keine Sicherheitswarnung mehr. Die Login-Maske ist dieselbe wie zuvor – aber die Eingabe von Benutzername und Passwort ist nun durch TLS geschützt.
 
 **Dienst A:**
 ```
-https://dienst-a.ihre-domain.de
+https://dienst-a.<IHRE-DOMAIN>
 ```
 Die Seite lädt direkt, ohne Authentifizierung.
 
 **Dienst B:**
 ```
-https://dienst-b.ihre-domain.de
+https://dienst-b.<IHRE-DOMAIN>
 ```
 Der Browser zeigt einen Login-Dialog. Melden Sie sich mit dem Benutzernamen `admin` und dem Passwort aus Schritt 5 an.
 
@@ -505,7 +508,7 @@ Der Browser zeigt einen Login-Dialog. Melden Sie sich mit dem Benutzernamen `adm
 
 ```caddy
 # Cockpit – Administrationsoberfläche
-cockpit.ihre-domain.de {
+cockpit.<IHRE-DOMAIN> {
     reverse_proxy localhost:9090 {
         transport http {
             tls_insecure_skip_verify
@@ -514,12 +517,12 @@ cockpit.ihre-domain.de {
 }
 
 # Dienst A – öffentlich erreichbar
-dienst-a.ihre-domain.de {
+dienst-a.<IHRE-DOMAIN> {
     reverse_proxy localhost:8001
 }
 
 # Dienst B – nur nach Authentifizierung erreichbar
-dienst-b.ihre-domain.de {
+dienst-b.<IHRE-DOMAIN> {
     basic_auth {
         admin $2a$14$...IhrHashHier...
     }
@@ -544,6 +547,7 @@ dienst-b.ihre-domain.de {
 
 ```bash
 kill $(lsof -t -i:8001) $(lsof -t -i:8002)
+# $(lsof -t -i:8001): liefert die Prozess-ID auf Port 8001, analog für 8002
 ```
 
 2. Entfernen Sie die Testinhalte:

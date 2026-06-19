@@ -8,8 +8,8 @@ Der Server läuft, Caddy ist eingerichtet, und die ersten Dienste sind per HTTPS
 
 Docker ist auf dem Server noch nicht installiert. Das Deployment erfolgt auf dem bestehenden Cloud-Server (z. B. Hetzner) – die Dienste werden hinter dem bereits konfigurierten Caddy als neue Subdomains eingehängt:
 
-- `www.ihre-domain.de` → Unternehmenswebseite (nginx)
-- `dashboard.ihre-domain.de` → Node-RED Automatisierungs-Dashboard
+- `www.<IHRE-DOMAIN>` → Unternehmenswebseite (nginx)
+- `dashboard.<IHRE-DOMAIN>` → Node-RED Automatisierungs-Dashboard
 
 Beide Dienste sind über HTTPS erreichbar – Caddy übernimmt dabei, wie bereits in Lab 04 eingerichtet, automatisch die Zertifikatsverwaltung.
 
@@ -58,6 +58,8 @@ Falls ältere oder inoffizielle Docker-Pakete vorhanden sind, entfernen Sie dies
 
 ```bash
 apt remove -y docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc 2>/dev/null; true
+# 2>/dev/null: Fehlermeldungen unterdrücken, falls ein Paket gar nicht installiert ist
+# ; true: Befehl gilt immer als erfolgreich, damit ein Skript an dieser Stelle nicht abbricht
 ```
 
 Installieren Sie die benötigten Hilfswerkzeuge:
@@ -70,11 +72,11 @@ apt install -y ca-certificates curl
 
 Laden Sie den GPG-Schlüssel des Docker-Projekts herunter. APT verwendet ihn, um die digitale Signatur jedes heruntergeladenen Docker-Pakets zu prüfen:
 
-```bash
+````bash
 install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
 chmod a+r /etc/apt/keyrings/docker.asc
-```
+````
 
 Tragen Sie das Docker-Repository als Paketquelle ein:
 
@@ -84,6 +86,15 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
   | tee /etc/apt/sources.list.d/docker.list > /dev/null
 ```
+
+| Segment | Bedeutung |
+|---|---|
+| `echo "..."` | Erzeugen: eine Zeile im APT-Quellenformat |
+| `$(dpkg --print-architecture)` | Command Substitution: liefert die CPU-Architektur (z. B. `amd64`) |
+| `$(. /etc/os-release && echo "$VERSION_CODENAME")` | Command Substitution: lädt zuerst die Systemvariablen aus `/etc/os-release` (`.` = Datei im aktuellen Shell-Kontext einlesen), gibt dann `$VERSION_CODENAME` aus |
+| `\|` | Pipe: Ausgabe von `echo` wird Eingabe von `tee` |
+| `tee /etc/apt/sources.list.d/docker.list` | Ablegen: in neue Datei schreiben |
+| `> /dev/null` | unterdrückt die zusätzliche Bildschirmausgabe von `tee` |
 
 #### 1.3 Docker installieren
 
@@ -121,6 +132,7 @@ Falls der Wert `"DROP"` ist, ändern Sie ihn auf `"ACCEPT"`:
 
 ```bash
 sed -i 's/DEFAULT_FORWARD_POLICY="DROP"/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
+# sed -i: Datei direkt bearbeiten | s/alt/neu/: den alten durch den neuen Wert ersetzen
 ufw reload
 ```
 
@@ -143,19 +155,19 @@ Die neuen Dienste sollen unter eigenen Subdomains erreichbar sein. Legen Sie bei
 >
 > ```powershell
 > powershell
-> Resolve-DnsName -Name irgendwas-zufaelliges123.ihre-domain.de -Server 8.8.8.8
+> Resolve-DnsName -Name irgendwas-zufaelliges123.<IHRE-DOMAIN> -Server 8.8.8.8
 > ```
 > ```bash
 > bash
->dig @8.8.8.8 irgendwas-zufaelliges123.ihre-domain.de
+>dig @8.8.8.8 irgendwas-zufaelliges123.<IHRE-DOMAIN>
 >````
 > Kommt hier eine IP-Adresse zurück, ist Ihre Zone bereits per Wildcard abgedeckt – Sie können diesen Schritt überspringen und direkt mit dem nächsten Schritt fortfahren. Kommt `NXDOMAIN` zurück, legen Sie die A-Records wie unten beschrieben einzeln an.
 
 Prüfen Sie die Auflösung, bevor Sie mit Schritt 5 fortfahren:
 
 ```bash
-dig www.ihre-domain.de +short
-dig dashboard.ihre-domain.de +short
+dig www.<IHRE-DOMAIN> +short
+dig dashboard.<IHRE-DOMAIN> +short
 ```
 
 Beide Befehle sollten die IPv4-Adresse Ihres Servers ausgeben.
@@ -376,6 +388,7 @@ docker run -d \
 >
 > ```bash
 > docker exec -it nodered node-red admin hash-pw
+> # -i: interaktive Eingabe ermöglichen | -t: Terminal simulieren (zusammen: interaktive Sitzung im Container)
 > ```
 >
 > Starten Sie den Container nach der Änderung neu:
@@ -402,12 +415,12 @@ Fügen Sie am Ende der Datei die folgenden Blöcke hinzu:
 
 ```caddy
 # Unternehmenswebseite
-www.ihre-domain.de {
+www.<IHRE-DOMAIN> {
     reverse_proxy localhost:8080
 }
 
 # Node-RED Dashboard
-dashboard.ihre-domain.de {
+dashboard.<IHRE-DOMAIN> {
     reverse_proxy localhost:1880
 }
 ```
@@ -422,7 +435,7 @@ caddy validate --config /etc/caddy/Caddyfile
 systemctl reload caddy
 ```
 
-Caddy fordert nun automatisch TLS-Zertifikate für `www.ihre-domain.de` und `dashboard.ihre-domain.de` bei Let's Encrypt an.
+Caddy fordert nun automatisch TLS-Zertifikate für `www.<IHRE-DOMAIN>` und `dashboard.<IHRE-DOMAIN>` bei Let's Encrypt an.
 
 > **Tipp zur Fehlerbehebung:** Die DNS-Einträge aus Schritt 2 müssen propagiert sein, bevor Caddy Zertifikate ausstellen kann. Beobachten Sie die Logs mit `journalctl -u caddy -f`.
 
@@ -441,8 +454,8 @@ Sie sollten zwei laufende Container sehen: `nginx-web` und `nodered`.
 #### 6.2 Dienste im Browser aufrufen
 
 ```
-https://www.ihre-domain.de          →  Ihre Unternehmenswebseite
-https://dashboard.ihre-domain.de    →  Node-RED Editor
+https://www.<IHRE-DOMAIN>          →  Ihre Unternehmenswebseite
+https://dashboard.<IHRE-DOMAIN>    →  Node-RED Editor
 ```
 
 Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden – ohne Sicherheitswarnung im Browser.

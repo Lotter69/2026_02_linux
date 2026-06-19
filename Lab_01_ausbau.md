@@ -51,6 +51,13 @@ sudo ufw enable
 sudo ufw status verbose
 ```
 
+| Segment | Bedeutung |
+|---|---|
+| `ufw allow` | Befehl: eine Erlaubnisregel hinzufügen |
+| `from 192.168.0.0/24` | Quelle einschränken: nur dieses Subnetz darf zugreifen |
+| `to any` | Ziel: jede lokale Adresse des Servers (nicht weiter eingeschränkt) |
+| `port 9090` | Zielport: nur dieser Port ist von der Regel betroffen |
+
 > **Tipp zur Fehlerbehebung:** Passen Sie das Subnetz `192.168.0.0/24` an Ihr tatsächliches lokales Netzwerk an. Prüfen Sie Ihre IP-Adresse mit `ip addr show`.
 
 ---
@@ -83,7 +90,7 @@ sudo systemctl restart cockpit
 Testen Sie den automatischen Neustart, indem Sie den Prozess gezielt beenden:
 
 ```bash
-sudo kill -9 $(pgrep cockpit)
+sudo kill -9 $(pgrep cockpit)   # $(pgrep cockpit): Command Substitution, liefert die Prozess-ID
 sleep 6
 sudo systemctl status cockpit
 ```
@@ -94,7 +101,7 @@ sudo systemctl status cockpit
 
 ```bash
 journalctl -u cockpit --since '1 hour ago'
-journalctl -u cockpit --no-pager | grep -i error
+journalctl -u cockpit --no-pager | grep -i error   # Erzeugen: alle Logs | Filtern: nur Zeilen mit "error"
 journalctl -b -u cockpit
 ```
 

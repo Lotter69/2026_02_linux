@@ -55,6 +55,12 @@ for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do
 done
 ```
 
+| Segment | Bedeutung |
+|---|---|
+| `for pkg in <liste>` | Schleifenkopf: die Variable `pkg` nimmt nacheinander jeden Wert aus der Liste an |
+| `do ... done` | Rahmen: alles dazwischen wird einmal **pro Wert** der Liste ausgeführt |
+| `sudo apt-get remove -y $pkg` | Schleifenrumpf: `$pkg` wird durch den jeweils aktuellen Listenwert ersetzt (erster Durchlauf: `docker.io`, zweiter: `docker-doc`, …) |
+
 ---
 
 ### Schritt 3: Dockers offizielles APT-Repository einrichten
@@ -66,8 +72,9 @@ Docker wird nicht über die Standard-Paketquellen von Linux Mint installiert, so
 ```bash
 sudo install -m 0755 -d /etc/apt/keyrings
 
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \    # Erzeugen: Schlüssel-Datei laden
   sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  # Filtern/Umwandeln: in Binärformat wandeln, per -o direkt in Datei schreiben
 
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
 ```
@@ -91,6 +98,16 @@ echo "deb [arch=$(dpkg --print-architecture) \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 ```
 
+| Segment | Bedeutung |
+|---|---|
+| `. /etc/os-release` | Systemvariablen (u. a. `$VERSION_CODENAME`) in die aktuelle Shell laden |
+| `UBUNTU_CODENAME=$(...)` | Variable anlegen, Wert kommt aus einer Command Substitution |
+| `cat .../upstream-codename 2>/dev/null` | Versuch, den Ubuntu-Codenamen aus einer Mint-spezifischen Datei zu lesen; Fehlermeldungen werden unterdrückt |
+| `\|\| echo $VERSION_CODENAME` | Fallback: nur wenn der `cat`-Befehl fehlschlägt (`\|\|` = „oder, falls vorheriger Befehl scheitert"), wird stattdessen der Mint-Codename ausgegeben |
+| `$(dpkg --print-architecture)` | Command Substitution: liefert die CPU-Architektur |
+| `${UBUNTU_CODENAME}` | Einsetzen der zuvor ermittelten Variable in den Text |
+| `\| sudo tee ... > /dev/null` | Ablegen: in Datei schreiben, Bildschirmausgabe unterdrückt |
+
 > **Warum nicht den Mint-Codenamen verwenden?**  
 > Dockers Repository kennt Codenamen wie „noble" (Ubuntu 24.04) oder „jammy" (Ubuntu 22.04), aber nicht „zena" (Linux Mint 22). Das Skript versucht zuerst, den Ubuntu-Codenamen aus einer Mint-spezifischen Datei zu lesen. Schlägt das fehl, wird auf `$VERSION_CODENAME` zurückgegriffen – liefert dieser den Mint-Namen, müssen Sie `noble` (für Mint 22) oder `jammy` (für Mint 21) manuell eintragen.
 
@@ -108,6 +125,7 @@ echo "deb [arch=$(dpkg --print-architecture) \
   https://download.docker.com/linux/ubuntu noble stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 ```
+(gleiche Befehlsstruktur wie oben – nur `${UBUNTU_CODENAME}` durch den fest eingetragenen Codenamen `noble` ersetzt)
 
 ---
 
@@ -142,7 +160,9 @@ Das Setup-Skript gibt am Ende die benötigten Umgebungsvariablen aus. Tragen Sie
 
 ```bash
 echo 'export PATH=/usr/bin:$PATH' >> ~/.bashrc
+  # Erzeugen: Zeile mit PATH-Erweiterung | Ablegen: ans Ende der Datei anhängen (>>)
 echo 'export DOCKER_HOST=unix:///run/user/$(id -u)/docker.sock' >> ~/.bashrc
+  # $(id -u): Command Substitution, liefert die eigene Benutzer-ID | Ablegen: ebenfalls anhängen
 source ~/.bashrc
 ```
 

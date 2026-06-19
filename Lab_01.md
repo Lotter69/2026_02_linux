@@ -39,7 +39,7 @@ Bevor ein neues Paket installiert wird, synchronisieren Sie die lokale Paketdate
 sudo apt update
 ```
 
-Mit der aktualisierten Paketdatenbank bringen wir die Software des Rechners auf den aktuellen Stand. Geben Sie im Terminal folgenden Befehl ein:
+Mit der aktualisierten Paketdatenbank bringen wir die Software auf unserem Rechner auf den aktuellen Stand. Geben Sie im Terminal folgenden Befehl ein:
 
 ```bash
 sudo apt upgrade
@@ -171,6 +171,7 @@ Speichern Sie mit `Strg+O`, bestätigen Sie mit `Enter`, beenden Sie mit `Strg+X
 ```bash
 echo 'Willkommen – nur für autorisierte Benutzer!' \
   | sudo tee /etc/cockpit/issue.cockpit
+  # Erzeugen: Text ausgeben | Ablegen: in Datei schreiben + auf dem Bildschirm anzeigen
 ```
 > Der angegebene Text 'Willkommen – nur für autorisierte Benutzer!' wird an zwei Stellen 
 > geschrieben:
@@ -192,7 +193,7 @@ sudo systemctl restart cockpit
 sudo systemctl status cockpit
 
 # Port-Erreichbarkeit prüfen:
-ss -tlnp | grep 9090
+ss -tlnp | grep 9090   # Erzeugen: aktive Listener anzeigen | Filtern: nur Zeile mit Port 9090
 ```
 
 Rufen Sie `https://localhost:9090` erneut im Browser auf und prüfen Sie, ob das Banner beim Login erscheint.

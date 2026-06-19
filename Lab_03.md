@@ -150,12 +150,12 @@ Folgende Domainnamen werden im weiteren Verlauf benötigt:
 
 | Verwendungszweck       | Beispiel-Hostname          |
 |------------------------|----------------------------|
-| SSH-Zugriff auf die VM | `server.ihre-domain.de`    |
-| Spätere Dienste        | `dienst-a.ihre-domain.de`       |
-|                        | `dienst-b.ihre-domain.de`   |
+| SSH-Zugriff auf die VM | `cockpit.<IHRE-DOMAIN>`    |
+| Spätere Dienste        | `dienst-a.<IHRE-DOMAIN>`       |
+|                        | `dienst-b.<IHRE-DOMAIN>`   |
 
 > **Keine eigene Domain zur Hand?**
-> Für Test- und Übungszwecke bieten Dienste wie **nip.io** oder **sslip.io** eine kostenlose Alternative: Sie kodieren die IP-Adresse direkt im Hostnamen. Zum Beispiel löst `server.49-12-34-56.nip.io` automatisch auf `49.12.34.56` auf – ohne DNS-Konfiguration. Diese Methode eignet sich für lokale Tests, nicht aber für produktive Umgebungen oder Let's Encrypt-Zertifikate.
+> Für Test- und Übungszwecke bieten Dienste wie **nip.io** oder **sslip.io** eine kostenlose Alternative: Sie kodieren die IP-Adresse direkt im Hostnamen. Zum Beispiel löst `cockpit.49-12-34-56.nip.io` automatisch auf `49.12.34.56` auf – ohne DNS-Konfiguration. Diese Methode eignet sich für lokale Tests, nicht aber für produktive Umgebungen oder Let's Encrypt-Zertifikate.
 
 ---
 
@@ -171,7 +171,7 @@ Nun verknüpfen Sie den Domänennamen mit der öffentlichen IPv4-Adresse Ihrer V
 | Feld       | Wert                          |
 |------------|-------------------------------|
 | Typ        | `A`                           |
-| Name/Host  | `server` (für `server.ihre-domain.de`) |
+| Name/Host  | `server` (für `server.<IHRE-DOMAIN>`) |
 | Wert/Ziel  | `<IPv4-ADRESSE-DER-VM>`       |
 | TTL        | `300` (5 Minuten, für schnelle Aktualisierungen) |
 
@@ -181,7 +181,7 @@ Nun verknüpfen Sie den Domänennamen mit der öffentlichen IPv4-Adresse Ihrer V
 > Die *Time to Live* gibt in Sekunden an, wie lange DNS-Resolver diesen Eintrag zwischenspeichern dürfen, bevor sie ihn erneut abfragen. Ein niedriger Wert (z. B. 300) ermöglicht schnelle Änderungen, erzeugt aber mehr Anfragen. Für stabile Produktivumgebungen sind Werte von 3600 (1 Stunde) üblich.
 
 > **Exkurs: Wildcard statt Einzeleinträge**
->Statt für jeden zukünftigen Hostnamen einen eigenen A-Record anzulegen, könnten Sie auch einen einzigen Wildcard-Record setzen: Name *, Typ A, Wert <IPv4-Adresse>. Damit löst jede beliebige Subdomain von ihre-domain.de automatisch auf diese IP auf – auch solche, die Sie nie angelegt haben. Für diese Übung verwenden wir bewusst einen expliziten Einzeleintrag, damit der Zusammenhang zwischen DNS-Konfiguration und Namensauflösung nachvollziehbar bleibt. Prüfen Sie in späteren Übungen, ob in Ihrer Zone bereits ein Wildcard-Eintrag existiert, bevor Sie dort neue Einzeleinträge anlegen.
+>Statt für jeden zukünftigen Hostnamen einen eigenen A-Record anzulegen, könnten Sie auch einen einzigen Wildcard-Record setzen: Name *, Typ A, Wert <IPv4-Adresse>. Damit löst jede beliebige Subdomain von <IHRE-DOMAIN> automatisch auf diese IP auf – auch solche, die Sie nie angelegt haben. Für diese Übung verwenden wir bewusst einen expliziten Einzeleintrag, damit der Zusammenhang zwischen DNS-Konfiguration und Namensauflösung nachvollziehbar bleibt. Prüfen Sie in späteren Übungen, ob in Ihrer Zone bereits ein Wildcard-Eintrag existiert, bevor Sie dort neue Einzeleinträge anlegen.
 
 #### 3.2 DNS-Propagierung abwarten und prüfen
 
@@ -191,17 +191,17 @@ Prüfen Sie die Auflösung von Ihrem lokalen Rechner aus:
 
 ```bash
 # macOS / Linux
-dig server.ihre-domain.de
+dig server.<IHRE-DOMAIN>
 
 # Windows (PowerShell)
-Resolve-DnsName server.ihre-domain.de
+Resolve-DnsName server.<IHRE-DOMAIN>
 ```
 
 Das Ergebnis sollte die IP-Adresse Ihrer VM enthalten. Beispielausgabe bei `dig`:
 
 ```
 ;; ANSWER SECTION:
-server.ihre-domain.de.  300  IN  A  49.12.34.56
+server.<IHRE-DOMAIN>.  300  IN  A  49.12.34.56
 ```
 
 Alternativ können Sie Online-Tools wie [dnschecker.org](https://dnschecker.org) nutzen, um die Propagierung weltweit zu überprüfen.
@@ -223,6 +223,7 @@ Passwortbasierte SSH-Zugänge sind ein häufiges Angriffsziel. Automatisierte Bo
 
 ```bash
 ssh-keygen -t ed25519 -C "laboruebung-vm"
+# -t: Schlüsseltyp (ed25519) | -C: Kommentar zur Wiedererkennung des Schlüssels
 ```
 
 Sie werden nach einem Speicherort und einer optionalen Passphrase gefragt:
@@ -253,7 +254,7 @@ Nach der Eingabe werden zwei Dateien erstellt:
 Kopieren Sie den öffentlichen Schlüssel mit `ssh-copy-id` auf den Server. Dabei wird noch die Passwortauthentifizierung verwendet:
 
 ```bash
-ssh-copy-id -i ~/.ssh/id_ed25519.pub root@server.ihre-domain.de
+ssh-copy-id -i ~/.ssh/id_ed25519.pub root@server.<IHRE-DOMAIN>
 ```
 
 Geben Sie das Root-Passwort des Servers ein, wenn Sie dazu aufgefordert werden. Der Befehl hängt den öffentlichen Schlüssel automatisch in die Datei `~/.ssh/authorized_keys` auf dem Server ein.
@@ -281,7 +282,7 @@ Testen Sie jetzt den Login mit dem Schlüssel – **ohne** Schließen der besteh
 Öffnen Sie ein **neues** Terminalfenster und verbinden Sie sich:
 
 ```bash
-ssh root@server.ihre-domain.de
+ssh root@server.<IHRE-DOMAIN>
 ```
 
 Falls eine Passphrase vergeben wurde, werden Sie danach gefragt. Bei erfolgreicher Verbindung erscheint der Server-Prompt.
@@ -289,7 +290,7 @@ Falls eine Passphrase vergeben wurde, werden Sie danach gefragt. Bei erfolgreich
 > **Tipp zur Fehlerbehebung:** Wenn der Login fehlschlägt:
 > - Prüfen Sie die Berechtigungen auf der VM: `chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys`
 > - Prüfen Sie, ob der richtige öffentliche Schlüssel in `~/.ssh/authorized_keys` eingetragen ist: `cat ~/.ssh/authorized_keys`
-> - Aktivieren Sie ausführliche SSH-Ausgabe zur Fehlerdiagnose: `ssh -v root@server.ihre-domain.de`
+> - Aktivieren Sie ausführliche SSH-Ausgabe zur Fehlerdiagnose: `ssh -v root@server.<IHRE-DOMAIN>`
 
 #### 4.4 Passwortauthentifizierung deaktivieren
 
@@ -306,10 +307,22 @@ sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd
 sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
 ```
 
+| Segment | Bedeutung |
+|---|---|
+| `sed -i` | Befehl: Datei direkt bearbeiten (`-i` = in-place, ohne Umleitung in eine neue Datei) |
+| `s/MUSTER/ERSATZ/` | Ersetzungsbefehl: jede zur MUSTER passende Stelle durch ERSATZ ersetzen |
+| `^` | Anker: Zeilenanfang |
+| `#\?` | optionales `#`-Zeichen (das `\?` macht das davorstehende Zeichen optional) – erfasst auch auskommentierte Zeilen |
+| `PasswordAuthentication.*` | der gesuchte Parametername, gefolgt von `.*` (beliebiger Rest der Zeile, z. B. ` yes`) |
+| `/etc/ssh/sshd_config` | Zieldatei, in der ersetzt wird |
+
+> Die zweite Zeile folgt exakt demselben Aufbau – nur mit `PubkeyAuthentication` statt `PasswordAuthentication` und `yes` statt `no` als Ersatztext.
+
 Prüfen Sie die Änderungen:
 
 ```bash
 grep -E "^PasswordAuthentication|^PubkeyAuthentication" /etc/ssh/sshd_config
+# -E: erweiterte Regex | "...|...": Alternation – Zeilen, die mit einem der beiden Begriffe beginnen
 ```
 
 Erwartete Ausgabe:
@@ -330,10 +343,11 @@ systemctl reload ssh
 
 ```bash
 # Dieser Befehl sollte erfolgreich sein (Key-Login)
-ssh root@server.ihre-domain.de
+ssh root@server.<IHRE-DOMAIN>
 
 # Dieser Befehl sollte fehlschlagen (Passwort-Login)
-ssh -o PubkeyAuthentication=no root@server.ihre-domain.de
+ssh -o PubkeyAuthentication=no root@server.<IHRE-DOMAIN>
+# -o: einzelne SSH-Option für diese Verbindung setzen, hier: Key-Login erzwingen ausschalten
 ```
 
 Bei der zweiten Verbindung sollte die Fehlermeldung `Permission denied (publickey)` erscheinen – das bestätigt, dass Passwortauthentifizierung erfolgreich deaktiviert ist.
