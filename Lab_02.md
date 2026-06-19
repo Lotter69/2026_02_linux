@@ -95,6 +95,32 @@ done
 > **Was macht dieses Skript?**  
 > `ss -s` gibt eine Zusammenfassung aller Sockets aus. `grep 'TCP:'` filtert daraus die Zeile mit den TCP-Verbindungen. `logger -t netmon` schreibt die Ausgabe mit dem Tag `netmon` ins Syslog – von dort ist sie über `journalctl -t netmon` abrufbar.
 
+> **Exkurs: Das wiederkehrende Muster von Bash-Befehlsketten**
+>
+> Die Zeile `echo "$(date): $(ss -s | grep 'TCP:')" | logger -t netmon` wirkt auf den ersten Blick wie ein einziger, komplizierter Befehl. Tatsächlich folgt sie einem Muster, das in den folgenden Übungen immer wieder auftaucht – einmal verstanden, lässt es sich auf jede ähnliche Zeile übertragen, auch wenn die konkreten Befehle wechseln:
+>
+> **[Text erzeugen] → (optional: filtern/umwandeln) → [irgendwo ablegen]**
+>
+> Zerlegt in seine Bestandteile:
+>
+> | Segment | Rolle |
+> |---|---|
+> | `echo "..."` | **Erzeuger** – gibt einen Text aus |
+> | `$(date)` | **Command Substitution** – ein eigener Befehl in Klammern; seine Ausgabe wird an dieser Stelle in den Text eingesetzt |
+> | `$(ss -s \| grep 'TCP:')` | ebenfalls Command Substitution – darin steckt wiederum eine eigene kleine Kette: `ss -s` **erzeugt** eine Socket-Übersicht, `grep 'TCP:'` **filtert** daraus nur die passende Zeile |
+> | `\|` (Pipe) | Die Ausgabe des Befehls links wird zur Eingabe des Befehls rechts |
+> | `logger -t netmon` | **Ablage** – schreibt die Eingabe mit dem Tag `netmon` ins Syslog |
+>
+> Typische Vertreter für die drei Rollen, denen Sie in späteren Übungen immer wieder begegnen werden:
+>
+> | Rolle | Typische Befehle |
+> |---|---|
+> | Text erzeugen | `echo`, `cat`, `curl` |
+> | Filtern/Umwandeln | `grep`, `sed`, `gpg --dearmor` |
+> | Ablegen | `tee`, `>`, `>>` |
+>
+> Sobald Sie in einer späteren Übung auf eine lange Befehlszeile mit `\|` oder `>` treffen, lohnt es sich, sie genau nach diesem Schema in ihre drei Rollen zu zerlegen, statt sie als unteilbares Ganzes zu lesen.
+
 Skript ausführbar machen:
 
 ```bash
