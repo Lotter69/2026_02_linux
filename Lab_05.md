@@ -66,7 +66,7 @@ Im Vergleich zur direkten Installation auf dem Host stellt sich dabei eine wicht
     - [4.1 Was ist ein benanntes Volume?](#41-was-ist-ein-benanntes-volume)
     - [4.2 Node-RED starten](#42-node-red-starten)
     - [4.3 Node-RED direkt testen](#43-node-red-direkt-testen)
-    - [4.4 Was passiert beim Container-Update?](#44-was-passiert-beim-container-update-1)
+    - [4.4 Was passiert beim Container-Update?](#44-was-passiert-beim-container-update)
   - [Schritt 5: Caddy für die neuen Subdomains konfigurieren](#schritt-5-caddy-für-die-neuen-subdomains-konfigurieren)
   - [Schritt 6: Ergebnis im Browser überprüfen](#schritt-6-ergebnis-im-browser-überprüfen)
     - [6.1 Laufende Container prüfen](#61-laufende-container-prüfen)
