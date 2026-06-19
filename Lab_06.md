@@ -523,7 +523,7 @@ Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (d
 
 Die IP-Adresse `172.18.0.3`, die in Schritt 7.4 für `redis-cache` aufgetaucht ist, kam nicht von irgendwoher – sie wurde Docker beim Anlegen von `app-net` automatisch aus einem eigenen Adresspool zugewiesen. Jedes Docker-Netzwerk bekommt dabei ein eigenes Subnetz; das Standard-Netzwerk `bridge` belegt meist `172.17.0.0/16`, eigene Netzwerke wie `app-net` erhalten automatisch das nächste freie Subnetz (z. B. `172.18.0.0/16`).
 
-Innerhalb eines solchen Netzwerks ist das, was wie „Routing" wirkt, eigentlich **Switching auf Layer 2**: Alle Container eines Netzwerks hängen an derselben virtuellen Linux-Bridge und liegen im selben Subnetz – es muss also nichts zwischen unterschiedlichen Netzbereichen vermittelt werden. Die Namensauflösung (Containername → IP), die Sie in 7.4 mit `getent hosts` genutzt haben, übernimmt dabei der eingebaute Docker-DNS-Server.
+Innerhalb eines solchen Netzwerks findet **Switching auf Layer 2** statt: Alle Container eines Netzwerks hängen an derselben virtuellen Linux-Bridge und liegen im selben Subnetz. Die Namensauflösung (Containername → IP), die Sie in 7.4 mit `getent hosts` genutzt haben, übernimmt dabei der eingebaute Docker-DNS-Server.
 
 Zwischen zwei eigenständigen, unterschiedlichen Netzwerken gibt es dagegen **kein automatisches Routing** – sie sind grundsätzlich voneinander isoliert. Genau das war in 7.5 zu sehen: Ohne `--network app-net` landet ein Container im Standard-Netzwerk, einem komplett anderen Adressbereich mit eigenem, separaten DNS. Nur ein Container, der – wie `nodered` – Mitglied in beiden Netzwerken ist, kann zwischen ihnen vermitteln.
 
