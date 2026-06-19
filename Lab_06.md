@@ -39,6 +39,36 @@ In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisc
 
 ---
 
+## Inhalt
+
+- [Hintergrundwissen](#hintergrundwissen)
+  - [ACME als offenes Protokoll](#acme-als-offenes-protokoll)
+  - [Das native ACME-Modul von nginx](#das-native-acme-modul-von-nginx)
+  - [Docker-Netzwerke als Bündelungskonzept](#docker-netzwerke-als-bündelungskonzept)
+  - [Ein kurzer Rückblick: automatische vs. bewusste Konfiguration](#ein-kurzer-rückblick-automatische-vs-bewusste-konfiguration)
+- [Aufgaben](#aufgaben)
+  - [Schritt 1: Caddy ablösen](#schritt-1-caddy-ablösen)
+  - [Schritt 2: nginx aus dem offiziellen Repository installieren](#schritt-2-nginx-aus-dem-offiziellen-repository-installieren)
+  - [Schritt 3: ACME-Modul aktivieren und Issuer konfigurieren](#schritt-3-acme-modul-aktivieren-und-issuer-konfigurieren)
+  - [Schritt 4: Cockpit als nginx-Server-Block migrieren](#schritt-4-cockpit-als-nginx-server-block-migrieren)
+  - [Schritt 5: Die übrigen Dienste analog migrieren](#schritt-5-die-übrigen-dienste-analog-migrieren)
+  - [Schritt 6: Ergebnis im Browser prüfen](#schritt-6-ergebnis-im-browser-prüfen)
+  - [Schritt 7: Eigenes Docker-Netzwerk anlegen und Dienste bewusst bündeln](#schritt-7-eigenes-docker-netzwerk-anlegen-und-dienste-bewusst-bündeln)
+    - [7.1 Eigenes Netzwerk anlegen](#71-eigenes-netzwerk-anlegen)
+    - [7.2 Bestehenden Container zusätzlich anbinden](#72-bestehenden-container-zusätzlich-anbinden)
+    - [7.3 Neuen, rein internen Dienst starten](#73-neuen-rein-internen-dienst-starten)
+    - [7.4 Namensauflösung innerhalb des Netzwerks prüfen](#74-namensauflösung-innerhalb-des-netzwerks-prüfen)
+    - [7.5 Gegenprobe: Auflösung außerhalb von app-net](#75-gegenprobe-auflösung-außerhalb-von-app-net)
+    - [7.6 Port-Check auf dem Host](#76-port-check-auf-dem-host)
+    - [7.7 Hintergrund: IP-Vergabe und Routing in Docker-Netzwerken](#77-hintergrund-ip-vergabe-und-routing-in-docker-netzwerken)
+  - [Schritt 8: Lastverteilung einrichten und Last erzeugen](#schritt-8-lastverteilung-einrichten-und-last-erzeugen)
+- [Reflexion und weiterführende Fragen](#reflexion-und-weiterführende-fragen)
+- [Rückblick und Zusammenfassung](#rückblick-und-zusammenfassung)
+- [Aufräumarbeiten](#aufräumarbeiten)
+- [Autoren und Urheberrecht](#autoren-und-urheberrecht)
+
+---
+
 ## Hintergrundwissen
 
 ### ACME als offenes Protokoll
@@ -56,6 +86,8 @@ Im Default-Bridge-Netzwerk von Docker können sich grundsätzlich alle Container
 ### Ein kurzer Rückblick: automatische vs. bewusste Konfiguration
 
 Ein Werkzeug wie Traefik hätte neue Container automatisch über Labels erkannt und sofort in die Lastverteilung aufgenommen – komfortabel, aber für ein Audit schwer nachvollziehbar, *wann* und *wodurch* eine Änderung wirksam wurde. Die in diesem Lab bewusst gewählte, manuelle Konfiguration über nginx erzeugt mehr Aufwand, aber auch maximale Nachvollziehbarkeit: Jede Änderung ist ein dokumentierter Schritt in einer Konfigurationsdatei.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -77,6 +109,8 @@ ss -tlnp | grep -E ':80 |:443 '   # Erzeugen: aktive Listener anzeigen | Filtern
 ```
 
 Die Ausgabe sollte leer sein.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -134,6 +168,8 @@ curl http://localhost
 ```
 
 Die letzte Zeile sollte die Standard-Begrüßungsseite von nginx liefern.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -221,6 +257,8 @@ systemctl restart nginx
 
 > **Tipp zur Fehlerbehebung:** Falls die spätere Zertifikatsausstellung fehlschlägt, prüfen Sie zunächst, ob der Redirect in `challenge.conf` die Challenge-Anfrage blockiert. Ersetzen Sie ihn zum Testen vorübergehend durch `return 404;` und prüfen Sie erneut.
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 4: Cockpit als nginx-Server-Block migrieren
@@ -286,6 +324,8 @@ journalctl -u nginx -f
 ```
 
 Rufen Sie anschließend `https://cockpit.<IHRE-DOMAIN>` im Browser auf und prüfen Sie im Zertifikat: Aussteller Let's Encrypt, keine Sicherheitswarnung.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -411,6 +451,8 @@ ls -la /etc/nginx/conf.d/
 | `www.conf` | Unternehmenswebseite (Docker-Container) |
 | `dashboard.conf` | Node-RED-Dashboard (Docker-Container) |
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 6: Ergebnis im Browser prüfen
@@ -432,6 +474,8 @@ systemctl status caddy
 ```
 
 Der Dienst muss als `inactive (dead)` gemeldet sein.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
@@ -575,6 +619,8 @@ redis-cache -> 172.18.0.2/16
 nodered -> 172.18.0.3/16
 ```
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 8: Lastverteilung einrichten und Last erzeugen
@@ -671,6 +717,8 @@ systemctl reload nginx
 ```
 
 Wiederholen Sie den Testlauf aus diesem Schritt – `demo4` erscheint erst jetzt in der Verteilung, und zwar genau deshalb, weil Sie es bewusst eingetragen und neu geladen haben, nicht weil es automatisch erkannt wurde.
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
