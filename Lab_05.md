@@ -398,45 +398,47 @@ docker run -d \
 `nodered-data` besteht unabhängig vom Container. Es bleibt so lange bestehen, bis es mit `docker volume rm nodered-data` explizit gelöscht wird. Alle Flows und Einstellungen sind nach dem Update unverändert vorhanden.
 
 ---
+#### 4.5 Node-RED-Editor mit Authentifizierung absichern
 
-> **Exkurs: Benutzerverwaltung in Node-RED**
->
-> Standardmäßig ist der Node-RED Editor ohne Authentifizierung zugänglich. Wer den Zugriff auf autorisierte Benutzer beschränken möchte, kann in der Konfigurationsdatei `settings.js` eine Benutzerverwaltung aktivieren.
->
-> Die Datei liegt im Volume und ist direkt auf dem Host bearbeitbar:
->
-> ```bash
-> nano /var/lib/docker/volumes/nodered-data/_data/settings.js
-> ```
->
-> Suchen Sie den auskommentierten Abschnitt `adminAuth` und aktivieren Sie ihn:
->
-> ```javascript
-> adminAuth: {
->     type: "credentials",
->     users: [{
->         username: "admin",
->         password: "$2b$08$...",  // bcrypt-Hash des Passworts
->         permissions: "*"
->     }]
-> },
-> ```
->
-> Den bcrypt-Hash für Ihr Passwort erzeugen Sie direkt im Container:
->
-> ```bash
-> docker exec -it nodered node-red admin hash-pw
-> # -i: interaktive Eingabe ermöglichen | -t: Terminal simulieren (zusammen: interaktive Sitzung im Container)
-> ```
->
-> Starten Sie den Container nach der Änderung neu:
->
-> ```bash
-> docker restart nodered
-> ```
->
-> Der Node-RED Editor verlangt beim nächsten Aufruf Benutzername und Passwort.
+> Der Node-RED-Editor erlaubt das Anlegen von `exec`-Nodes, die beliebige Shell-Befehle ausführen können. Ohne Authentifizierung kann jeder, der den Editor erreicht — auch versehentlich über einen falsch konfigurierten Port oder einen zukünftigen Konfigurationsfehler — Code auf dem Server ausführen. In der Praxis ist genau das ein verbreiteter Angriffsweg gegen öffentlich erreichbare Node-RED-Instanzen. Dieser Schritt ist daher fester Bestandteil der Übung, nicht optional.
 
+Öffnen Sie die `settings.js` aus dem benannten Volume:
+
+```bash
+nano /var/lib/docker/volumes/nodered-data/_data/settings.js
+```
+
+Suchen Sie den auskommentierten Abschnitt `adminAuth` und aktivieren Sie ihn:
+
+```javascript
+adminAuth: {
+    type: "credentials",
+    users: [{
+        username: "admin",
+        password: "$2b$08$...",  // bcrypt-Hash des Passworts
+        permissions: "*"
+    }]
+},
+```
+
+Den bcrypt-Hash für Ihr Passwort erzeugen Sie direkt im Container:
+
+```bash
+docker exec -it nodered node-red admin hash-pw
+```
+
+Starten Sie den Container nach der Änderung neu:
+
+```bash
+docker restart nodered
+```
+
+Prüfen Sie, dass die Absicherung greift:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:1880/flows
+```
+Erwartung: `401` statt `200`. Erst danach mit Schritt 5 fortfahren.
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
