@@ -269,7 +269,7 @@ docker run -d \
 | `-d` | Container läuft im Hintergrund (detached) |
 | `--name nginx-web` | Eindeutiger Name für den Container |
 | `--restart unless-stopped` | Container startet automatisch neu (siehe Hinweis unten) |
-| `-p 8080:80` | Port-Mapping: Port 8080 des Hosts leitet auf Port 80 im Container |
+| `-p 127.0.0.1:8080:80` | Port-Mapping: Port 8080 nur auf der lokalen Schnittstelle (`127.0.0.1`) — leitet auf Port 80 im Container. Von außen nicht erreichbar, nur für Caddy/nginx auf demselben Host gedacht.|
 | `-v /srv/www:/usr/share/nginx/html:ro` | Bind Mount: Host-Verzeichnis → Container-Verzeichnis, `:ro` = read-only |
 
 > **Automatischer Neustart mit `--restart`**
@@ -285,7 +285,7 @@ docker run -d \
 > Für Produktivdienste ist `unless-stopped` die empfohlene Wahl: Der Container startet nach einem Serverneustart automatisch, lässt sich aber für Wartungsarbeiten mit `docker stop` ohne unerwünschte Neustarts anhalten.
 
 > **Syntax `-p <host-port>:<container-port>`**
-> Der erste Wert ist der Port, über den der Dienst auf dem **Host** erreichbar ist. Der zweite Wert ist der Port, auf dem der Dienst **im Container** lauscht. Mit `-p 8080:80` ist nginx im Container auf Port 80 aktiv – von außen ist er über Port 8080 auf dem Host erreichbar. Caddy, das auf dem Host läuft, kann den Container damit einfach über `localhost:8080` ansprechen.
+> Die vollständige Syntax lautet `-p [host-ip:]host-port:container-port`. Ohne IP-Angabe (`-p 8080:80`) bindet Docker den Port auf **allen** Netzwerkschnittstellen des Hosts (`0.0.0.0`) – der Dienst wäre damit direkt aus dem Internet erreichbar, **unabhängig von ufw**: Docker trägt eigene Regeln in eine separate iptables-Chain (`DOCKER-USER`) ein, die vor den ufw-Regeln ausgewertet wird. Mit `-p 127.0.0.1:8080:80` wird der Port stattdessen nur an die lokale Schnittstelle gebunden – nginx im Container ist dann ausschließlich für Prozesse auf demselben Host erreichbar, etwa Caddy über `localhost:8080`, aber nicht aus dem Internet.
 
 > **Syntax `-v <quelle>:<ziel>[:ro]`**
 > Beim Bind Mount ist `<quelle>` ein Pfad auf dem **Host**, `<ziel>` ein Pfad **im Container**. Das optionale `:ro` macht den Mount read-only – der Container kann die Dateien lesen, aber nicht verändern. Dies schützt die Webinhalte, die ausschließlich vom Host aus gepflegt werden.
@@ -357,7 +357,7 @@ docker run -d \
 | Option | Bedeutung |
 |---|---|
 | `--restart unless-stopped` | Automatischer Neustart nach Serverneustart (siehe Schritt 3.3) |
-| `-p 1880:1880` | Port 1880 des Hosts leitet auf Port 1880 im Container |
+| `-p 127.0.0.1:1880:1880` | Port 1880 — nur auf der lokalen Schnittstelle (`127.0.0.1`) — leitet auf Port 1880 im Container. Von außen nicht erreichbar; Zugriff ausschließlich über Caddy.  |
 | `-v nodered-data:/data` | Benanntes Volume `nodered-data` wird in `/data` im Container eingehängt |
 
 Das Volume `nodered-data` existiert zu diesem Zeitpunkt noch nicht – Docker legt es beim ersten Start automatisch an. Prüfen Sie anschließend:
@@ -375,7 +375,7 @@ docker volume inspect nodered-data
 curl http://localhost:1880
 ```
 
-Sie sollten eine HTML-Antwort erhalten. Mit -p 127.0.0.1:1880:1880 ist der Port nur auf der lokalen Schnittstelle gebunden und damit von außen nicht erreichbar — unabhängig von ufw. Das ist wichtig zu verstehen: Docker-Container, die mit -p <port>:<port> (ohne IP-Präfix) veröffentlicht werden, umgehen ufw vollständig, da Docker eigene iptables-Regeln in einer separaten Chain (DOCKER-USER) anlegt. Eine ufw-Regel allein schützt solche Ports nicht. Der Zugriff aus dem Internet soll ausschließlich über Caddy erfolgen.
+Sie sollten eine HTML-Antwort erhalten. Da der Port nur an `127.0.0.1` gebunden ist (siehe `-p 127.0.0.1:1880:1880` in Schritt 4.2), ist er von außen nicht erreichbar – unabhängig von ufw. Das ist wichtig: Docker-Container, die ohne IP-Präfix veröffentlicht werden (`-p 1880:1880`), würden ufw vollständig umgehen, da Docker eigene iptables-Regeln in einer separaten Chain (`DOCKER-USER`) anlegt, die ufw vorgelagert ist. Erst die explizite Bindung an `127.0.0.1` schließt diesen Zugriffsweg zuverlässig. Der Zugriff aus dem Internet soll ausschließlich über Caddy erfolgen.
 
 > **Warum braucht Node-RED kein eigenes HTTPS?**
 > Node-RED kommuniziert intern zwischen Container und Caddy ausschließlich über `localhost:1880` – eine lokale Verbindung auf dem Server, die nicht das Internet berührt. Die HTTPS-Verschlüsselung gegenüber dem Browser des Benutzers übernimmt vollständig Caddy: Er empfängt die verschlüsselte Anfrage auf Port 443, entschlüsselt sie und leitet sie unverschlüsselt an `localhost:1880` weiter. Node-RED selbst muss sich nicht um Zertifikate kümmern.
