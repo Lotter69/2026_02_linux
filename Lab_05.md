@@ -257,7 +257,7 @@ Im Unterschied zu einem **benannten Volume** (siehe Schritt 4) bestimmen Sie bei
 docker run -d \
   --name nginx-web \
   --restart unless-stopped \
-  -p 8080:80 \
+  -p 127.0.0.1:8080:80 \
   -v /srv/www:/usr/share/nginx/html:ro \
   nginx
 ```
@@ -349,7 +349,7 @@ nodered-data/       ←→   /data/
 docker run -d \
   --name nodered \
   --restart unless-stopped \
-  -p 1880:1880 \
+  -p 127.0.0.1:1880:1880 \
   -v nodered-data:/data \
   nodered/node-red
 ```
@@ -375,7 +375,7 @@ docker volume inspect nodered-data
 curl http://localhost:1880
 ```
 
-Sie sollten eine HTML-Antwort erhalten. Der Port 1880 ist von außen nicht direkt zugänglich – ufw lässt ihn nicht durch – und das ist gewollt: Der Zugriff aus dem Internet soll ausschließlich über Caddy erfolgen.
+Sie sollten eine HTML-Antwort erhalten. Mit -p 127.0.0.1:1880:1880 ist der Port nur auf der lokalen Schnittstelle gebunden und damit von außen nicht erreichbar — unabhängig von ufw. Das ist wichtig zu verstehen: Docker-Container, die mit -p <port>:<port> (ohne IP-Präfix) veröffentlicht werden, umgehen ufw vollständig, da Docker eigene iptables-Regeln in einer separaten Chain (DOCKER-USER) anlegt. Eine ufw-Regel allein schützt solche Ports nicht. Der Zugriff aus dem Internet soll ausschließlich über Caddy erfolgen.
 
 > **Warum braucht Node-RED kein eigenes HTTPS?**
 > Node-RED kommuniziert intern zwischen Container und Caddy ausschließlich über `localhost:1880` – eine lokale Verbindung auf dem Server, die nicht das Internet berührt. Die HTTPS-Verschlüsselung gegenüber dem Browser des Benutzers übernimmt vollständig Caddy: Er empfängt die verschlüsselte Anfrage auf Port 443, entschlüsselt sie und leitet sie unverschlüsselt an `localhost:1880` weiter. Node-RED selbst muss sich nicht um Zertifikate kümmern.
@@ -390,7 +390,7 @@ docker pull nodered/node-red
 docker run -d \
   --name nodered \
   --restart unless-stopped \
-  -p 1880:1880 \
+  -p 127.0.0.1:1880:1880 \
   -v nodered-data:/data \
   nodered/node-red
 ```
