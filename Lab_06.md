@@ -635,9 +635,9 @@ dig demo.<IHRE-DOMAIN> +short
 Starten Sie drei Instanzen eines einfachen Demo-Dienstes, der bei jeder Antwort seinen eigenen Containernamen zurückgibt:
 
 ```bash
-docker run -d --name demo1 --restart unless-stopped -p 9001:80 traefik/whoami
-docker run -d --name demo2 --restart unless-stopped -p 9002:80 traefik/whoami
-docker run -d --name demo3 --restart unless-stopped -p 9003:80 traefik/whoami
+docker run -d --name demo1 --restart unless-stopped -p 127.0.0.1:9001:80 traefik/whoami
+docker run -d --name demo1 --restart unless-stopped -p 127.0.0.1:9002:80 traefik/whoami
+docker run -d --name demo1 --restart unless-stopped -p 127.0.0.1:9003:80 traefik/whoami
 # -d: im Hintergrund | --name: Containername | --restart: Neustart-Policy | -p: Host-Port:Container-Port
 # (ausführlich erklärt in Lab 05, Schritt 3.3)
 ```
