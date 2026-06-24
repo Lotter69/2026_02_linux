@@ -32,6 +32,8 @@ Im Vergleich zur direkten Installation auf dem Host stellt sich dabei eine wicht
 - Eigene Webinhalte über einen Bind Mount in einen Nginx-Container einbinden
 - Node-RED-Daten dauerhaft in einem benannten Volume speichern
 - Den bereits installierten Caddy um neue HTTPS-Subdomains erweitern
+- Verstehen, warum Docker-Container standardmäßig **ufw umgehen** und wie Port-Bindings (`-p 127.0.0.1:host:container`) die Angriffsfläche eines Hosts minimieren
+- Den Node-RED-Editor mit Authentifizierung (`adminAuth`) absichern
 
 ---
 
@@ -67,6 +69,7 @@ Im Vergleich zur direkten Installation auf dem Host stellt sich dabei eine wicht
     - [4.2 Node-RED starten](#42-node-red-starten)
     - [4.3 Node-RED direkt testen](#43-node-red-direkt-testen)
     - [4.4 Was passiert beim Container-Update?](#44-was-passiert-beim-container-update)
+    - [4.5 Node-RED-Editor mit Authentifizierung absichern](#45-node-red-editor-mit-authentifizierung-absichern)
   - [Schritt 5: Caddy für die neuen Subdomains konfigurieren](#schritt-5-caddy-für-die-neuen-subdomains-konfigurieren)
   - [Schritt 6: Ergebnis im Browser überprüfen](#schritt-6-ergebnis-im-browser-überprüfen)
     - [6.1 Laufende Container prüfen](#61-laufende-container-prüfen)
@@ -171,6 +174,9 @@ ufw reload
 > **Warum ist das nötig?**
 > Wenn ufw `DEFAULT_FORWARD_POLICY=DROP` setzt, werden IP-Pakete, die über die Docker-Netzwerkbrücke weitergeleitet werden sollen, stillschweigend verworfen. Container können dann nicht mehr nach außen kommunizieren – z. B. keine DNS-Abfragen stellen oder Images herunterladen.
 
+> **Wichtiger Sicherheitshinweis: Docker und ufw**
+> ufw schützt **native Host-Dienste** zuverlässig (z. B. Cockpit aus Lab 04). Für Docker-Container gilt das nicht automatisch: Docker trägt eigene Regeln in eine separate iptables-Chain (`DOCKER-USER`) ein, die **vor** den ufw-Regeln ausgewertet wird. Ein Container, der mit `-p <port>:<port>` (ohne IP-Präfix) veröffentlicht wird, ist damit direkt aus dem Internet erreichbar – unabhängig davon, was `ufw status` anzeigt. In den folgenden Schritten wird deshalb durchgängig mit `-p 127.0.0.1:<port>:<port>` gearbeitet, um Container-Ports explizit auf die lokale Schnittstelle zu beschränken.
+
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
@@ -269,7 +275,7 @@ docker run -d \
 | `-d` | Container läuft im Hintergrund (detached) |
 | `--name nginx-web` | Eindeutiger Name für den Container |
 | `--restart unless-stopped` | Container startet automatisch neu (siehe Hinweis unten) |
-| `-p 127.0.0.1:8080:80` | Port-Mapping: Port 8080 nur auf der lokalen Schnittstelle (`127.0.0.1`) — leitet auf Port 80 im Container. Von außen nicht erreichbar, nur für Caddy/nginx auf demselben Host gedacht.|
+| `-p 127.0.0.1:8080:80` | Port-Mapping: Port 8080 nur auf der lokalen Schnittstelle (`127.0.0.1`) — leitet auf Port 80 im Container. Von außen nicht erreichbar, nur für Caddy/nginx auf demselben Host gedacht. |
 | `-v /srv/www:/usr/share/nginx/html:ro` | Bind Mount: Host-Verzeichnis → Container-Verzeichnis, `:ro` = read-only |
 
 > **Automatischer Neustart mit `--restart`**
@@ -310,7 +316,7 @@ docker pull nginx                              # Image vorab aus der Registry (D
 docker run -d \                                # Container im Hintergrund (detached) starten
   --name nginx-web \                           # sprechender Name, damit der Container später leicht angesprochen werden kann (statt zufälliger ID)
   --restart unless-stopped \                   # Neustart-Policy: Container startet automatisch neu (z. B. nach Docker-Neustart oder Systemboot), außer er wurde manuell gestoppt
-  -p 127.0.0.1:8080:80 \                                 # Port-Mapping: nur lokal erreichbar (127.0.0.1), Host-Port 8080 → Container-Port 80
+  -p 127.0.0.1:8080:80 \                       # Port-Mapping: nur lokal erreichbar (127.0.0.1), Host-Port 8080 → Container-Port 80
   -v /srv/www:/usr/share/nginx/html:ro \        # Bind Mount: Host-Verzeichnis wird read-only in den Container eingebunden, ersetzt die nginx-Standardseite
   nginx                                        # zu verwendendes Image (zuvor per pull geladen, daher kein erneuter Download nötig)
 ```
@@ -357,7 +363,7 @@ docker run -d \
 | Option | Bedeutung |
 |---|---|
 | `--restart unless-stopped` | Automatischer Neustart nach Serverneustart (siehe Schritt 3.3) |
-| `-p 127.0.0.1:1880:1880` | Port 1880 — nur auf der lokalen Schnittstelle (`127.0.0.1`) — leitet auf Port 1880 im Container. Von außen nicht erreichbar; Zugriff ausschließlich über Caddy.  |
+| `-p 127.0.0.1:1880:1880` | Port 1880 — nur auf der lokalen Schnittstelle (`127.0.0.1`) — leitet auf Port 1880 im Container. Von außen nicht erreichbar; Zugriff ausschließlich über Caddy. |
 | `-v nodered-data:/data` | Benanntes Volume `nodered-data` wird in `/data` im Container eingehängt |
 
 Das Volume `nodered-data` existiert zu diesem Zeitpunkt noch nicht – Docker legt es beim ersten Start automatisch an. Prüfen Sie anschließend:
@@ -398,8 +404,10 @@ docker run -d \
 `nodered-data` besteht unabhängig vom Container. Es bleibt so lange bestehen, bis es mit `docker volume rm nodered-data` explizit gelöscht wird. Alle Flows und Einstellungen sind nach dem Update unverändert vorhanden.
 
 ---
+
 #### 4.5 Node-RED-Editor mit Authentifizierung absichern
 
+> **Warum dieser Schritt nicht optional ist**
 > Der Node-RED-Editor erlaubt das Anlegen von `exec`-Nodes, die beliebige Shell-Befehle ausführen können. Ohne Authentifizierung kann jeder, der den Editor erreicht — auch versehentlich über einen falsch konfigurierten Port oder einen zukünftigen Konfigurationsfehler — Code auf dem Server ausführen. In der Praxis ist genau das ein verbreiteter Angriffsweg gegen öffentlich erreichbare Node-RED-Instanzen. Dieser Schritt ist daher fester Bestandteil der Übung, nicht optional.
 
 Öffnen Sie die `settings.js` aus dem benannten Volume:
@@ -439,6 +447,7 @@ Prüfen Sie, dass die Absicherung greift:
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:1880/flows
 ```
 Erwartung: `401` statt `200`. Erst danach mit Schritt 5 fortfahren.
+
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
@@ -468,7 +477,7 @@ dashboard.<IHRE-DOMAIN> {
 ```
 
 > **Warum funktioniert `localhost:8080` – und sind keine Container-IP-Adressen nötig?**
-> Mit `-p 8080:80` bindet Docker den Container-Port 80 an den Host-Port 8080. Caddy läuft auf demselben Host und erreicht den Container daher einfach über `localhost:8080` – genau wie jeder andere lokale Prozess. Container-IP-Adressen werden nur benötigt, wenn Container direkt miteinander kommunizieren sollen, ohne Port-Mapping über den Host.
+> Mit `-p 127.0.0.1:8080:80` bindet Docker den Container-Port 80 an den Host-Port 8080 — beschränkt auf die lokale Schnittstelle. Caddy läuft auf demselben Host und erreicht den Container daher einfach über `localhost:8080` – genau wie jeder andere lokale Prozess, aber ohne dass der Port zusätzlich aus dem Internet erreichbar wäre. Container-IP-Adressen werden nur benötigt, wenn Container direkt miteinander kommunizieren sollen, ohne Port-Mapping über den Host.
 
 Validieren und laden Sie die Konfiguration:
 
@@ -499,10 +508,10 @@ Sie sollten zwei laufende Container sehen: `nginx-web` und `nodered`.
 
 ```
 https://www.<IHRE-DOMAIN>          →  Ihre Unternehmenswebseite
-https://dashboard.<IHRE-DOMAIN>    →  Node-RED Editor
+https://dashboard.<IHRE-DOMAIN>    →  Node-RED Editor (verlangt jetzt Login)
 ```
 
-Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden – ohne Sicherheitswarnung im Browser.
+Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden – ohne Sicherheitswarnung im Browser. Beim Aufruf von `dashboard.<IHRE-DOMAIN>` sollte zudem die Node-RED-Login-Maske erscheinen, bevor der Flow-Editor sichtbar wird (siehe Schritt 4.5).
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -521,6 +530,11 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 - Was müsste sich ändern, wenn Sie Caddy ebenfalls als Container betreiben wollten – warum wäre `localhost:8080` dann nicht mehr ausreichend?
 - Was spricht dafür, Caddy auf dem Host zu installieren statt als Container – insbesondere im Hinblick auf systemd-Integration und TLS?
 
+**Zur Absicherung von Docker-Containern:**
+
+- Warum schützt `ufw status` allein nicht zuverlässig vor einem öffentlich erreichbaren Docker-Container? Welche Rolle spielt die `DOCKER-USER`-Chain dabei?
+- Was wäre der konkrete Unterschied im Risiko, wenn `nodered` ohne `adminAuth` betrieben würde und der Port versehentlich ohne `127.0.0.1`-Präfix veröffentlicht wäre?
+
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
@@ -536,6 +550,8 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 - Node-RED-Daten dauerhaft in einem **benannten Volume** gespeichert
 - Den bereits installierten **Caddy** um zwei neue HTTPS-Subdomains erweitert
 - Verstanden, warum **`localhost`** ausreicht und Container-IP-Adressen hier nicht benötigt werden
+- Verstanden, warum **ufw Docker-Container nicht automatisch schützt** und Container-Ports konsequent auf `127.0.0.1` beschränkt
+- Den **Node-RED-Editor mit `adminAuth` abgesichert**, um unautorisierte Codeausführung über `exec`-Nodes zu verhindern
 
 ### Zentrale Befehle dieser Übung
 
@@ -543,7 +559,7 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 |---|---|
 | `docker run -d --name <n>` | Container im Hintergrund starten und benennen |
 | `docker run --restart unless-stopped` | Container nach Serverneustart automatisch starten |
-| `docker run -p <host>:<container>` | Port des Hosts an Container weiterleiten |
+| `docker run -p 127.0.0.1:<host>:<container>` | Port nur lokal binden – von außen nicht erreichbar, unabhängig von ufw |
 | `docker run -v <pfad>:<ziel>:ro` | Bind Mount (read-only) einbinden |
 | `docker run -v <name>:<ziel>` | Benanntes Volume einbinden (wird ggf. automatisch angelegt) |
 | `docker ps` | Laufende Container anzeigen |
@@ -552,6 +568,7 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 | `docker stop <n> && docker rm <n>` | Container stoppen und löschen |
 | `docker pull <image>` | Aktuelles Image herunterladen |
 | `docker restart <n>` | Container neu starten |
+| `docker exec -it nodered node-red admin hash-pw` | bcrypt-Hash für Node-RED-`adminAuth` erzeugen |
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
