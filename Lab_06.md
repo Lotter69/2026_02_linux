@@ -385,7 +385,7 @@ server {
 }
 ```
 
-**Unternehmenswebseite** (`/etc/nginx/conf.d/www.conf`), Container aus Lab 05 auf Host-Port 8080:
+**Unternehmenswebseite** (`/etc/nginx/conf.d/www.conf`), Container aus Lab 05 auf Host-Port 8080 (nur lokal gebunden, siehe Lab 05):
 
 ```nginx
 server {
@@ -405,7 +405,7 @@ server {
 }
 ```
 
-**Node-RED Dashboard** (`/etc/nginx/conf.d/dashboard.conf`), Container aus Lab 05 auf Host-Port 1880:
+**Node-RED Dashboard** (`/etc/nginx/conf.d/dashboard.conf`), Container aus Lab 05 auf Host-Port 1880 (nur lokal gebunden, mit aktivierter `adminAuth`, siehe Lab 05):
 
 ```nginx
 server {
@@ -481,7 +481,7 @@ Der Dienst muss als `inactive (dead)` gemeldet sein.
 
 ### Schritt 7: Eigenes Docker-Netzwerk anlegen und Dienste bewusst bündeln
 
-Bisher waren alle Container über `-p <host-port>:<container-port>` für den Host (und damit für Caddy) erreichbar. In diesem Schritt lernen Sie das Gegenteil: einen Dienst, der **ausschließlich für andere Container** erreichbar sein soll – nicht für den Host, nicht für das Internet.
+Bisher waren alle Container über `-p <host-port>:<container-port>` für den Host (und damit für nginx) erreichbar. In diesem Schritt lernen Sie das Gegenteil: einen Dienst, der **ausschließlich für andere Container** erreichbar sein soll – nicht für den Host, nicht für das Internet.
 
 #### 7.1 Eigenes Netzwerk anlegen
 
@@ -497,7 +497,7 @@ Damit legen Sie ein eigenes, benutzerdefiniertes Docker-Netzwerk namens `app-net
 docker network connect app-net nodered
 ```
 
-`nodered` läuft bereits (aus Lab 05) mit `-p 1880:1880` im Standard-Netzwerk – darüber bleibt er für Caddy auf dem Host erreichbar. Mit diesem Befehl bekommt `nodered` ein zweites Standbein: Er gehört jetzt **gleichzeitig** zwei Netzwerken an. Ein Container kann beliebig vielen Netzwerken angehören, ohne neu erstellt werden zu müssen.
+`nodered` läuft bereits (aus Lab 05) mit `-p 127.0.0.1:1880:1880` im Standard-Netzwerk – darüber bleibt er für nginx auf dem Host erreichbar, aber weiterhin nicht direkt aus dem Internet. Mit diesem Befehl bekommt `nodered` ein zweites Standbein: Er gehört jetzt **gleichzeitig** zwei Netzwerken an. Ein Container kann beliebig vielen Netzwerken angehören, ohne neu erstellt werden zu müssen.
 
 #### 7.3 Neuen, rein internen Dienst starten
 
@@ -564,9 +564,9 @@ ss -tlnp | grep 6379
 ```
 >**Hinweis:** 6379 ist der Standard-Port für Redis
 
-Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (die bewusst über `-p` veröffentlicht wurden) ist hier gar kein Host-Port nötig – `redis-cache` muss ausschließlich für `nodered` erreichbar sein, und das funktioniert vollständig innerhalb von `app-net`, ohne dass der Host überhaupt einen offenen Port dafür braucht.
+Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (die bewusst über `-p 127.0.0.1:<port>:<port>` veröffentlicht wurden) ist hier gar kein Host-Port nötig – `redis-cache` muss ausschließlich für `nodered` erreichbar sein, und das funktioniert vollständig innerhalb von `app-net`, ohne dass der Host überhaupt einen offenen Port dafür braucht.
 
-> **Warum trotzdem mindestens ein Dienst sichtbar bleiben muss:** `app-net` selbst macht nach außen gar nichts sichtbar. Die einzige Verbindung zur Außenwelt bleibt `nodered` – er gehört weiterhin zusätzlich dem Standard-Netzwerk an und ist dort über `-p 1880:1880` für Caddy erreichbar (aus Lab 05). `nodered` fungiert damit als Brücke zwischen beiden Welten: nach außen sichtbar über sein Host-Port-Mapping, nach innen verbunden mit `redis-cache` über `app-net`. `redis-cache` selbst braucht diese Brücke nicht – er muss nur von `nodered` aus erreichbar sein, nicht von irgendwo sonst.
+> **Warum trotzdem mindestens ein Dienst sichtbar bleiben muss:** `app-net` selbst macht nach außen gar nichts sichtbar. Die einzige Verbindung zur Außenwelt bleibt `nodered` – er gehört weiterhin zusätzlich dem Standard-Netzwerk an und ist dort über `-p 127.0.0.1:1880:1880` für nginx erreichbar (aus Lab 05). `nodered` fungiert damit als Brücke zwischen beiden Welten: lokal erreichbar über sein Host-Port-Mapping (für den Reverse Proxy), nach innen verbunden mit `redis-cache` über `app-net`. `redis-cache` selbst braucht diese Brücke nicht – er muss nur von `nodered` aus erreichbar sein, nicht von irgendwo sonst.
 
 #### 7.7 Hintergrund: IP-Vergabe und Routing in Docker-Netzwerken
 
@@ -636,9 +636,9 @@ Starten Sie drei Instanzen eines einfachen Demo-Dienstes, der bei jeder Antwort 
 
 ```bash
 docker run -d --name demo1 --restart unless-stopped -p 127.0.0.1:9001:80 traefik/whoami
-docker run -d --name demo1 --restart unless-stopped -p 127.0.0.1:9002:80 traefik/whoami
-docker run -d --name demo1 --restart unless-stopped -p 127.0.0.1:9003:80 traefik/whoami
-# -d: im Hintergrund | --name: Containername | --restart: Neustart-Policy | -p: Host-Port:Container-Port
+docker run -d --name demo2 --restart unless-stopped -p 127.0.0.1:9002:80 traefik/whoami
+docker run -d --name demo3 --restart unless-stopped -p 127.0.0.1:9003:80 traefik/whoami
+# -d: im Hintergrund | --name: Containername | --restart: Neustart-Policy | -p: nur lokal gebundener Host-Port:Container-Port
 # (ausführlich erklärt in Lab 05, Schritt 3.3)
 ```
 
@@ -692,7 +692,7 @@ ab -n 100 -c 10 https://demo.<IHRE-DOMAIN>/
 Fügen Sie nun bewusst eine vierte Instanz hinzu:
 
 ```bash
-docker run -d --name demo4 --restart unless-stopped -p 9004:80 traefik/whoami
+docker run -d --name demo4 --restart unless-stopped -p 127.0.0.1:9004:80 traefik/whoami
 # gleiches Muster wie demo1-demo3, nur neuer Name und neuer Host-Port
 ```
 
