@@ -175,6 +175,7 @@ Sie erkennen darin die Regeln, die ufw aus Ihren Befehlen erzeugt hat – unter 
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
+> **Hinweis für später:** Diese ufw-Regeln schützen zuverlässig native Host-Dienste (wie Cockpit). Sobald in Lab_05 Docker-Container ins Spiel kommen, gilt das nicht automatisch — Docker kann eigene Firewall-Regeln anlegen, die ufw umgehen. Mehr dazu in Lab_05.
 ---
 
 ### Schritt 2: Caddy installieren
