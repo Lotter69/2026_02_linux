@@ -26,7 +26,7 @@ Im Vergleich zur direkten Installation auf dem Host stellt sich dabei eine wicht
 
 ## Lernziele
 
-- Docker auf einem Ubuntu-Server installieren und konfigurieren
+- Docker auf einem Debian-Server installieren und konfigurieren
 - Den Unterschied zwischen **Bind Mount** und **benanntem Volume** verstehen und praktisch anwenden
 - Die Syntax von **`-p`** (Port-Mapping) und **`-v`** (Volume/Bind Mount) sicher anwenden
 - Eigene Webinhalte über einen Bind Mount in einen Nginx-Container einbinden
@@ -41,7 +41,7 @@ Im Vergleich zur direkten Installation auf dem Host stellt sich dabei eine wicht
 
 | Anforderung | Details |
 |---|---|
-| **Server** | Ubuntu 24.04 LTS, öffentliche IPv4-Adresse (aus Lab 03) |
+| **Server** | Debian stable (aktuell Trixie), öffentliche IPv4-Adresse (aus Lab 03) |
 | **Caddy** | Installiert und als systemd-Dienst aktiv (aus Lab 04) |
 | **SSH-Zugriff** | Key-Authentifizierung |
 | **DNS** | Verwaltungszugriff für Ihre Domain |
@@ -117,7 +117,7 @@ Tragen Sie das Docker-Repository als Paketquelle ein:
 
 ```bash
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
-  https://download.docker.com/linux/ubuntu \
+  https://download.docker.com/linux/debian \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
   | tee /etc/apt/sources.list.d/docker.list > /dev/null
 ```

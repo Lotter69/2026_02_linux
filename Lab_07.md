@@ -30,7 +30,7 @@ In Lab 05 und Lab 06 haben Sie ausschließlich fertige Images von Docker Hub ver
 
 | Anforderung | Details |
 |---|---|
-| **Server** | Ubuntu 24.04 LTS, öffentliche IPv4-Adresse (aus Lab 03) |
+| **Server** | Debian stable (aktuell Trixie), öffentliche IPv4-Adresse (aus Lab 03) |
 | **Docker** | Installiert und betriebsbereit (aus Lab 05) |
 | **nginx** | Mit ACME-Modul als Reverse Proxy aktiv (aus Lab 06) – wird in diesem Lab nicht verändert |
 | **SSH-Zugriff** | Key-Authentifizierung |

@@ -31,7 +31,7 @@ In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisc
 
 | Anforderung | Details |
 |---|---|
-| **Server** | Ubuntu 24.04 LTS, öffentliche IPv4-Adresse (aus Lab 03) |
+| **Server** | Debian stable (aktuell Trixie), öffentliche IPv4-Adresse (aus Lab 03) |
 | **Caddy** | Aktuell noch aktiv – wird in diesem Lab abgelöst |
 | **Docker** | Installiert und betriebsbereit (aus Lab 05), inklusive der Container `nginx-web` und `nodered` |
 | **SSH-Zugriff** | Key-Authentifizierung |
@@ -116,7 +116,7 @@ Die Ausgabe sollte leer sein.
 
 ### Schritt 2: nginx aus dem offiziellen Repository installieren
 
-Wie schon bei Caddy (Lab 04) und Docker (Lab 05) installieren Sie nginx nicht aus den Ubuntu-Standardquellen, sondern aus dem offiziellen nginx-Repository – nur dort ist das aktuelle ACME-Modul verfügbar.
+Wie schon bei Caddy (Lab 04) und Docker (Lab 05) installieren Sie nginx nicht aus den Debian-Standardquellen, sondern aus dem offiziellen nginx-Repository – nur dort ist das aktuelle ACME-Modul verfügbar.
 
 ```bash
 apt install -y curl gnupg2 ca-certificates lsb-release
@@ -125,25 +125,25 @@ curl -fsSL https://nginx.org/keys/nginx_signing.key \    # Erzeugen: Schlüssel-
   | gpg --dearmor | tee /usr/share/keyrings/nginx-archive-keyring.gpg > /dev/null
     # Filtern/Umwandeln: in Binärformat wandeln | Ablegen: in Datei schreiben (Bildschirmausgabe unterdrückt)
 
-echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/ubuntu $(lsb_release -cs) nginx" \
+echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian $(lsb_release -cs) nginx" \
   | tee /etc/apt/sources.list.d/nginx.list
     # Erzeugen: Repository-Zeile (inkl. Command Substitution $(lsb_release -cs)) | Ablegen: in Datei schreiben + anzeigen
 ```
 
 > Dieselbe Grundstruktur **[Text erzeugen] → (filtern/umwandeln) → [ablegen]** wie im Exkurs zu Lab 02 – nur mit anderen Befehlen (`curl`/`echo` statt `echo`, `gpg --dearmor` statt `grep`, `tee` statt `logger`).
 
-> **Tipp zur Fehlerbehebung:** Bricht `apt update` anschließend mit einer Meldung wie „The repository ... does not have a Release file" ab, prüfen Sie zunächst die tatsächliche Distribution Ihres Systems:
+> **Tipp zur Fehlerbehebung:** Bricht `apt update` anschließend mit einer Meldung wie „The repository ... does not have a Release file" ab, prüfen Sie zunächst den tatsächlichen Codenamen Ihres Systems:
 > ```bash
 > cat /etc/os-release
 > ```
-> Steht dort `ID=ubuntu`, muss `VERSION_CODENAME` einen echten Ubuntu-Codename liefern (für 24.04 LTS: `noble`) – weicht der von `lsb_release -cs` gelieferte Wert davon ab, tragen Sie „noble" händisch in die Repository-Zeile ein. Steht dort hingegen `ID=debian` (z. B. `VERSION_CODENAME=trixie` für Debian 13), testen Sie auf einem Debian- statt einem Ubuntu-System wie in Lab 03 vorgesehen. nginx.org pflegt für Debian einen eigenen Pfad – ersetzen Sie in der Repository-Zeile `/ubuntu` durch `/debian`:
+> `VERSION_CODENAME` sollte für Debian stable aktuell `trixie` liefern. Weicht der von `lsb_release -cs` gelieferte Wert davon ab (z. B. auf einem Debian-Derivat mit eigenem Codenamen), tragen Sie den korrekten Debian-Codenamen händisch in die Repository-Zeile ein:
 > ```bash
 > rm /etc/apt/sources.list.d/nginx.list
-> echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian $(lsb_release -cs) nginx" \
+> echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian trixie nginx" \
 >   | tee /etc/apt/sources.list.d/nginx.list
 > apt update
 > ```
-> (gleiche Befehlsstruktur wie oben – nur `/ubuntu` durch `/debian` ersetzt)
+> (gleiche Befehlsstruktur wie oben – nur der Codename fest statt per Command Substitution eingetragen)
 
 Damit apt bei künftigen Updates konsequent das offizielle nginx-Paket statt der älteren Distributionsvariante bevorzugt, legen Sie eine Pinning-Regel an:
 

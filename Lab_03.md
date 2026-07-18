@@ -84,7 +84,7 @@ Wählen Sie folgende Eckdaten:
 
 | Eigenschaft       | Empfehlung für diese Übung              |
 |-------------------|-----------------------------------------|
-| Betriebssystem    | Ubuntu 24.04 LTS (64-Bit)               |
+| Betriebssystem    | Debian stable (aktuell Trixie), 64-Bit  |
 | CPU / RAM         | 1 vCPU, 1–2 GB RAM (kleinstes Paket)    |
 | Speicher          | 20 GB SSD                               |
 | Standort          | EU-Rechenzentrum (z. B. Deutschland)    |

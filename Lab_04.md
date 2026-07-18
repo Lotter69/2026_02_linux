@@ -60,7 +60,7 @@ Die Lösung ist ein **Reverse Proxy**: Ein einziger Dienst nimmt alle eingehende
 
 ## Voraussetzungen
 
-- Ein Linux-Server (Ubuntu 24.04 LTS) mit öffentlicher IPv4-Adresse, administrierbar per SSH
+- Ein Linux-Server (Debian stable, aktuell Trixie) mit öffentlicher IPv4-Adresse, administrierbar per SSH
 - Ein Domänenname mit DNS-Verwaltungszugriff
 - Folgende DNS-A-Records zeigen bereits auf die IP-Adresse des Servers:
   - `cockpit.<IHRE-DOMAIN>`
@@ -180,7 +180,7 @@ Sie erkennen darin die Regeln, die ufw aus Ihren Befehlen erzeugt hat – unter 
 
 ### Schritt 2: Caddy installieren
 
-Ubuntu bringt Caddy nicht in seinen Standard-Paketquellen mit. Deshalb wird das offizielle Caddy-Repository als zusätzliche Paketquelle eingebunden. Der Vorteil: Einmal eingerichtet, werden Caddy-Updates künftig automatisch über das gewohnte `apt upgrade` eingespielt – genau wie alle anderen Systempakete.
+Debian bringt Caddy nicht in seinen Standard-Paketquellen mit. Deshalb wird das offizielle Caddy-Repository als zusätzliche Paketquelle eingebunden. Der Vorteil: Einmal eingerichtet, werden Caddy-Updates künftig automatisch über das gewohnte `apt upgrade` eingespielt – genau wie alle anderen Systempakete.
 
 1. Installieren Sie notwendige Hilfswerkzeuge:
 
@@ -208,7 +208,7 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \    # 
 
 Der erste Befehl lädt den **öffentlichen GPG-Schlüssel** des Caddy-Projekts herunter und speichert ihn im APT-Schlüsselbund. APT verwendet diesen Schlüssel, um die digitale Signatur jedes heruntergeladenen Caddy-Pakets zu prüfen – so wird sichergestellt, dass das Paket tatsächlich vom Caddy-Projekt stammt und nicht nachträglich verändert wurde. `gpg --dearmor` wandelt den Schlüssel dabei vom textuellen PEM-Format in ein binäres Format um, das APT erwartet.
 
-Der zweite Befehl trägt die **Repository-Adresse** in die APT-Konfiguration ein. APT weiß damit künftig, wo es nach Caddy-Paketen und deren Updates suchen soll. Die Datei landet in `/etc/apt/sources.list.d/` – dem Standardort für zusätzliche Paketquellen unter Ubuntu.
+Der zweite Befehl trägt die **Repository-Adresse** in die APT-Konfiguration ein. APT weiß damit künftig, wo es nach Caddy-Paketen und deren Updates suchen soll. Die Datei landet in `/etc/apt/sources.list.d/` – dem Standardort für zusätzliche Paketquellen unter Debian.
 
 3. Aktualisieren Sie die Paketlisten – darunter jetzt auch das neu hinzugefügte Caddy-Repository:
 
@@ -620,7 +620,7 @@ systemctl disable caddy
 - [Mozilla SSL Configuration Generator](https://ssl-config.mozilla.org/) – Best-Practice TLS-Konfigurationen für verschiedene Servertypen
 - [securityheaders.com](https://securityheaders.com) – Online-Tool zur Analyse der HTTP-Sicherheits-Header einer Domain
 - [Cockpit Dokumentation](https://cockpit-project.org/documentation.html) – offizielle Dokumentation zur Einrichtung und Nutzung von Cockpit
-- [ufw Manpage](https://manpages.ubuntu.com/manpages/noble/en/man8/ufw.8.html) – vollständige Referenz aller ufw-Optionen
+- [ufw Manpage](https://manpages.debian.org/trixie/ufw/ufw.8.en.html) – vollständige Referenz aller ufw-Optionen
 
 ---
 

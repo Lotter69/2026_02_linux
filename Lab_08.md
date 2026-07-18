@@ -31,7 +31,7 @@ Bisher haben Sie jeden Container-Dienst mit einem eigenen, oft mehrzeiligen `doc
 
 | Anforderung | Details |
 |---|---|
-| **Server** | Ubuntu 24.04 LTS, öffentliche IPv4-Adresse (aus Lab 03) |
+| **Server** | Debian stable (aktuell Trixie), öffentliche IPv4-Adresse (aus Lab 03) |
 | **nginx** | Mit ACME-Modul als Reverse Proxy aktiv (aus Lab 06) |
 | **Docker** | Installiert, inklusive Buildx-Plugin (aus Lab 05/07) |
 | **Node-RED** | Container `nodered` mit Volume `nodered-data`, aktivierter `adminAuth`, `dashboard`-vhost (aus Lab 05) |
