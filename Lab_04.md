@@ -575,10 +575,10 @@ Auf einen Blick zusammengefasst, ist Caddy damit der **einzige** Dienst, den das
 
 ```mermaid
 flowchart TD
-    Internet(["Internet"]) -->|"https://*.meinserver.de:443"| Caddy["Caddy<br/>(einziger offener Port)"]
-    Caddy -->|"cockpit.meinserver.de"| Cockpit["Cockpit<br/>localhost:9090"]
-    Caddy -->|"dienst-a.meinserver.de"| DienstA["Dienst A<br/>localhost:8001"]
-    Caddy -->|"dienst-b.meinserver.de<br/>+ Basic Auth"| DienstB["Dienst B<br/>localhost:8002"]
+    Internet(["Internet"]) -->|"https://*.<IHRE-DOMAIN>:443"| Caddy["Caddy<br/>(einziger offener Port)"]
+    Caddy -->|"cockpit.<IHRE-DOMAIN>"| Cockpit["Cockpit<br/>localhost:9090"]
+    Caddy -->|"dienst-a.<IHRE-DOMAIN>"| DienstA["Dienst A<br/>localhost:8001"]
+    Caddy -->|"dienst-b.<IHRE-DOMAIN><br/>+ Basic Auth"| DienstB["Dienst B<br/>localhost:8002"]
 ```
 
 ---
