@@ -6,20 +6,20 @@
 
 Die Vorbereitung auf die Zertifizierung nach ISO/IEC 27001 wirft eine weitere Frage auf, die bisher unbeantwortet blieb: Die Sensordaten, die künftig über die IoT-Pipeline gesammelt werden, existieren ausschließlich in der laufenden InfluxDB-Instanz – es gibt keinerlei dokumentierte Sicherung dieser Daten. Control **A.8.13 (Information Backup)** verlangt jedoch eine definierte, nachvollziehbare Backup-Routine mit klarem Zeitplan.
 
-Das Betriebsteam entscheidet, diese Anforderung mit genau dem Werkzeug zu lösen, das in Lab 07 bereits eingeführt wurde: einem eigenen, aus einem Betriebssystem-Image selbst zusammengestellten Docker-Image. Bevor die Lösung in den produktiven Compose-Stack aus Lab 08 übernommen wird, soll sie zunächst als eigenständiger Prototyp gegen die Wegwerf-Testumgebung aus Lab 07 entwickelt und erprobt werden – Sie übernehmen dabei die Rolle des Betriebsteams und entwerfen das Image eigenständig.
+Ein Kollege aus dem Entwicklungsteam hat dafür bereits ein kleines Backup-Skript geschrieben und getestet – inklusive der nötigen Zeitsteuerung. Was fehlt, ist ein reproduzierbares, eigenständiges Docker-Image, das dieses Skript zuverlässig und nachvollziehbar betreibt, statt es manuell auf einem Server abzulegen. Genau das ist Ihre Aufgabe in dieser Übung: Sie übernehmen die fertigen Dateien und bauen daraus – mit dem in Lab 07 gelernten Muster – ein eigenes Image.
 
 ---
 
 ## Einführung
 
-In Lab 07 haben Sie das Prinzip kennengelernt, ein eigenes Image nicht von einem fertigen Anwendungsimage, sondern von einem schlanken Betriebssystem-Image (`debian:trixie-slim`) aus aufzubauen und die benötigte Software selbst per `apt install` einzurichten – am Beispiel von nginx. Diese Erweiterung zeigt, dass sich dasselbe Muster auf praktisch jede Software übertragen lässt, die Debian als Paket bereitstellt. Als konkretes Beispiel bauen Sie diesmal ein Werkzeug, das *zeitgesteuert* arbeitet: einen Backup-Container, der in regelmäßigen Abständen die Testdaten aus InfluxDB sichert.
+Diese Übung konzentriert sich bewusst **ausschließlich auf das Bauen eines eigenen Docker-Images** – nicht auf das Schreiben von Bash-Skripten oder auf Kenntnisse über `cron`/`crontab`. Das Backup-Skript sowie die Zeitsteuerung liegen bereits fertig geschrieben vor und werden Ihnen im Abschnitt [Bereitgestellte Dateien](#bereitgestellte-dateien) vollständig samt Erklärung zur Verfügung gestellt. Sie müssen diese Dateien nicht selbst verstehen oder verändern können – nur grob wissen, wofür sie da sind.
 
-Im Unterschied zu den vorherigen Labs erhalten Sie diesmal **keine** vollständige Schritt-für-Schritt-Anleitung, sondern eine Anforderungsliste, wie sie auch in der Praxis als Auftrag formuliert würde. Der Weg zur Lösung – welche Dateien Sie anlegen, wie Sie das Dockerfile strukturieren – liegt bei Ihnen. Eine vollständige Musterlösung finden Sie am Ende dieses Labs verlinkt, falls Sie nicht weiterkommen oder Ihre eigene Lösung vergleichen möchten.
+Ihre eigentliche Aufgabe ist es, mit dem in Lab 07 gelernten Muster (Betriebssystem-Image + `apt install`) ein eigenes **Dockerfile** zu schreiben, das diese vorgegebenen Dateien zu einem lauffähigen, eigenständigen Image zusammenfügt – inklusive der passenden Berechtigungen, Umgebungsvariablen und des Startbefehls.
 
 ## Lernziele
 
 - Das apt-install-Muster aus Lab 07 (Betriebssystem-Image + `apt install`) selbstständig auf ein neues, eigenes Problem übertragen
-- Ein zeitgesteuertes Automatisierungswerkzeug (`cron`) innerhalb eines Containers einrichten und dessen Besonderheiten kennenlernen
+- Vorgegebene Dateien (Skript, Konfiguration) mit `COPY` korrekt in ein eigenes Image einbinden und die passenden Zugriffsrechte setzen
 - Ein Dockerfile eigenständig anhand einer Anforderungsliste entwerfen, statt einer Schritt-für-Schritt-Anleitung zu folgen
 - Die eigene Lösung anhand klar definierter Abnahmekriterien selbst überprüfen
 - Den Bezug zwischen einer technischen Lösung und einem ISO-27001-Control (A.8.13) herstellen
@@ -30,7 +30,7 @@ Im Unterschied zu den vorherigen Labs erhalten Sie diesmal **keine** vollständi
 |---|---|
 | **Lab 07** | Vollständig durchgeführt – insbesondere das apt-install-Muster aus Schritt 2 und die Wegwerf-InfluxDB aus Schritt 4 |
 | **Docker** | Installiert, inklusive Buildx-Plugin (aus Lab 05/07) |
-| **Kenntnisse** | `FROM`/`RUN`/`COPY`/`ENV`/`CMD`, `docker build`/`run`/`network create` |
+| **Kenntnisse** | `FROM`/`RUN`/`COPY`/`ENV`/`CMD`, `docker build`/`run`/`network create` – **keine** Bash- oder cron-Kenntnisse nötig |
 
 ---
 
@@ -38,8 +38,12 @@ Im Unterschied zu den vorherigen Labs erhalten Sie diesmal **keine** vollständi
 
 - [Hintergrundwissen](#hintergrundwissen)
   - [Das Muster verallgemeinern](#das-muster-verallgemeinern)
-  - [Automatisierung im Container: cron](#automatisierung-im-container-cron)
+  - [Was macht das Skript im Hintergrund? (kurz)](#was-macht-das-skript-im-hintergrund-kurz)
   - [ISO 27001: Control A.8.13 – Information Backup](#iso-27001-control-a813-information-backup)
+- [Bereitgestellte Dateien](#bereitgestellte-dateien)
+  - [backup.sh](#backupsh)
+  - [entrypoint.sh](#entrypointsh)
+  - [crontab.txt](#crontabtxt)
 - [Übungsaufgabe](#übungsaufgabe)
   - [Ausgangslage](#ausgangslage)
   - [Anforderungen (Definition of Done)](#anforderungen-definition-of-done)
@@ -77,20 +81,101 @@ Nur `<PAKET(E)>` und das, was danach passiert, ändert sich mit dem Anwendungsfa
 | API-Testwerkzeug | `curl`, `jq` | Container zum Abfragen und Aufbereiten von JSON-APIs |
 | Datenbank-Client | `postgresql-client` | Werkzeug für Verbindungen zu einer laufenden PostgreSQL-Instanz, ohne den vollen Server zu installieren |
 | Datei-Synchronisation | `rsync`, `openssh-client` | Container, der Dateien zu einem anderen Host spiegelt |
-| Zeitgesteuerte Aufgaben | `cron` | Container, der wiederkehrende Aufgaben nach Zeitplan ausführt – Gegenstand dieser Übung |
+| Zeitgesteuerte Aufgaben | `cron`, `curl` | Container, der wiederkehrende Aufgaben nach Zeitplan ausführt – Gegenstand dieser Übung |
 
-### Automatisierung im Container: cron
+Genau dieses Skelett – Basis-Image wählen, benötigte Pakete per `apt install` einrichten, eigene Dateien per `COPY` einbinden – ist alles, was Sie in dieser Übung selbst schreiben müssen.
 
-`cron` ist der klassische Linux-Zeitplaner: Eine **Crontab**-Datei legt fest, *wann* ein Befehl ausgeführt werden soll. Innerhalb eines Containers gilt es dabei, zwei Besonderheiten zu beachten:
+### Was macht das Skript im Hintergrund? (kurz)
 
-- Der cron-**Daemon** muss im **Vordergrund** laufen (`cron -f`), da ein Container beendet wird, sobald sein Hauptprozess (PID 1) endet – ein daemonisierender Hintergrundprozess würde den Container sofort wieder stoppen lassen, genau wie bei nginx in Lab 07.
-- Systemweite, wiederkehrende Aufgaben werden unter Debian nicht in der persönlichen Crontab eines Benutzers, sondern als eigene Datei in `/etc/cron.d/` abgelegt. Eine solche Datei braucht zusätzlich zum Zeitplan auch einen **Benutzernamen**, unter dem der Befehl läuft (z. B. `root`) – ein Detail, das bei der persönlichen `crontab -e` entfällt.
+Damit das Backup-Skript automatisch und regelmäßig läuft, ohne dass jemand es von Hand startet, kommt der Linux-Zeitplaner **cron** zum Einsatz. Für diese Übung müssen Sie cron **weder konfigurieren noch seine Syntax verstehen** – die passende Konfigurationsdatei liegt bereits fertig vor (siehe [Bereitgestellte Dateien](#bereitgestellte-dateien)).
 
-> **Hinweis:** cron-in-einem-Container ist eine pragmatische, weit verbreitete Lösung für einfache Zeitpläne – aber kein Selbstläufer. Produktivsysteme setzen dafür teils auf host-seitige Zeitsteuerung (`systemd`-Timer, der z. B. `docker exec` aufruft) oder dedizierte Scheduler-Container. Eine der Reflexionsfragen greift das auf.
+Eine einzige Besonderheit ist trotzdem für den *Container*-Betrieb wichtig, nicht für cron selbst: cron muss im **Vordergrund** laufen, da ein Container beendet wird, sobald sein Hauptprozess (PID 1) endet – ein daemonisierender Hintergrundprozess würde den Container sofort wieder stoppen lassen, genau wie bei nginx in Lab 07. Auch darum kümmert sich bereits eine vorbereitete Datei (`entrypoint.sh`) für Sie.
+
+> **Hinweis:** cron-in-einem-Container ist eine pragmatische, weit verbreitete Lösung für einfache Zeitpläne – aber kein Selbstläufer. Produktivsysteme setzen dafür teils auf host-seitige Zeitsteuerung (`systemd`-Timer, der z. B. `docker exec` aufruft) oder dedizierte Scheduler-Container. Eine der Reflexionsfragen greift das auf – Sie müssen dafür aber keine cron-Syntax kennen.
 
 ### ISO 27001: Control A.8.13 – Information Backup
 
 Control A.8.13 verlangt, dass Backups von Informationen, Software und Systemen gemäß einer vereinbarten Richtlinie erstellt, getestet und regelmäßig überprüft werden. Für die Aufgabenstellung in diesem Lab bedeutet das konkret: ein **definierter, automatisierter, protokollierter** Zeitplan – nicht ein gelegentliches, manuelles „Mal-eben-Sichern".
+
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
+---
+
+## Bereitgestellte Dateien
+
+Die folgenden drei Dateien sind bereits fertig geschrieben und getestet. Legen Sie ein Projektverzeichnis an und speichern Sie alle drei darin ab – **unverändert**:
+
+```bash
+mkdir -p /srv/iot-backup
+cd /srv/iot-backup
+```
+
+### backup.sh
+
+```bash
+nano backup.sh
+```
+
+```bash
+#!/bin/bash
+set -e
+
+# Von entrypoint.sh beim Containerstart hinterlegte INFLUX_*-Variablen einlesen,
+# da cron sie nicht automatisch zur Verfuegung stellt
+source /etc/backup-env
+
+ZEITSTEMPEL=$(date +%Y%m%d-%H%M%S)
+ZIEL="/backup/iot-backup-${ZEITSTEMPEL}.csv.gz"
+
+FLUX_QUERY="from(bucket: \"${INFLUX_BUCKET}\") |> range(start: -24h)"
+
+curl -s -X POST "${INFLUX_URL}/api/v2/query?org=${INFLUX_ORG}" \
+  -H "Authorization: Token ${INFLUX_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d "{\"query\": \"${FLUX_QUERY}\", \"dialect\": {\"annotations\": []}}" \
+  | gzip > "${ZIEL}"
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') Backup geschrieben: ${ZIEL}" >> /var/log/backup.log
+```
+
+> **Wofür ist diese Datei da?**  
+> Dieses Skript stellt dieselbe Flux-Abfrage und denselben HTTP-POST an InfluxDB wie das Portal aus Lab 07, Schritt 5.1 – nur dass die Antwort hier nicht in eine HTML-Tabelle gerendert, sondern komprimiert in eine mit Datum und Uhrzeit benannte Datei geschrieben wird. Sie müssen dieses Skript nicht verändern oder in allen Details verstehen – nur wissen, dass es zwei Programme benötigt, um zu funktionieren: `curl` (für die HTTP-Abfrage) und `gzip` (zum Komprimieren).
+
+### entrypoint.sh
+
+```bash
+nano entrypoint.sh
+```
+
+```bash
+#!/bin/bash
+set -e
+
+# cron startet Prozesse mit einer eigenen, minimalen Umgebung - die per
+# "docker run -e" gesetzten Variablen kommen dort NICHT automatisch an.
+# Deshalb werden sie hier einmalig beim Containerstart in eine Datei
+# geschrieben, die backup.sh bei jedem Lauf selbst einliest.
+printenv | grep -E '^INFLUX_' > /etc/backup-env
+
+exec cron -f
+```
+
+> **Wofür ist diese Datei da?**  
+> Dieses kurze Startskript löst zwei technische Probleme, bevor der eigentliche Zeitplan losläuft: Es rettet die beim `docker run` gesetzten `INFLUX_*`-Variablen in eine Datei, damit `backup.sh` später darauf zugreifen kann, und startet anschließend `cron` im Vordergrund (`-f`), damit der Container nicht sofort wieder beendet wird. Sie müssen dieses Skript nicht selbst schreiben können – nur wissen, dass es beim Containerstart ausgeführt werden muss.
+
+### crontab.txt
+
+```bash
+nano crontab.txt
+```
+
+```
+*/2 * * * * root /usr/local/bin/backup.sh >> /var/log/cron.log 2>&1
+
+```
+
+> **Wofür ist diese Datei da?**  
+> Diese Zeile weist cron an, `backup.sh` alle 2 Minuten auszuführen (in einem Produktivsystem wäre ein selteneres Intervall üblich – 2 Minuten dienen hier nur dazu, das Ergebnis in dieser Übung zügig beobachten zu können). Sie müssen die genaue Schreibweise nicht verstehen können. Achten Sie beim Speichern nur darauf, die **Leerzeile am Dateiende** zu übernehmen – sie gehört zur Datei dazu.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -104,33 +189,49 @@ Sie benötigen dieselbe Testumgebung wie in Lab 07, Schritt 4: ein Docker-Netzwe
 
 ### Anforderungen (Definition of Done)
 
-1. Ein neues Image `iot-backup:1.0`, gebaut aus einem eigenen Dockerfile auf Basis von `debian:trixie-slim`.
-2. Jede zusätzlich benötigte Software wird ausschließlich über `apt install` eingerichtet – keine manuell heruntergeladenen Programme.
-3. Ein Container aus diesem Image fragt automatisiert und wiederkehrend (alle 1–5 Minuten, gesteuert über `cron`) die Testdaten aus der InfluxDB-Instanz ab – mit derselben Technik wie das Portal in Lab 07: einer Flux-Abfrage per `curl` gegen `/api/v2/query`.
-4. Jeder Abfragelauf wird als eigene, mit Zeitstempel benannte, **komprimierte** Datei in einem über Bind Mount eingebundenen Host-Verzeichnis abgelegt, z. B. `iot-backup-20260718-1432.csv.gz`.
-5. Das InfluxDB-Token wird – wie beim Portal in Lab 07 – ausschließlich zur Laufzeit übergeben und taucht an keiner Stelle im Image auf.
-6. Jeder Backup-Lauf wird nachvollziehbar protokolliert (z. B. in einer Log-Datei im Container, einsehbar per `docker exec`).
+Schreiben Sie im Projektverzeichnis `/srv/iot-backup/` (neben den drei bereitgestellten Dateien) ein eigenes Dockerfile, das:
+
+1. auf `debian:trixie-slim` aufbaut,
+2. per `apt install` **ausschließlich** die Software installiert, die `backup.sh` und `entrypoint.sh` zum Laufen brauchen (siehe die Erklärungen oben – welche zwei Programme werden dort genannt? Welches dritte Werkzeug fehlt noch, damit die Zeitsteuerung selbst funktioniert?),
+3. `backup.sh` und `entrypoint.sh` nach `/usr/local/bin/` kopiert und dort ausführbar macht,
+4. `crontab.txt` nach `/etc/cron.d/iot-backup` kopiert und mit den Rechten `644` versieht,
+5. das Verzeichnis `/backup` sowie leere Log-Dateien `/var/log/cron.log` und `/var/log/backup.log` anlegt,
+6. per `ENV` dieselben Vorgabewerte wie beim Portal aus Lab 07 setzt (`INFLUX_URL`, `INFLUX_ORG`, `INFLUX_BUCKET`) – **ohne** `INFLUX_TOKEN`,
+7. beim Containerstart `entrypoint.sh` ausführt.
+
+Bauen Sie daraus ein Image `iot-backup:1.0` und starten Sie testweise einen Container: Das InfluxDB-Token wird – wie beim Portal in Lab 07 – ausschließlich zur Laufzeit per `-e` übergeben, niemals im Image gespeichert. Die Backup-Dateien landen über einen Bind Mount in einem Host-Verzeichnis.
 
 ### Vorgehensvorschlag
 
 Kein verbindlicher Ablauf, aber eine mögliche Orientierung:
 
-- Legen Sie ein neues Projektverzeichnis an, z. B. `/srv/iot-backup/`.
-- Überlegen Sie zuerst, welche Dateien Sie brauchen, bevor Sie das Dockerfile schreiben: ein Skript, das die eigentliche Abfrage und Sicherung durchführt, eine Crontab-Datei, die es zeitgesteuert aufruft, und das Dockerfile, das beides zusammenfügt.
+- Schreiben Sie zunächst nur den `FROM`- und `RUN apt-get install`-Teil und bauen Sie das Image testweise – so sehen Sie sofort, ob die Paketnamen stimmen, bevor Sie weiterarbeiten.
+- Ergänzen Sie danach Schritt für Schritt die `COPY`-Zeilen, die Rechte-Anpassungen, `ENV` und zuletzt `CMD`.
 - Denken Sie an ein Host-Verzeichnis für die Backup-Dateien, das Sie beim `docker run` per `-v` einbinden.
 
 ### Tipps, falls Sie nicht weiterkommen
 
-> **Tipp 1 – cron und Umgebungsvariablen:** Prüfen Sie, ob Ihr Skript die per `-e` übergebenen Variablen tatsächlich sieht, wenn es **von cron aus** gestartet wird (nicht, wenn Sie es zum Test manuell im Container ausführen!). Cron startet Prozesse standardmäßig mit einer eigenen, minimalen Umgebung – die zur Laufzeit des Containers gesetzten Variablen sind darin nicht automatisch enthalten.
+> **Tipp 1 – Welche Pakete genau?** `backup.sh` braucht `curl` (siehe Erklärung oben). Für die Zeitsteuerung selbst brauchen Sie zusätzlich das Paket `cron`. `gzip`, das `backup.sh` ebenfalls verwendet, ist bereits Teil des Debian-Basissystems und muss nicht eigens installiert werden.
 
-> **Tipp 2 – Format von `/etc/cron.d`-Dateien:** Dateien in `/etc/cron.d/` benötigen zwingend eine abschließende Leerzeile und – anders als die persönliche Crontab eines Benutzers – ein Benutzerfeld vor dem eigentlichen Befehl (z. B. `root`). Fehlt eines von beidem, ignoriert cron die Datei stillschweigend, ohne eine Fehlermeldung auszugeben.
+> **Tipp 2 – Rechte der crontab-Datei:** `crontab.txt` muss im Image unter `/etc/cron.d/iot-backup` liegen und die Zugriffsrechte `644` haben (nicht ausführbar!). Setzen Sie diese Rechte explizit mit einer eigenen `RUN chmod`-Zeile.
+
+> **Tipp 3 – Skripte ausführbar machen:** Anders als `crontab.txt` müssen `backup.sh` und `entrypoint.sh` nach dem `COPY` erst mit `chmod +x` ausführbar gemacht werden.
+
+> **Tipp 4 (optional) – Reihenfolge im Dockerfile:** Denken Sie an die Cache-Lektion aus Lab 07, Schritt 3: Wenn `RUN apt-get install` in einer eigenen, frühen Zeile steht und die `COPY`-Zeilen erst danach folgen, bleibt der langsamere Installations-Layer bei künftigen Änderungen an den Dateien im Cache erhalten.
 
 ### Ihre Lösung testen
+
+```bash
+docker ps                                       # iot-backup laeuft dauerhaft, kein Exited
+ls -la /srv/backups                             # nach 2-4 Minuten sollten .csv.gz-Dateien erscheinen
+zcat /srv/backups/iot-backup-*.csv.gz | head    # Inhalt der aeltesten Sicherung ansehen
+docker exec iot-backup cat /var/log/backup.log  # Protokoll aller Laeufe
+```
 
 - Baut das Image ohne Fehler?
 - Läuft der Container dauerhaft (`docker ps`, nicht `Exited`)?
 - Erscheinen nach ein paar Minuten neue `.csv.gz`-Dateien im Host-Verzeichnis?
-- Lässt sich eine Backup-Datei entpacken und enthält sie die erwarteten Messwerte (`zcat <datei> | head`)?
+- Lässt sich eine Backup-Datei entpacken und enthält sie die erwarteten Messwerte?
 - Zeigt das Log jeden Lauf nachvollziehbar an?
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
@@ -150,7 +251,7 @@ Kein verbindlicher Ablauf, aber eine mögliche Orientierung:
 
 ## Wie geht es weiter?
 
-Versuchen Sie zunächst, die Aufgabe selbstständig zu lösen. Eine vollständige Musterlösung – mit Dockerfile, Skripten und Testschritten – finden Sie in [`Lab_07_ausbau_musterloesung.md`](Lab_07_ausbau_musterloesung.md). Nutzen Sie sie, um Ihre eigene Lösung zu vergleichen oder falls Sie an einer Stelle nicht weiterkommen.
+Versuchen Sie zunächst, das Dockerfile selbstständig zu schreiben. Eine vollständige Musterlösung finden Sie in [`Lab_07_ausbau_musterloesung.md`](Lab_07_ausbau_musterloesung.md). Nutzen Sie sie, um Ihre eigene Lösung zu vergleichen oder falls Sie an einer Stelle nicht weiterkommen.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 

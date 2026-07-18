@@ -2,16 +2,12 @@
 
 ![line](images/banner.png)
 
-> Diese Datei enthält eine vollständige Musterlösung zur Übungsaufgabe aus [`Lab_07_ausbau.md`](Lab_07_ausbau.md). Es gibt nicht die eine richtige Lösung – vergleichen Sie Ihre eigene Umsetzung mit dieser, statt sie als einzig gültigen Weg zu betrachten.
+> Diese Datei enthält eine vollständige Musterlösung zur Übungsaufgabe aus [`Lab_07_ausbau.md`](Lab_07_ausbau.md). Es gibt nicht die eine richtige Lösung – vergleichen Sie Ihre eigene Umsetzung mit dieser, statt sie als einzig gültigen Weg zu betrachten. Die Dateien `backup.sh`, `entrypoint.sh` und `crontab.txt` sind identisch mit den in der Übungsaufgabe bereitgestellten Dateien – die eigentliche Lösung der Übung ist das **Dockerfile**.
 
 ## Inhalt
 
 - [Projektstruktur](#projektstruktur)
-- [Die Dateien im Einzelnen](#die-dateien-im-einzelnen)
-  - [entrypoint.sh](#entrypointsh)
-  - [backup.sh](#backupsh)
-  - [crontab.txt](#crontabtxt)
-  - [Dockerfile](#dockerfile)
+- [Das Dockerfile](#das-dockerfile)
 - [Bauen und testen](#bauen-und-testen)
 - [Design-Entscheidungen im Überblick](#design-entscheidungen-im-überblick)
 - [Autoren und Urheberrecht](#autoren-und-urheberrecht)
@@ -20,94 +16,21 @@
 
 ## Projektstruktur
 
-```bash
-mkdir -p /srv/iot-backup
-cd /srv/iot-backup
-```
-
 ```
 /srv/iot-backup/
-├── Dockerfile
-├── entrypoint.sh
-├── backup.sh
-└── crontab.txt
+├── Dockerfile          ← das ist Ihre eigentliche Aufgabe
+├── entrypoint.sh       ← bereitgestellt, unverändert
+├── backup.sh           ← bereitgestellt, unverändert
+└── crontab.txt         ← bereitgestellt, unverändert
 ```
+
+`entrypoint.sh`, `backup.sh` und `crontab.txt` entsprechen exakt den Dateien aus dem Abschnitt „Bereitgestellte Dateien" in [`Lab_07_ausbau.md`](Lab_07_ausbau.md#bereitgestellte-dateien) – hier nicht erneut abgedruckt.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
-## Die Dateien im Einzelnen
-
-### entrypoint.sh
-
-```bash
-nano entrypoint.sh
-```
-
-```bash
-#!/bin/bash
-set -e
-
-# cron startet Prozesse mit einer eigenen, minimalen Umgebung - die per
-# "docker run -e" gesetzten Variablen kommen dort NICHT automatisch an.
-# Deshalb werden sie hier einmalig beim Containerstart in eine Datei
-# geschrieben, die backup.sh bei jedem Lauf selbst einliest.
-printenv | grep -E '^INFLUX_' > /etc/backup-env
-
-exec cron -f
-```
-
-> **Was passiert hier?**  
-> `printenv | grep -E '^INFLUX_'` filtert aus allen beim Containerstart gesetzten Umgebungsvariablen genau die drei heraus, die mit `INFLUX_` beginnen (`INFLUX_URL`, `INFLUX_ORG`, `INFLUX_BUCKET`, `INFLUX_TOKEN`), und schreibt sie in `/etc/backup-env`. `exec cron -f` ersetzt anschließend den Shell-Prozess durch `cron` im Vordergrund – dadurch bleibt `cron` Prozess 1 im Container und empfängt Signale (z. B. bei `docker stop`) direkt, statt über eine Zwischenschicht.
-
-### backup.sh
-
-```bash
-nano backup.sh
-```
-
-```bash
-#!/bin/bash
-set -e
-
-# Von entrypoint.sh beim Containerstart hinterlegte INFLUX_*-Variablen einlesen,
-# da cron sie nicht automatisch zur Verfuegung stellt
-source /etc/backup-env
-
-ZEITSTEMPEL=$(date +%Y%m%d-%H%M%S)
-ZIEL="/backup/iot-backup-${ZEITSTEMPEL}.csv.gz"
-
-FLUX_QUERY="from(bucket: \"${INFLUX_BUCKET}\") |> range(start: -24h)"
-
-curl -s -X POST "${INFLUX_URL}/api/v2/query?org=${INFLUX_ORG}" \
-  -H "Authorization: Token ${INFLUX_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d "{\"query\": \"${FLUX_QUERY}\", \"dialect\": {\"annotations\": []}}" \
-  | gzip > "${ZIEL}"
-
-echo "$(date '+%Y-%m-%d %H:%M:%S') Backup geschrieben: ${ZIEL}" >> /var/log/backup.log
-```
-
-> **Was passiert hier?**  
-> Dieselbe Flux-Abfrage und derselbe HTTP-POST wie im Portal aus Lab 07, Schritt 5.1 – nur dass die Antwort hier nicht in eine HTML-Tabelle gerendert, sondern direkt per Pipe an `gzip` übergeben und komprimiert in eine mit Datum und Uhrzeit benannte Datei geschrieben wird. Jeder Lauf erzeugt so eine eigene, unveränderliche Sicherungsdatei.
-
-### crontab.txt
-
-```bash
-nano crontab.txt
-```
-
-```
-*/2 * * * * root /usr/local/bin/backup.sh >> /var/log/cron.log 2>&1
-
-```
-
-> **⚠️ Wichtig:** Beachten Sie die **Leerzeile am Dateiende** – Dateien in `/etc/cron.d/` werden von cron ohne abschließenden Zeilenumbruch stillschweigend ignoriert. Das Feld `root` (zwischen Zeitplan und Befehl) ist bei `/etc/cron.d`-Dateien ebenfalls Pflicht; es legt fest, unter welchem Benutzer der Befehl läuft – anders als bei der persönlichen Crontab eines einzelnen Benutzers (`crontab -e`), wo dieses Feld entfällt.
->
-> `*/2 * * * *` bedeutet „alle 2 Minuten" (Minute, Stunde, Tag, Monat, Wochentag – `*/2` in der ersten Spalte: jede zweite Minute). Für ein Produktivsystem wäre ein selteneres Intervall (z. B. stündlich oder täglich) realistischer; die 2 Minuten hier dienen nur dazu, das Ergebnis im Rahmen dieser Übung zügig beobachten zu können.
-
-### Dockerfile
+## Das Dockerfile
 
 ```bash
 nano Dockerfile
@@ -139,12 +62,13 @@ CMD ["/usr/local/bin/entrypoint.sh"]
 
 | Zeile | Bedeutung |
 |---|---|
-| `apt-get install ... cron curl` | Nur diese beiden Pakete werden zusätzlich benötigt. `gzip` ist Teil des Debian-Basissystems (Priorität `required`) und muss nicht eigens installiert werden – auch die `-slim`-Variante entfernt nur Dokumentation und ähnlichen Ballast, keine essenziellen Werkzeuge |
-| `COPY .../crontab.txt /etc/cron.d/iot-backup` | Legt die Cron-Konfiguration am von Debian erwarteten Ort ab; der Dateiname selbst ist frei wählbar |
+| `apt-get install ... cron curl` | Nur diese beiden Pakete werden zusätzlich benötigt: `curl` für die HTTP-Abfrage in `backup.sh`, `cron` für die Zeitsteuerung. `gzip` ist Teil des Debian-Basissystems (Priorität `required`) und muss nicht eigens installiert werden – auch die `-slim`-Variante entfernt nur Dokumentation und ähnlichen Ballast, keine essenziellen Werkzeuge |
+| `COPY entrypoint.sh/backup.sh ...` + `chmod +x` | Die beiden Skripte werden an einen üblichen Ort für eigene ausführbare Programme kopiert und explizit ausführbar gemacht – ein `COPY` allein überträgt keine Ausführungsrechte |
+| `COPY crontab.txt /etc/cron.d/iot-backup` | Legt die Cron-Konfiguration am von Debian erwarteten Ort ab; der Dateiname selbst ist frei wählbar |
 | `chmod 0644 /etc/cron.d/iot-backup` | cron verlangt für Dateien in `/etc/cron.d/` genau diese Berechtigung – nicht ausführbar, nur für den Eigentümer beschreibbar |
 | `mkdir -p /backup` | Zielverzeichnis für die Backup-Dateien – wird beim `docker run` per Bind Mount mit einem Host-Verzeichnis verbunden |
 | `ENV INFLUX_URL=... INFLUX_ORG=... INFLUX_BUCKET=...` | Dieselben Vorgabewerte wie beim Portal aus Lab 07 – nur `INFLUX_TOKEN` fehlt bewusst, da es niemals im Image stehen darf |
-| `CMD [".../entrypoint.sh"]` | Startet den Wrapper, der die Umgebungsvariablen sichert und anschließend cron im Vordergrund startet |
+| `CMD [".../entrypoint.sh"]` | Startet den bereitgestellten Wrapper, der die Umgebungsvariablen sichert und anschließend cron im Vordergrund startet |
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -194,7 +118,7 @@ docker exec iot-backup cat /var/log/backup.log  # Protokoll aller Laeufe
 docker exec iot-backup cat /var/log/cron.log    # Ausgabe/Fehler von cron selbst
 ```
 
-> **Tipp zur Fehlerbehebung:** Bleibt `/srv/backups` leer, prüfen Sie zuerst `docker exec iot-backup cat /var/log/cron.log` – erscheint dort gar nichts, hat cron die Datei `/etc/cron.d/iot-backup` vermutlich wegen eines Formatfehlers (fehlende Leerzeile, fehlendes `root`-Feld) ignoriert. Erscheinen Fehlermeldungen zu leeren Variablen, prüfen Sie `docker exec iot-backup cat /etc/backup-env` – ist die Datei leer oder fehlt sie, ist `entrypoint.sh` nicht wie vorgesehen gelaufen.
+> **Tipp zur Fehlerbehebung:** Bleibt `/srv/backups` leer, prüfen Sie zuerst `docker exec iot-backup cat /var/log/cron.log`. Erscheinen dort Fehlermeldungen zu leeren Variablen, prüfen Sie `docker exec iot-backup cat /etc/backup-env` – ist die Datei leer oder fehlt sie, wurde `entrypoint.sh` beim Containerstart nicht wie vorgesehen ausgeführt (meist ein Hinweis auf ein falsches `CMD` oder fehlende Ausführungsrechte). Bleibt die Log-Datei ganz leer, prüfen Sie mit `docker exec iot-backup ls -la /etc/cron.d/`, ob `iot-backup` dort mit den Rechten `-rw-r--r--` liegt.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -203,8 +127,8 @@ docker exec iot-backup cat /var/log/cron.log    # Ausgabe/Fehler von cron selbst
 ## Design-Entscheidungen im Überblick
 
 - **`cron` statt einer Endlosschleife mit `sleep`:** Beide Wege wären technisch möglich. `cron` wurde hier bewusst gewählt, weil es das in der Praxis geläufigere Werkzeug für zeitgesteuerte Aufgaben ist und zusätzlich das apt-install-Muster auf ein neues Paket überträgt.
-- **Umgebungsvariablen-Datei statt direktem `docker exec`-Aufruf:** Die Umleitung über `/etc/backup-env` ist der Standardweg, um cron-Jobs in Containern Zugriff auf zur Laufzeit gesetzte Variablen zu geben. Alternativ ließe sich `INFLUX_TOKEN` auch fest in die Crontab-Zeile schreiben – das würde das Geheimnis jedoch für jeden lesbar machen, der `docker exec iot-backup cat /etc/cron.d/iot-backup` ausführt, und widerspräche damit demselben Prinzip wie in Lab 07.
-- **Komprimierung mit `gzip` statt unkomprimiert:** Spart Speicherplatz auf Dauer und ist mit einem einzigen Pipe-Befehl umsetzbar – kein zusätzliches Paket nötig.
+- **`entrypoint.sh` als Wrapper statt cron direkt als `CMD`:** Nur über diesen Umweg gelangen die per `docker run -e` gesetzten Variablen überhaupt zu `backup.sh` – ohne ihn bliebe `INFLUX_TOKEN` beim cron-Lauf leer.
+- **Komprimierung mit `gzip` statt unkomprimiert:** Spart Speicherplatz auf Dauer und ist mit einem einzigen Pipe-Befehl umsetzbar – kein zusätzliches Paket nötig, da `gzip` bereits im Basis-Image enthalten ist.
 - **Kein automatisches Löschen alter Backups:** Bewusst nicht Teil dieser Musterlösung, sondern als Reflexionsfrage offengelassen – ein produktives System bräuchte eine explizite Aufbewahrungsfrist (Retention Policy), die je nach Kontext unterschiedlich ausfallen kann.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
