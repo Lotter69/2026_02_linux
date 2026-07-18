@@ -16,7 +16,7 @@ Im Rahmen des Risikobehandlungsplans gibt die Leitungsebene die Umsetzung frei; 
 
 ## Einführung
 
-In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisch übernommen – komfortabel, aber für ein Audit ein Problem: *Welcher* Anbieter und *welches* Protokoll verwendet werden, steht nirgends im Caddyfile selbst, sondern ergibt sich stillschweigend aus Caddys eingebautem Standardverhalten. In diesem Lab lösen Sie Caddy durch **nginx** ab und konfigurieren die Zertifikatsausstellung mit dem seit 2025 verfügbaren, nativen `ngx_http_acme_module` explizit selbst – dessen Konfigurationsmodell verlangt zwingend einen benannten Issuer, ein Zertifikat „ohne jede Angabe" gibt es hier nicht. Anschließend bündeln Sie zusammengehörige Docker-Container gezielt in einem eigenen Netzwerk, statt sie unkontrolliert im Default-Netz laufen zu lassen. Zum Abschluss richten Sie eine einfache, manuell gepflegte Lastverteilung über mehrere Container-Instanzen ein – und erleben dabei bewusst den Unterschied zu einer automatisierten Lösung wie Traefik.
+In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisch übernommen – komfortabel, aber für ein Audit ein Problem: *Welcher* Anbieter und *welches* Protokoll verwendet werden, steht nirgends im Caddyfile selbst, sondern ergibt sich stillschweigend aus Caddys eingebautem Standardverhalten. In diesem Lab lösen Sie Caddy durch **nginx** ab und konfigurieren die Zertifikatsausstellung mit dem seit 2025 verfügbaren, nativen `ngx_http_acme_module` explizit selbst – dessen Konfigurationsmodell verlangt zwingend einen benannten Issuer, ein Zertifikat „ohne jede Angabe" gibt es hier nicht. Anschließend bündeln Sie zusammengehörige Docker-Container gezielt in einem eigenen Netzwerk, statt sie unkontrolliert im Default-Netz laufen zu lassen. Zum Abschluss richten Sie eine einfache, manuell gepflegte Lastverteilung über mehrere Container-Instanzen ein.
 
 ## Lernziele
 
@@ -43,6 +43,7 @@ In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisc
 ## Inhalt
 
 - [Hintergrundwissen](#hintergrundwissen)
+  - [Warum nginx statt Traefik?](#warum-nginx-statt-traefik)
   - [ACME als offenes Protokoll](#acme-als-offenes-protokoll)
   - [Das native ACME-Modul von nginx](#das-native-acme-modul-von-nginx)
   - [Docker-Netzwerke als Bündelungskonzept](#docker-netzwerke-als-bündelungskonzept)
@@ -72,6 +73,14 @@ In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisc
 
 ## Hintergrundwissen
 
+### Warum nginx statt Traefik?
+
+Traefik wäre für dieses Lab ebenfalls eine nachvollziehbare Wahl gewesen: Es ist speziell für den Betrieb hinter Docker entwickelt, erkennt neue Container automatisch über Labels in ihrer `docker run`- bzw. Compose-Konfiguration und trägt sie selbstständig in Routing und Lastverteilung ein – inklusive automatischem HTTPS über ACME, ganz ähnlich wie Caddy.
+
+Genau diese Automatik ist aber der Grund, warum in diesem Lab bewusst **nginx** eingesetzt wird, nicht Traefik: Für die in der Aufgabenstellung geforderte Auditierbarkeit (Control A.8.24 und A.8.22) muss jede sicherheitsrelevante Konfigurationsänderung – ein neues Zertifikat, ein neu aufgenommener Container in die Lastverteilung – als **sichtbarer, dokumentierter Schritt** in einer Konfigurationsdatei nachvollziehbar sein. Traefik würde einen neuen Container automatisch anhand seiner Labels erkennen und sofort produktiv schalten, ohne dass irgendwo ein Mensch diese Änderung explizit freigegeben oder festgehalten hätte – komfortabel im Betrieb, aber für einen Auditor nicht nachvollziehbar, *wann* und *wodurch* sich das System verändert hat. nginx erzwingt dagegen für jede Änderung eine manuell bearbeitete Konfigurationsdatei (`nginx -t && systemctl reload nginx`) – mehr Aufwand, aber maximale Nachvollziehbarkeit.
+
+> **Kein grundsätzliches Urteil:** In einer Umgebung ohne die hier geforderte lückenlose Audit-Dokumentation wäre die Automatik von Traefik oft die bessere Wahl – schneller einzurichten und mit weniger manuellem Pflegeaufwand verbunden. Die Entscheidung in diesem Lab ist durch die konkrete Aufgabenstellung begründet, nicht durch einen generellen technischen Nachteil von Traefik.
+
 ### ACME als offenes Protokoll
 
 ACME (*Automated Certificate Management Environment*) ist ein offenes, standardisiertes Protokoll zur automatisierten Ausstellung und Erneuerung von TLS-Zertifikaten – ursprünglich von Let's Encrypt entwickelt, heute von zahlreichen Zertifizierungsstellen unterstützt. Caddy, Traefik, Certbot und nginx sind allesamt nur unterschiedliche **ACME-Clients**, die mit einem austauschbaren **Issuer** (der Zertifizierungsstelle) sprechen. Diese Trennung von Werkzeug und Anbieter existiert bei Caddy zwar genauso – nur eben unsichtbar: Automatisches HTTPS funktioniert dort komplett ohne jede Angabe von CA oder Protokoll, weshalb in der Praxis oft nie jemand eine explizite Entscheidung trifft oder festhält. Das nginx-ACME-Modul erzwingt diese Angabe strukturell, weil ohne einen benannten `acme_issuer` gar kein Zertifikat ausgestellt wird – genau das machen Sie sich in diesem Lab zunutze.
@@ -86,7 +95,7 @@ Im Default-Bridge-Netzwerk von Docker können sich grundsätzlich alle Container
 
 ### Ein kurzer Rückblick: automatische vs. bewusste Konfiguration
 
-Ein Werkzeug wie Traefik hätte neue Container automatisch über Labels erkannt und sofort in die Lastverteilung aufgenommen – komfortabel, aber für ein Audit schwer nachvollziehbar, *wann* und *wodurch* eine Änderung wirksam wurde. Die in diesem Lab bewusst gewählte, manuelle Konfiguration über nginx erzeugt mehr Aufwand, aber auch maximale Nachvollziehbarkeit: Jede Änderung ist ein dokumentierter Schritt in einer Konfigurationsdatei.
+Ein automatisiertes Werkzeug hätte neue Container selbstständig erkannt und sofort produktiv geschaltet – komfortabel, aber für ein Audit schwer nachvollziehbar, *wann* und *wodurch* eine Änderung wirksam wurde (siehe „Warum nginx statt Traefik?" zu Beginn dieses Abschnitts). Die in diesem Lab bewusst gewählte, manuelle Konfiguration über nginx erzeugt mehr Aufwand, aber auch maximale Nachvollziehbarkeit: Jede Änderung ist ein dokumentierter Schritt in einer Konfigurationsdatei.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -662,9 +671,9 @@ dig demo.<IHRE-DOMAIN> +short
 Starten Sie drei Instanzen eines einfachen Demo-Dienstes, der bei jeder Antwort seinen eigenen Containernamen zurückgibt:
 
 ```bash
-docker run -d --name demo1 --restart unless-stopped -p 127.0.0.1:9001:80 traefik/whoami
-docker run -d --name demo2 --restart unless-stopped -p 127.0.0.1:9002:80 traefik/whoami
-docker run -d --name demo3 --restart unless-stopped -p 127.0.0.1:9003:80 traefik/whoami
+docker run -d --name demo1 --restart unless-stopped -p 127.0.0.1:9001:80 nginxdemos/hello
+docker run -d --name demo2 --restart unless-stopped -p 127.0.0.1:9002:80 nginxdemos/hello
+docker run -d --name demo3 --restart unless-stopped -p 127.0.0.1:9003:80 nginxdemos/hello
 # -d: im Hintergrund | --name: Containername | --restart: Neustart-Policy | -p: nur lokal gebundener Host-Port:Container-Port
 # (ausführlich erklärt in Lab 05, Schritt 3.3)
 ```
@@ -707,7 +716,7 @@ systemctl reload nginx
 Erzeugen Sie mehrere Anfragen und beobachten Sie die Verteilung anhand des jeweils zurückgegebenen Containernamens:
 
 ```bash
-for i in $(seq 1 12); do curl -s https://demo.<IHRE-DOMAIN> | grep Hostname; done
+for i in $(seq 1 12); do curl -s https://demo.<IHRE-DOMAIN> | grep "Server name"; done
 ```
 
 Sie sollten alle drei Container-Hostnamen im Round-Robin-Wechsel sehen. Optional können Sie mit einem echten Lasttest-Werkzeug eine größere Anfragenzahl erzeugen:
@@ -719,7 +728,7 @@ ab -n 100 -c 10 https://demo.<IHRE-DOMAIN>/
 Fügen Sie nun bewusst eine vierte Instanz hinzu:
 
 ```bash
-docker run -d --name demo4 --restart unless-stopped -p 127.0.0.1:9004:80 traefik/whoami
+docker run -d --name demo4 --restart unless-stopped -p 127.0.0.1:9004:80 nginxdemos/hello
 # gleiches Muster wie demo1-demo3, nur neuer Name und neuer Host-Port
 ```
 

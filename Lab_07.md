@@ -14,7 +14,7 @@ Das Betriebsteam erhält daher den Auftrag, das Messdaten-Portal als **eigenes D
 
 ## Einführung
 
-In Lab 05 und Lab 06 haben Sie ausschließlich fertige Images von Docker Hub verwendet – `nginx`, `nodered/node-red`, `redis`, `traefik/whoami`. In diesem Lab wechseln Sie die Perspektive: vom Nutzer fremder Baupläne zum Autor eigener. Sie schreiben Ihr erstes **Dockerfile**, bauen daraus mit `docker build` ein Image, verstehen das dahinterliegende **Schichtenmodell** (Layer und Build-Cache) und lernen, warum Konfiguration über **Umgebungsvariablen** ins Image gehört – Geheimnisse wie Zugangs-Token dagegen niemals. Das Ergebnis ist das Messdaten-Portal in zwei Ausbaustufen: `portal:1.0` als statische Vorschau und `portal:2.0` als konfigurierbare Anwendung, die ihre Messwerte live aus einer InfluxDB-Testinstanz liest.
+In Lab 05 und Lab 06 haben Sie ausschließlich fertige Images von Docker Hub verwendet – `nginx`, `nodered/node-red`, `redis`, `nginxdemos/hello`. In diesem Lab wechseln Sie die Perspektive: vom Nutzer fremder Baupläne zum Autor eigener. Sie schreiben Ihr erstes **Dockerfile**, bauen daraus mit `docker build` ein Image, verstehen das dahinterliegende **Schichtenmodell** (Layer und Build-Cache) und lernen, warum Konfiguration über **Umgebungsvariablen** ins Image gehört – Geheimnisse wie Zugangs-Token dagegen niemals. Das Ergebnis ist das Messdaten-Portal in zwei Ausbaustufen: `portal:1.0` als statische Vorschau und `portal:2.0` als konfigurierbare Anwendung, die ihre Messwerte live aus einer InfluxDB-Testinstanz liest.
 
 ## Lernziele
 
