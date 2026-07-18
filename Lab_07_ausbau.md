@@ -78,9 +78,8 @@ Nur `<PAKET(E)>` und das, was danach passiert, ändert sich mit dem Anwendungsfa
 | Ziel | apt-Paket(e) | Ergebnis |
 |---|---|---|
 | Statische Webseite | `nginx-light` | Portal v1 aus Lab 07 |
-| API-Testwerkzeug | `curl`, `jq` | Container zum Abfragen und Aufbereiten von JSON-APIs |
-| Datenbank-Client | `postgresql-client` | Werkzeug für Verbindungen zu einer laufenden PostgreSQL-Instanz, ohne den vollen Server zu installieren |
-| Datei-Synchronisation | `rsync`, `openssh-client` | Container, der Dateien zu einem anderen Host spiegelt |
+| Passwort-Hashes erzeugen | `apache2-utils` | Wie in Lab 06 zur Erstellung des bcrypt-Hashes für die nginx-Basic-Authentication (`htpasswd`) |
+| MQTT-Testwerkzeug | `mosquitto-clients` | Wie in Lab 08 zum Testen des Mosquitto-Brokers (`mosquitto_pub`/`mosquitto_sub`) |
 | Zeitgesteuerte Aufgaben | `cron`, `curl` | Container, der wiederkehrende Aufgaben nach Zeitplan ausführt – Gegenstand dieser Übung |
 
 Genau dieses Skelett – Basis-Image wählen, benötigte Pakete per `apt install` einrichten, eigene Dateien per `COPY` einbinden – ist alles, was Sie in dieser Übung selbst schreiben müssen.
