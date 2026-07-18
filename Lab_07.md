@@ -400,7 +400,7 @@ flask~=3.1
 requests~=2.32
 ```
 
-`requirements.txt` listet die benötigten Python-Pakete mit Versionsvorgabe: **Flask** (ein minimaler Webserver für Python) und **requests** (HTTP-Aufrufe). Die Schreibweise `~=3.1` erlaubt Korrektur-Updates, verhindert aber Versionssprünge – wieder ein Stück Reproduzierbarkeit.
+`requirements.txt` ist die Standarddatei, über die Python-Projekte ihre Abhängigkeiten deklarieren: Sie listet die Bibliotheken, die das Programm zur Laufzeit benötigt, mit Versionsvorgabe. Installiert werden diese Bibliotheken nicht durch die Datei selbst, sondern erst gleich in Schritt 5.2 durch den Befehl `pip install -r requirements.txt` im Dockerfile – die Datei ist lediglich die Einkaufsliste, `pip` erledigt die eigentliche Installation. Für dieses Portal sind das **Flask** (ein minimaler Webserver für Python) und **requests** (HTTP-Aufrufe). Die Schreibweise `~=3.1` erlaubt Korrektur-Updates, verhindert aber Versionssprünge – wieder ein Stück Reproduzierbarkeit.
 
 ```bash
 nano app.py
