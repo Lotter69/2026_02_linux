@@ -192,6 +192,9 @@ CMD ["nginx", "-g", "daemon off;"]
 | `EXPOSE 80` | Dokumentiert, dass die Anwendung im Container auf Port 80 lauscht |
 | `CMD ["nginx", "-g", "daemon off;"]` | Startet nginx im Vordergrund – ohne diese Zeile würde der Hauptprozess sofort beenden und der Container mit ihm |
 
+> **Warum `apt-get` statt `apt`?**  
+> In Schritt 1 und in allen bisherigen Labs haben Sie stets `apt` verwendet – die neuere, für die **interaktive Nutzung am Terminal** gedachte Oberfläche mit übersichtlicherer, teils farbiger Ausgabe. `apt-get` (zusammen mit `apt-cache`) ist das ältere, „rohere" Geschwisterwerkzeug: Sein Kommandozeilen-Interface und Ausgabeformat gelten als stabil und sind explizit für den Einsatz in **Skripten** gedacht – `apt` weist in seiner eigenen Dokumentation ausdrücklich darauf hin, sich nicht für Skripte zu eignen, weil sich Verhalten und Ausgabe zwischen Versionen ändern dürfen. Ein Dockerfile ist im Kern ein Skript, das bei jedem Build exakt reproduzierbar ablaufen soll – genau die Nachvollziehbarkeit, die schon die Aufgabenstellung dieses Labs verlangt. Deshalb verwenden alle Dockerfiles in diesem Kurs `apt-get`, während jede interaktive, host-seitige Installation – wie eben in Schritt 1 dieses Labs – bei `apt` bleibt.
+
 > **⚠️ Wichtig:** `EXPOSE` öffnet **keinen** Port. Es ist reine Dokumentation für Menschen und Werkzeuge. Ob und wie ein Container-Port auf dem Host erreichbar wird, entscheidet nach wie vor ausschließlich das `-p`-Flag beim Start (bzw. später `ports:` in Docker Compose).
 
 > **Warum `nginx-light` statt `nginx`?**  
