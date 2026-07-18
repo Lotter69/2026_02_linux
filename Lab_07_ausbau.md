@@ -128,7 +128,7 @@ sequenceDiagram
         Backup->>Backup: liest /etc/backup-env
         Backup->>Influx: Flux-Abfrage per curl
         Influx-->>Backup: CSV-Antwort
-        Backup->>Vol: komprimiert als iot-backup-<Zeitstempel>.csv.gz
+        Backup->>Vol: komprimiert als iot-backup-&lt;Zeitstempel&gt;.csv.gz
     end
 ```
 

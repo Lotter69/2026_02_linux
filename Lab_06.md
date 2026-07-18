@@ -747,7 +747,7 @@ Die Upstream-Gruppe verteilt Anfragen jetzt im Round-Robin-Verfahren auf vier Co
 
 ```mermaid
 flowchart TD
-    Client(["Browser/curl"]) -->|"https://demo.<IHRE-DOMAIN>"| nginx["nginx<br/>upstream demo_backend"]
+    Client(["Browser/curl"]) -->|"https://demo.&lt;IHRE-DOMAIN&gt;"| nginx["nginx<br/>upstream demo_backend"]
     nginx -->|round robin| demo1["demo1 :9001"]
     nginx -->|round robin| demo2["demo2 :9002"]
     nginx -->|round robin| demo3["demo3 :9003"]
