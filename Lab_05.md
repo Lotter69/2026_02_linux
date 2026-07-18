@@ -356,10 +356,10 @@ Die beiden Speicherwege im direkten Vergleich – der entscheidende Unterschied 
 ```mermaid
 flowchart LR
     subgraph BM["Bind Mount (nginx-web)"]
-        HostDir["Host:<br/>/srv/www/<br/>(von Ihnen gewählt)"] <-->|"-v /srv/www:/usr/share/nginx/html:ro"| CDir["Container:<br/>/usr/share/nginx/html/"]
+        HostDir["Host:<br/>/srv/www/<br/>(von Ihnen gewähltes Verzeichnis auf dem Server)"] <-->|"-v /srv/www:/usr/share/nginx/html:ro"| CDir["Container:<br/>/usr/share/nginx/html/"]
     end
     subgraph NV["Benanntes Volume (nodered)"]
-        DockerVol["Docker-Volume: nodered-data<br/>(von Docker verwaltet)"] <-->|"-v nodered-data:/data"| CData["Container:<br/>/data/"]
+        DockerVol["Docker-Volume: nodered-data<br/>(von Docker verwalteter Speicherplatz)"] <-->|"-v nodered-data:/data"| CData["Container:<br/>/data/"]
     end
 ```
 
