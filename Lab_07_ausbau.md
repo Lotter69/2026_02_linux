@@ -88,7 +88,7 @@ Genau dieses Skelett – Basis-Image wählen, benötigte Pakete per `apt install
 
 Damit das Backup-Skript automatisch und regelmäßig läuft, ohne dass jemand es von Hand startet, kommt der Linux-Zeitplaner **cron** zum Einsatz. Für diese Übung müssen Sie cron **weder konfigurieren noch seine Syntax verstehen** – die passende Konfigurationsdatei liegt bereits fertig vor (siehe [Bereitgestellte Dateien](#bereitgestellte-dateien)).
 
-Eine einzige Besonderheit ist trotzdem für den *Container*-Betrieb wichtig, nicht für cron selbst: cron muss im **Vordergrund** laufen, da ein Container beendet wird, sobald sein Hauptprozess (PID 1) endet – ein daemonisierender Hintergrundprozess würde den Container sofort wieder stoppen lassen, genau wie bei nginx in Lab 07. Auch darum kümmert sich bereits eine vorbereitete Datei (`entrypoint.sh`) für Sie.
+Eine einzige Besonderheit ist trotzdem für den *Container*-Betrieb wichtig, nicht für cron selbst: cron muss im **Vordergrund** laufen, da ein Container beendet wird, sobald sein Hauptprozess (PID 1) endet – ein Prozess, der als Dienst im Hintergrund arbeitet (daemon), würde den Container sofort wieder stoppen lassen, genau wie bei nginx in Lab 07. Auch darum kümmert sich bereits eine vorbereitete Datei (`entrypoint.sh`) für Sie.
 
 > **Hinweis:** cron-in-einem-Container ist eine pragmatische, weit verbreitete Lösung für einfache Zeitpläne – aber kein Selbstläufer. Produktivsysteme setzen dafür teils auf host-seitige Zeitsteuerung (`systemd`-Timer, der z. B. `docker exec` aufruft) oder dedizierte Scheduler-Container. Eine der Reflexionsfragen greift das auf – Sie müssen dafür aber keine cron-Syntax kennen.
 

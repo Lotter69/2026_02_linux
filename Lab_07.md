@@ -206,7 +206,7 @@ CMD ["nginx", "-g", "daemon off;"]
 > **Warum `rm -rf /var/lib/apt/lists/*` in derselben Zeile?**  
 > Jede Anweisung erzeugt einen eigenen, unveränderlichen Layer. Würden Sie das Aufräumen der heruntergeladenen Paketlisten in einer eigenen, späteren `RUN`-Anweisung vornehmen, blieben die Dateien im vorherigen Layer trotzdem vollständig gespeichert – im sichtbaren Dateisystem des Containers wären sie zwar verschwunden, im Image selbst würden sie aber weiterhin Platz belegen. Erst die Bereinigung **innerhalb derselben** `RUN`-Anweisung, in der die Dateien entstanden sind, reduziert tatsächlich die Image-Größe.
 
-Anders als bei einem fertigen Anwendungsimage wie `nginx:trixie` müssen Sie hier selbst ein `CMD` angeben: Das Basis-Image `debian:trixie-slim` kennt nginx nicht und bringt daher auch kein passendes `CMD` mit. `nginx -g "daemon off;"` überschreibt dabei nur eine einzige Konfigurationsoption – nginx soll im Vordergrund bleiben, statt sich wie gewohnt selbst zu daemonisieren.
+Anders als bei einem fertigen Anwendungsimage wie `nginx:trixie` müssen Sie hier selbst ein `CMD` angeben: Das Basis-Image `debian:trixie-slim` kennt nginx nicht und bringt daher auch kein passendes `CMD` mit. `nginx -g "daemon off;"` überschreibt dabei nur eine einzige Konfigurationsoption – nginx soll im Vordergrund bleiben, statt wie gewohnt als Dienst im Hintergrund zu arbeiten (daemon).
 
 #### 2.3 Das Image bauen
 
