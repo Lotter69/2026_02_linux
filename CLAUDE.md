@@ -20,6 +20,14 @@ Current labs:
 - `Lab_01.md` – Installing and managing Cockpit via systemd (main exercise)
 - `Lab_01_ausbau.md` – Extensions: socket activation, ufw firewall, drop-in files, journalctl analysis
 - `Lab_02.md` – Writing custom systemd unit files from scratch
+- `Lab_03.md` – Deploying a Linux server in the cloud, domain/DNS, SSH key auth
+- `Lab_04.md` – Publishing services securely with Caddy as a reverse proxy
+- `Lab_05.md` – Deploying web services as Docker containers (bind mounts vs. named volumes)
+- `Lab_06.md` – Replacing Caddy with nginx's native ACME module; Docker network segmentation
+- `Lab_07.md` – Building custom Docker images with a Dockerfile
+- `Lab_08.md` – Managing multi-container applications with Docker Compose
+
+Side lab: `Lab_Docker_Rootless.md` – Rootless Docker with Docker Compose on Linux Mint.
 
 Images (banner, navigation arrows, screenshots) are stored in `images/`.
 
