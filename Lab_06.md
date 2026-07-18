@@ -526,7 +526,7 @@ docker run -d \
 > Es gibt in diesem Abschnitt also nur **einen** Container: `redis-cache`. „Redis" und „redis-cache" meinen praktisch dasselbe Ding – einmal als Produktname, einmal als der konkrete Name, den dieser eine Container in Ihrer Umgebung trägt.
 
 ```mermaid
-flowchart LR
+flowchart TD
     Registry["Docker Hub<br/>(Registry)"] -->|"docker pull"| Image["Image<br/>redis:7"]
     Image -->|"docker run --name redis-cache"| Container["Container<br/>redis-cache"]
     Container --> Process["laufender Prozess<br/>Redis"]
@@ -746,8 +746,8 @@ systemctl reload nginx
 Die Upstream-Gruppe verteilt Anfragen jetzt im Round-Robin-Verfahren auf vier Container-Instanzen – `demo4` wurde bewusst per Hand ergänzt, nicht automatisch erkannt:
 
 ```mermaid
-flowchart LR
-    Client(["Browser/curl"]) -->|"https://demo.&lt;domain&gt;"| nginx["nginx<br/>upstream demo_backend"]
+flowchart TD
+    Client(["Browser/curl"]) -->|"https://demo.meinserver.de"| nginx["nginx<br/>upstream demo_backend"]
     nginx -->|round robin| demo1["demo1 :9001"]
     nginx -->|round robin| demo2["demo2 :9002"]
     nginx -->|round robin| demo3["demo3 :9003"]
