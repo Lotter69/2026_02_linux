@@ -537,15 +537,15 @@ flowchart TD
 #### 7.4 Namensauflösung innerhalb des Netzwerks prüfen
 
 ```bash
-docker run --rm --network app-net alpine getent hosts redis-cache
+docker run --rm --network app-net debian:trixie-slim getent hosts redis-cache
 ```
 
 | Element | Bedeutung |
 |---|---|
-| `alpine` | Das **Image** – eine minimale Linux-Distribution. Hier nicht als Dienst gedacht, sondern als kleines, schnell startendes Test-Werkzeug. |
+| `debian:trixie-slim` | Das **Image** – dieselbe schlanke Debian-Basis wie in Lab 07. Hier nicht als Basis für ein eigenes Image, sondern nur als schnell startendes Test-Werkzeug, das die nötigen Bordmittel (`getent`) bereits mitbringt. |
 | (kein `--name`) | Der daraus gestartete Container bekommt einen von Docker zufällig vergebenen Namen – unwichtig, da er sich gleich wieder selbst löscht. |
 | `--rm` | Der Container wird sofort nach Beendigung des Befehls automatisch gelöscht. Er existiert nur für die Dauer dieses einen Aufrufs. |
-| `getent hosts redis-cache` | Der Befehl, der **innerhalb** des Alpine-Containers ausgeführt wird. `getent hosts <name>` fragt: „Welche IP-Adresse gehört zu diesem Namen?" – gefragt wird hier nach dem Namen des **Redis-Containers**. |
+| `getent hosts redis-cache` | Der Befehl, der **innerhalb** des Test-Containers ausgeführt wird. `getent hosts <name>` fragt: „Welche IP-Adresse gehört zu diesem Namen?" – gefragt wird hier nach dem Namen des **Redis-Containers**. |
 
 > **Achtung bei der Eingabe:** Die Datenbank heißt `hosts` (mit „s" am Ende). `getent host redis-cache` (ohne „s") führt zu einer Fehlermeldung, weil `host` keine gültige Datenbank ist – das ist ein Tippfehler, kein Problem der Namensauflösung selbst.
 
@@ -558,12 +558,12 @@ Die Ausgabe zeigt die interne IP-Adresse von `redis-cache`, z. B.:
 #### 7.5 Gegenprobe: Auflösung außerhalb von `app-net`
 
 ```bash
-docker run --rm alpine getent hosts redis-cache
+docker run --rm debian:trixie-slim getent hosts redis-cache
 ```
 
 Dieser Befehl liefert **keine** Auflösung. Der einzige, aber entscheidende Unterschied zum vorherigen Befehl: Hier fehlt `--network app-net`. Ohne diese Angabe verwendet Docker automatisch das Standard-Bridge-Netzwerk – ein komplett anderes Netzwerk als `app-net`, mit einem eigenen, separaten internen DNS. `redis-cache` ist dort nicht bekannt, weil er ausschließlich Mitglied von `app-net` ist.
 
-> **Bildlich:** `app-net` ist ein Konferenzraum mit eigenem internen Telefonbuch. `redis-cache` (und zeitweise `nodered`) sitzen in diesem Raum und stehen im Telefonbuch. Ein Alpine-Container ohne `--network app-net` betritt diesen Raum gar nicht – er bleibt im Foyer (Standard-Bridge-Netz) mit einem eigenen, anderen Telefonbuch, in dem `redis-cache` schlicht nicht eingetragen ist.
+> **Bildlich:** `app-net` ist ein Konferenzraum mit eigenem internen Telefonbuch. `redis-cache` (und zeitweise `nodered`) sitzen in diesem Raum und stehen im Telefonbuch. Ein Test-Container ohne `--network app-net` betritt diesen Raum gar nicht – er bleibt im Foyer (Standard-Bridge-Netz) mit einem eigenen, anderen Telefonbuch, in dem `redis-cache` schlicht nicht eingetragen ist.
 
 #### 7.6 Port-Check auf dem Host
 
