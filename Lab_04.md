@@ -574,11 +574,11 @@ dienst-b.<IHRE-DOMAIN> {
 Auf einen Blick zusammengefasst, ist Caddy damit der **einzige** Dienst, den das Internet direkt erreicht – alle drei Backends bleiben ausschließlich auf `localhost` erreichbar und werden erst durch Caddy nach außen sichtbar gemacht:
 
 ```mermaid
-flowchart LR
-    Internet(["Internet"]) -->|"HTTPS :443"| Caddy["Caddy<br/>(einziger offener Port)"]
-    Caddy -->|"cockpit.&lt;domain&gt;"| Cockpit["Cockpit<br/>localhost:9090"]
-    Caddy -->|"dienst-a.&lt;domain&gt;"| DienstA["Dienst A<br/>localhost:8001"]
-    Caddy -->|"dienst-b.&lt;domain&gt;<br/>+ Basic Auth"| DienstB["Dienst B<br/>localhost:8002"]
+flowchart TD
+    Internet(["Internet"]) -->|"https://*.meinserver.de:443"| Caddy["Caddy<br/>(einziger offener Port)"]
+    Caddy -->|"cockpit.meinserver.de"| Cockpit["Cockpit<br/>localhost:9090"]
+    Caddy -->|"dienst-a.meinserver.de"| DienstA["Dienst A<br/>localhost:8001"]
+    Caddy -->|"dienst-b.meinserver.de<br/>+ Basic Auth"| DienstB["Dienst B<br/>localhost:8002"]
 ```
 
 ---
