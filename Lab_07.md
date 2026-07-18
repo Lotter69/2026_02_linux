@@ -20,6 +20,7 @@ In Lab 05 und Lab 06 haben Sie ausschließlich fertige Images von Docker Hub ver
 
 - Den Unterschied zwischen **Image** und **Container** sowie das Schichtenmodell (Layer, Build-Cache) erklären
 - Ein eigenes Image mit einem **Dockerfile** bauen: `FROM`, `COPY`, `RUN`, `ENV`, `WORKDIR`, `EXPOSE`, `USER`, `CMD`
+- Software innerhalb eines Dockerfiles selbst per `apt install` einrichten und von einem fertigen Anwendungsimage abgrenzen
 - `docker build`, Tagging (`name:tag`), `docker images`, `docker history` und `docker rmi` / `docker image prune` anwenden
 - Den **Build-Kontext** verstehen und mit `.dockerignore` begrenzen
 - Best Practices anwenden: kleine Basis-Images, Cache-freundliche Layer-Reihenfolge, Container als **Non-Root-Benutzer**
@@ -42,6 +43,7 @@ In Lab 05 und Lab 06 haben Sie ausschließlich fertige Images von Docker Hub ver
 - [Hintergrundwissen](#hintergrundwissen)
   - [Vom Bauplan-Nutzer zum Bauplan-Autor](#vom-bauplan-nutzer-zum-bauplan-autor)
   - [Das Schichtenmodell: Images bestehen aus Layern](#das-schichtenmodell-images-bestehen-aus-layern)
+  - [Anwendungsimage oder Betriebssystem-Image als Basis?](#anwendungsimage-oder-betriebssystem-image-als-basis)
   - [Anatomie eines Dockerfiles](#anatomie-eines-dockerfiles)
   - [Repository, Tag und die Falle mit latest](#repository-tag-und-die-falle-mit-latest)
   - [Vom Legacy-Builder zu BuildKit](#vom-legacy-builder-zu-buildkit)
@@ -85,6 +87,10 @@ In Lab 06 haben Sie die Begriffe bereits sauber getrennt: Ein **Image** ist der 
 Ein Image ist kein monolithisches Abbild, sondern ein Stapel aufeinanderliegender, **schreibgeschützter Schichten (Layer)**. Jede Anweisung im Dockerfile, die das Dateisystem verändert (`FROM`, `RUN`, `COPY`), erzeugt einen eigenen Layer. Beim Start eines Containers legt Docker lediglich eine dünne, beschreibbare Schicht obenauf – deshalb starten Container so schnell, und deshalb teilen sich zehn Container aus demselben Image den Speicherplatz des Images.
 
 Für Sie als Autor hat das eine praktische Konsequenz: Docker merkt sich einmal gebaute Layer im **Build-Cache**. Ändert sich eine Dockerfile-Zeile (oder eine Datei, die sie kopiert) nicht, wird der Layer beim nächsten Build nicht neu erstellt, sondern aus dem Cache übernommen. Ändert sich dagegen eine Zeile, müssen **sie und alle folgenden** neu gebaut werden. Die Reihenfolge der Anweisungen entscheidet also darüber, wie schnell Ihre Builds sind – selten Geändertes gehört nach oben, häufig Geändertes nach unten.
+
+### Anwendungsimage oder Betriebssystem-Image als Basis?
+
+Für ein Dockerfile gibt es grundsätzlich zwei Ausgangspunkte: ein **Anwendungsimage** wie `nginx` – von den Software-Autoren selbst gepflegt, vorkonfiguriert und startklar – oder ein **Betriebssystem-Image** wie `debian:trixie-slim`, auf dem Sie die benötigte Software selbst per `apt install` einrichten. Anwendungsimages sparen Arbeit, verbergen aber, welche Pakete in welcher Version tatsächlich enthalten sind. Der Betriebssystem-Weg macht in Ihrem Dockerfile explizit sichtbar, was installiert wird – genau die Nachvollziehbarkeit, die Control A.8.9 aus der Aufgabenstellung verlangt. In diesem Lab bauen Sie Portal v1 deshalb bewusst auf `debian:trixie-slim` auf und installieren nginx selbst per `apt`; Portal v2 zeigt zum Vergleich den anderen Weg mit dem vorkonfigurierten Anwendungsimage `python:3.12-slim-trixie`.
 
 ### Anatomie eines Dockerfiles
 
@@ -137,7 +143,7 @@ docker buildx version
 
 ### Schritt 2: Das erste eigene Image (Portal v1)
 
-Die erste Ausbaustufe des Portals ist bewusst minimal: eine statische HTML-Seite, ausgeliefert von nginx. So bleibt der Kopf frei für das eigentlich Neue – das Dockerfile und den Build-Vorgang.
+Die erste Ausbaustufe des Portals ist bewusst minimal: eine statische HTML-Seite, ausgeliefert von einem nginx, das Sie selbst aus einem Debian-Basis-Image heraus einrichten. So bleibt der Kopf frei für das eigentlich Neue – das Dockerfile und den Build-Vorgang.
 
 #### 2.1 Projektverzeichnis und Startseite anlegen
 
@@ -165,20 +171,39 @@ nano Dockerfile
 ```
 
 ```dockerfile
-FROM nginx:alpine
-COPY index.html /usr/share/nginx/html/index.html
+FROM debian:trixie-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends nginx-light && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY index.html /var/www/html/index.html
+
 EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
 ```
 
 | Zeile | Bedeutung |
 |---|---|
-| `FROM nginx:alpine` | Basis-Image: der offizielle nginx auf Alpine Linux – eine besonders kleine Distribution (das Image ist nur rund 50 MB groß) |
-| `COPY index.html ...` | Kopiert Ihre Startseite aus dem Projektverzeichnis an die Stelle, an der nginx sein Standard-Wurzelverzeichnis hat – die mitgelieferte Begrüßungsseite wird dadurch ersetzt |
+| `FROM debian:trixie-slim` | Basis-Image: ein schlankes Debian 13 (Trixie) ohne Dokumentation, man-pages und ähnlichen Ballast – die `-slim`-Variante der offiziellen Debian-Images |
+| `RUN apt-get update && apt-get install ... && rm -rf ...` | Installiert nginx selbst, statt ein fertiges nginx-Image zu verwenden – dazu gleich mehr |
+| `COPY index.html ...` | Kopiert Ihre Startseite an die Stelle, an der das Debian-Paket `nginx-light` sein Standard-Wurzelverzeichnis erwartet |
 | `EXPOSE 80` | Dokumentiert, dass die Anwendung im Container auf Port 80 lauscht |
+| `CMD ["nginx", "-g", "daemon off;"]` | Startet nginx im Vordergrund – ohne diese Zeile würde der Hauptprozess sofort beenden und der Container mit ihm |
 
 > **⚠️ Wichtig:** `EXPOSE` öffnet **keinen** Port. Es ist reine Dokumentation für Menschen und Werkzeuge. Ob und wie ein Container-Port auf dem Host erreichbar wird, entscheidet nach wie vor ausschließlich das `-p`-Flag beim Start (bzw. später `ports:` in Docker Compose).
 
-Ein `CMD` fehlt – und das ist hier richtig: Das Basis-Image `nginx:alpine` bringt bereits ein `CMD` mit (den Start von nginx), und Ihr Image erbt es. Sie ergänzen nur, was sich gegenüber der Basis ändert.
+> **Warum `nginx-light` statt `nginx`?**  
+> Debian bietet nginx in drei Paketvarianten an: `nginx-light` (Kernfunktionen, für dieses Lab ausreichend), `nginx-full` (zusätzliche Module, z. B. für erweiterte SSL-Konfigurationen) und `nginx-extras` (noch mehr Module, u. a. Lua-Skripting). Da das Portal nur eine statische Datei ausliefert, genügt die schlankste Variante – ein weiteres Beispiel für „nur installieren, was tatsächlich gebraucht wird". `--no-install-recommends` verstärkt diesen Effekt: APT installiert dann nur zwingend benötigte, aber keine lediglich empfohlenen Zusatzpakete.
+
+> **⚠️ Wichtig: `apt-get update` und `apt-get install` in derselben Zeile**  
+> Docker cacht jede Dockerfile-Zeile als eigenen Layer. Stünden `apt-get update` und `apt-get install nginx-light` in getrennten `RUN`-Anweisungen, könnte Docker bei einem späteren Rebuild die `update`-Zeile unverändert aus dem Cache übernehmen, obwohl sich die tatsächlich verfügbaren Paketversionen im Repository längst geändert haben – Sie würden dann ein veraltetes Paket installieren, ohne es zu bemerken. Beide Befehle stehen deshalb in einer einzigen `RUN`-Zeile, verbunden mit `&&`.
+
+> **Warum `rm -rf /var/lib/apt/lists/*` in derselben Zeile?**  
+> Jede Anweisung erzeugt einen eigenen, unveränderlichen Layer. Würden Sie das Aufräumen der heruntergeladenen Paketlisten in einer eigenen, späteren `RUN`-Anweisung vornehmen, blieben die Dateien im vorherigen Layer trotzdem vollständig gespeichert – im sichtbaren Dateisystem des Containers wären sie zwar verschwunden, im Image selbst würden sie aber weiterhin Platz belegen. Erst die Bereinigung **innerhalb derselben** `RUN`-Anweisung, in der die Dateien entstanden sind, reduziert tatsächlich die Image-Größe.
+
+Anders als bei einem fertigen Anwendungsimage wie `nginx:alpine` müssen Sie hier selbst ein `CMD` angeben: Das Basis-Image `debian:trixie-slim` kennt nginx nicht und bringt daher auch kein passendes `CMD` mit. `nginx -g "daemon off;"` überschreibt dabei nur eine einzige Konfigurationsoption – nginx soll im Vordergrund bleiben, statt sich wie gewohnt selbst zu daemonisieren.
 
 #### 2.3 Das Image bauen
 
@@ -225,7 +250,7 @@ Die Antwort ist Ihre eigene Startseite. Das Portal bleibt – wie alle Backend-D
 docker history portal:1.0
 ```
 
-Die Ausgabe zeigt den Schichtenstapel von oben (neueste Schicht) nach unten (Basis): Ihre `COPY`-Zeile liegt als hauchdünner Layer (wenige hundert Byte) auf den nginx-Schichten. Das gesamte Basis-Image wurde nicht kopiert, sondern wird **geteilt** – jedes weitere Image auf Basis von `nginx:alpine` nutzt dieselben unteren Schichten mit.
+Die Ausgabe zeigt den Schichtenstapel von oben (neueste Schicht) nach unten (Basis): Ganz oben liegt Ihre `COPY`-Zeile als hauchdünner Layer (wenige hundert Byte), darunter der deutlich größere `RUN`-Layer mit der nginx-Installation, und ganz unten die Schichten von `debian:trixie-slim` selbst. Das Basis-Image wurde dabei nicht kopiert, sondern wird **geteilt** – jedes weitere Image auf Basis von `debian:trixie-slim` nutzt dieselben unteren Schichten mit.
 
 #### 3.2 Den Build-Cache beobachten
 
@@ -243,7 +268,7 @@ docker build -t portal:1.0 .
 ```
 
 > **Was passiert hier?**  
-> Der `FROM`-Layer kommt weiterhin aus dem Cache, aber die `COPY`-Anweisung wird neu ausgeführt – Docker hat erkannt, dass sich die kopierte Datei geändert hat. Genau dieses Verhalten machen Sie sich in Schritt 5 zunutze, indem Sie selten Geändertes (Abhängigkeiten) **vor** häufig Geändertem (Anwendungscode) kopieren.
+> Der `FROM`-Layer **und** der `RUN`-Layer mit der nginx-Installation kommen weiterhin aus dem Cache – nur die `COPY`-Anweisung wird neu ausgeführt, weil Docker erkannt hat, dass sich die kopierte Datei geändert hat. Bei einem Basis-Image, das Sie selbst mit `apt install` befüllen, ist das besonders wertvoll: Der aufwändige Installationsschritt wird nicht bei jeder Kleinigkeit wiederholt. Genau dieses Verhalten machen Sie sich in Schritt 5 zunutze, indem Sie selten Geändertes (Abhängigkeiten) **vor** häufig Geändertem (Anwendungscode) kopieren.
 
 Der laufende Container zeigt übrigens weiterhin die alte Seite: Er wurde aus dem alten Image erzeugt, und ein Image-Neubau ändert bestehende Container nicht. Das Update-Muster kennen Sie aus Lab 05: stoppen, löschen, neu erstellen – hier noch nicht nötig, das erledigt Schritt 5.
 
@@ -449,7 +474,7 @@ nano Dockerfile
 ```
 
 ```dockerfile
-FROM python:3.12-slim
+FROM python:3.12-slim-trixie
 
 WORKDIR /app
 
@@ -479,7 +504,7 @@ Hier sind nun alle wichtigen Anweisungen aus dem Hintergrundwissen versammelt:
 
 | Abschnitt | Bedeutung |
 |---|---|
-| `FROM python:3.12-slim` | Offizielles Python-Image in der `slim`-Variante – Debian ohne Ballast. Klein halten lohnt sich: weniger Download, weniger Angriffsfläche |
+| `FROM python:3.12-slim-trixie` | Offizielles Python-Image in der `slim`-Variante auf Basis von Debian 13 (Trixie) – ein fertiges Anwendungsimage, im Gegensatz zum Betriebssystem-Ansatz von Portal v1. Klein halten lohnt sich trotzdem: weniger Download, weniger Angriffsfläche |
 | `WORKDIR /app` | Arbeitsverzeichnis anlegen und wechseln – alle folgenden `COPY`/`RUN`/`CMD` beziehen sich darauf |
 | `COPY requirements.txt` + `RUN pip install` **vor** `COPY app.py` | Die Cache-Lektion aus Schritt 3.2, angewandt: Ändern Sie später nur `app.py`, bleibt der teure `pip install`-Layer im Cache und der Build dauert Sekunden statt Minuten |
 | `ENV ...` | Vorgabewerte für die unkritische Konfiguration. Die Werte passen absichtlich exakt zur Testumgebung aus Schritt 4 **und** zum Compose-Stack in Lab 08 |
@@ -568,7 +593,7 @@ Verschaffen Sie sich einen Überblick über den Bestand:
 docker images
 ```
 
-Vergleichen Sie die Größen: `portal:1.0` ist kaum größer als sein Basis-Image `nginx:alpine` (~50 MB), `portal:2.0` bringt es mit Python-Basis und installierten Paketen auf ein Mehrfaches davon. Die Wahl des Basis-Images ist die größte einzelne Stellschraube für die Image-Größe – und kleinere Images bedeuten schnellere Verteilung und weniger enthaltene Software, die Sicherheitslücken haben könnte.
+Vergleichen Sie die Größen: Obwohl beide Images auf Debian 13 (Trixie) basieren, unterscheiden sie sich deutlich – `portal:2.0` (Python-Laufzeit plus Bibliotheken) ist ein Vielfaches größer als `portal:1.0` (schlankes nginx). Der Unterschied liegt nicht an der Distribution, sondern daran, wie viel Software pro Image tatsächlich installiert ist: einmal ein einzelnes, bewusst schlankes nginx-Paket, einmal eine komplette Python-Laufzeit mit Abhängigkeiten. Genau das macht `docker history` sichtbar – und genau deshalb ist die Wahl, was Sie in ein Image installieren, die größte einzelne Stellschraube für dessen Größe. Kleinere Images bedeuten schnellere Verteilung und weniger enthaltene Software, die Sicherheitslücken haben könnte.
 
 Durch die wiederholten Builds sind außerdem **verwaiste Layer** entstanden – Zwischenstände, auf die kein Tag mehr zeigt (in `docker images -a` als `<none>` sichtbar). Sie belegen nur noch Platz:
 
@@ -597,6 +622,7 @@ docker images
 - Warum steht `COPY requirements.txt` mit dem `pip install` **vor** `COPY app.py` – und was würde sich an den Build-Zeiten ändern, wenn man die Reihenfolge umdreht?
 - `EXPOSE 8000` und `-p 127.0.0.1:8000:8000` wirken auf den ersten Blick redundant. Welche grundverschiedenen Aufgaben haben die beiden?
 - Was genau würde ein Auditor aus dem Dockerfile für die Controls A.8.9 und A.8.32 ablesen können, das er einem laufenden Container nicht ansieht?
+- Portal v1 installiert nginx selbst per `apt install` auf einem Betriebssystem-Image, Portal v2 verwendet das vorkonfigurierte Anwendungsimage `python:3.12-slim-trixie`. Welche Vor- und Nachteile hat jeder der beiden Ansätze für die Nachvollziehbarkeit nach Control A.8.9?
 
 **Zu Konfiguration und Geheimnissen:**
 
@@ -615,7 +641,7 @@ docker images
 ### Was Sie erreicht haben
 
 - Das Buildx-Plugin installiert und `docker build` mit BuildKit verwendet
-- Zwei eigene Images gebaut: `portal:1.0` (statisch, auf `nginx:alpine`) und `portal:2.0` (Python-Anwendung, auf `python:3.12-slim`)
+- Zwei eigene Images gebaut: `portal:1.0` (nginx selbst per `apt install` auf `debian:trixie-slim` eingerichtet) und `portal:2.0` (Python-Anwendung auf dem vorkonfigurierten Image `python:3.12-slim-trixie`)
 - Das Schichtenmodell mit `docker history` untersucht und den Build-Cache gezielt ausgenutzt
 - Tags als Etiketten verstanden (`docker tag`, `docker rmi`) und den Build-Kontext mit `.dockerignore` begrenzt
 - Eine Wegwerf-Testdatenbank (InfluxDB) ohne Volume und ohne Host-Port betrieben und per Line Protocol befüllt

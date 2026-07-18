@@ -27,7 +27,9 @@ Current labs:
 - `Lab_07.md` – Building custom Docker images with a Dockerfile
 - `Lab_08.md` – Managing multi-container applications with Docker Compose
 
-Side lab: `Lab_Docker_Rootless.md` – Rootless Docker with Docker Compose on Linux Mint.
+Side labs:
+- `Lab_Docker_Rootless.md` – Rootless Docker with Docker Compose on Linux Mint.
+- `Lab_07_ausbau.md` – Open-ended exercise: generalize the apt-install Dockerfile pattern to a cron-based backup image; `Lab_07_ausbau_musterloesung.md` holds the sample solution.
 
 Images (banner, navigation arrows, screenshots) are stored in `images/`.
 
