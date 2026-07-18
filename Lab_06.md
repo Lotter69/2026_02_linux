@@ -33,6 +33,7 @@ In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisc
 |---|---|
 | **Server** | Debian stable (aktuell Trixie), öffentliche IPv4-Adresse (aus Lab 03) |
 | **Caddy** | Aktuell noch aktiv – wird in diesem Lab abgelöst |
+| **Dienst A / Dienst B** | Python-Testserver auf 127.0.0.1:8001/8002 aktiv (aus Lab 04) – nach einem Server-Neustart neu starten: `cd /srv/dienst-a && python3 -m http.server 8001 &` (analog 8002) |
 | **Docker** | Installiert und betriebsbereit (aus Lab 05), inklusive der Container `nginx-web` und `nodered` |
 | **SSH-Zugriff** | Key-Authentifizierung |
 | **DNS** | Bestehende A-Records aus Lab 03–05 (`cockpit`, `dienst-a`, `dienst-b`, `www`, `dashboard`), zusätzlich ein neuer A-Record `demo.<IHRE-DOMAIN>` |
@@ -524,6 +525,13 @@ docker run -d \
 >
 > Es gibt in diesem Abschnitt also nur **einen** Container: `redis-cache`. „Redis" und „redis-cache" meinen praktisch dasselbe Ding – einmal als Produktname, einmal als der konkrete Name, den dieser eine Container in Ihrer Umgebung trägt.
 
+```mermaid
+flowchart LR
+    Registry["Docker Hub<br/>(Registry)"] -->|"docker pull"| Image["Image<br/>redis:7"]
+    Image -->|"docker run --name redis-cache"| Container["Container<br/>redis-cache"]
+    Container --> Process["laufender Prozess<br/>Redis"]
+```
+
 > **Vorgriff:** In einer späteren Übung übernehmen eine Zeitreihendatenbank (z. B. InfluxDB), ein Connector-Dienst und eine Visualisierung (z. B. Grafana) genau dieses Muster – mehrere zusammenspielende Container in einem eigenen Netzwerk, von denen nur die Visualisierung nach außen erreichbar sein muss. `redis-cache` steht hier stellvertretend für diesen späteren Datenhaltungsdienst – nicht als sinnvoller Produktiv-Cache für `nodered`, sondern als einfaches Beispiel-Image für das Bündelungsprinzip.
 
 #### 7.4 Namensauflösung innerhalb des Netzwerks prüfen
@@ -567,6 +575,26 @@ ss -tlnp | grep 6379
 Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (die bewusst über `-p 127.0.0.1:<port>:<port>` veröffentlicht wurden) ist hier gar kein Host-Port nötig – `redis-cache` muss ausschließlich für `nodered` erreichbar sein, und das funktioniert vollständig innerhalb von `app-net`, ohne dass der Host überhaupt einen offenen Port dafür braucht.
 
 > **Warum trotzdem mindestens ein Dienst sichtbar bleiben muss:** `app-net` selbst macht nach außen gar nichts sichtbar. Die einzige Verbindung zur Außenwelt bleibt `nodered` – er gehört weiterhin zusätzlich dem Standard-Netzwerk an und ist dort über `-p 127.0.0.1:1880:1880` für nginx erreichbar (aus Lab 05). `nodered` fungiert damit als Brücke zwischen beiden Welten: lokal erreichbar über sein Host-Port-Mapping (für den Reverse Proxy), nach innen verbunden mit `redis-cache` über `app-net`. `redis-cache` selbst braucht diese Brücke nicht – er muss nur von `nodered` aus erreichbar sein, nicht von irgendwo sonst.
+
+Die Netzwerk-Zugehörigkeiten aus diesem Schritt im Überblick – `nodered` ist Mitglied beider Netzwerke und damit die einzige Brücke zwischen ihnen, `redis-cache` ausschließlich Mitglied von `app-net`:
+
+```mermaid
+flowchart TD
+    nodered["nodered<br/>(ein Container, zwei Netzwerke)"]
+
+    subgraph Default["Standard-Bridge-Netzwerk"]
+        HostPort["nginx auf dem Host<br/>127.0.0.1:1880"]
+    end
+
+    subgraph AppNet["app-net"]
+        redis["redis-cache<br/>(kein Host-Port)"]
+    end
+
+    HostPort --> nodered
+    nodered --> redis
+    nodered -. Mitglied von .-> Default
+    nodered -. Mitglied von .-> AppNet
+```
 
 #### 7.7 Hintergrund: IP-Vergabe und Routing in Docker-Netzwerken
 
@@ -625,8 +653,7 @@ nodered -> 172.18.0.3/16
 
 ### Schritt 8: Lastverteilung einrichten und Last erzeugen
 
-In der Fortsetzung arbeiten Sie mit `demo.<IHRE-DOMAIN>` analog zu den bisherigen Einträgen. 
-Im Registrar existiert ein Wildcard-Eintrag *.<IHRE-DOMAIN>, d.h. folgene Überprüfung sollte erfolgeich sein.
+In der Fortsetzung arbeiten Sie mit `demo.<IHRE-DOMAIN>` analog zu den bisherigen Einträgen. Dafür wird der in den Voraussetzungen genannte A-Record `demo.<IHRE-DOMAIN>` benötigt. Falls in Ihrer Zone bereits ein Wildcard-Eintrag (`*`) existiert (siehe Hinweis in Lab 05, Schritt 2), ist kein eigener Eintrag nötig. Die folgende Überprüfung sollte in beiden Fällen erfolgreich sein:
 
 ```bash
 dig demo.<IHRE-DOMAIN> +short
@@ -714,6 +741,17 @@ upstream demo_backend {
 ```bash
 nginx -t
 systemctl reload nginx
+```
+
+Die Upstream-Gruppe verteilt Anfragen jetzt im Round-Robin-Verfahren auf vier Container-Instanzen – `demo4` wurde bewusst per Hand ergänzt, nicht automatisch erkannt:
+
+```mermaid
+flowchart LR
+    Client(["Browser/curl"]) -->|"https://demo.&lt;domain&gt;"| nginx["nginx<br/>upstream demo_backend"]
+    nginx -->|round robin| demo1["demo1 :9001"]
+    nginx -->|round robin| demo2["demo2 :9002"]
+    nginx -->|round robin| demo3["demo3 :9003"]
+    nginx -. nachträglich ergänzt .-> demo4["demo4 :9004"]
 ```
 
 Wiederholen Sie den Testlauf aus diesem Schritt – `demo4` erscheint erst jetzt in der Verteilung, und zwar genau deshalb, weil Sie es bewusst eingetragen und neu geladen haben, nicht weil es automatisch erkannt wurde.

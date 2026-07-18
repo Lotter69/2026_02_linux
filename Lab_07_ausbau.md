@@ -29,7 +29,7 @@ Ihre eigentliche Aufgabe ist es, mit dem in Lab 07 gelernten Muster (Betriebssys
 | Anforderung | Details |
 |---|---|
 | **Lab 07** | Vollständig durchgeführt – insbesondere das apt-install-Muster aus Schritt 2 und die Wegwerf-InfluxDB aus Schritt 4 |
-| **Docker** | Installiert, inklusive Buildx-Plugin (aus Lab 05/07) |
+| **Docker** | Installiert (aus Lab 05, Buildx aus Lab 07) |
 | **Kenntnisse** | `FROM`/`RUN`/`COPY`/`ENV`/`CMD`, `docker build`/`run`/`network create` – **keine** Bash- oder cron-Kenntnisse nötig |
 
 ---
@@ -39,7 +39,7 @@ Ihre eigentliche Aufgabe ist es, mit dem in Lab 07 gelernten Muster (Betriebssys
 - [Hintergrundwissen](#hintergrundwissen)
   - [Das Muster verallgemeinern](#das-muster-verallgemeinern)
   - [Was macht das Skript im Hintergrund? (kurz)](#was-macht-das-skript-im-hintergrund-kurz)
-  - [ISO 27001: Control A.8.13 – Information Backup](#iso-27001-control-a813-information-backup)
+  - [ISO 27001: Control A.8.13 – Information Backup](#iso-27001-control-a813--information-backup)
 - [Bereitgestellte Dateien](#bereitgestellte-dateien)
   - [backup.sh](#backupsh)
   - [entrypoint.sh](#entrypointsh)
@@ -79,7 +79,7 @@ Nur `<PAKET(E)>` und das, was danach passiert, ändert sich mit dem Anwendungsfa
 |---|---|---|
 | Statische Webseite | `nginx-light` | Portal v1 aus Lab 07 |
 | Passwort-Hashes erzeugen | `apache2-utils` | Wie in Lab 06 zur Erstellung des bcrypt-Hashes für die nginx-Basic-Authentication (`htpasswd`) |
-| MQTT-Testwerkzeug | `mosquitto-clients` | Wie in Lab 08 zum Testen des Mosquitto-Brokers (`mosquitto_pub`/`mosquitto_sub`) |
+| MQTT-Testwerkzeug | `mosquitto-clients` | Vorgriff auf Lab 08: dort zum Testen des Mosquitto-Brokers (`mosquitto_pub`/`mosquitto_sub`) |
 | Zeitgesteuerte Aufgaben | `cron`, `curl` | Container, der wiederkehrende Aufgaben nach Zeitplan ausführt – Gegenstand dieser Übung |
 
 Genau dieses Skelett – Basis-Image wählen, benötigte Pakete per `apt install` einrichten, eigene Dateien per `COPY` einbinden – ist alles, was Sie in dieser Übung selbst schreiben müssen.
@@ -107,6 +107,29 @@ Die folgenden drei Dateien sind bereits fertig geschrieben und getestet. Legen S
 ```bash
 mkdir -p /srv/iot-backup
 cd /srv/iot-backup
+```
+
+So spielen die drei Dateien beim Containerstart zusammen – Sie müssen dafür keine der Dateien selbst verstehen, nur den zeitlichen Ablauf:
+
+```mermaid
+sequenceDiagram
+    participant Run as docker run (-e INFLUX_TOKEN=...)
+    participant Entry as entrypoint.sh (PID 1)
+    participant Cron as cron
+    participant Backup as backup.sh
+    participant Influx as InfluxDB
+    participant Vol as /backup (Host-Verzeichnis)
+
+    Run->>Entry: Container startet, setzt ENV-Variablen
+    Entry->>Entry: sichert INFLUX_*-Variablen in /etc/backup-env
+    Entry->>Cron: startet cron im Vordergrund
+    loop alle 2 Minuten (crontab.txt)
+        Cron->>Backup: startet backup.sh
+        Backup->>Backup: liest /etc/backup-env
+        Backup->>Influx: Flux-Abfrage per curl
+        Influx-->>Backup: CSV-Antwort
+        Backup->>Vol: komprimiert als iot-backup-<Zeitstempel>.csv.gz
+    end
 ```
 
 ### backup.sh

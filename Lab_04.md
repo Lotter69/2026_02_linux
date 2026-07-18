@@ -571,6 +571,16 @@ dienst-b.<IHRE-DOMAIN> {
 }
 ```
 
+Auf einen Blick zusammengefasst, ist Caddy damit der **einzige** Dienst, den das Internet direkt erreicht – alle drei Backends bleiben ausschließlich auf `localhost` erreichbar und werden erst durch Caddy nach außen sichtbar gemacht:
+
+```mermaid
+flowchart LR
+    Internet(["Internet"]) -->|"HTTPS :443"| Caddy["Caddy<br/>(einziger offener Port)"]
+    Caddy -->|"cockpit.&lt;domain&gt;"| Cockpit["Cockpit<br/>localhost:9090"]
+    Caddy -->|"dienst-a.&lt;domain&gt;"| DienstA["Dienst A<br/>localhost:8001"]
+    Caddy -->|"dienst-b.&lt;domain&gt;<br/>+ Basic Auth"| DienstB["Dienst B<br/>localhost:8002"]
+```
+
 ---
 
 ### Reflexion
@@ -586,6 +596,15 @@ dienst-b.<IHRE-DOMAIN> {
 
 ## Aufräumarbeiten
 
+> **⚠️ Wichtig:** Führen Sie den vollständigen Rückbau unten **nur aus, wenn Sie den Lehrgang an dieser Stelle beenden**. Machen Sie mit Lab 05 und Lab 06 weiter, bleiben Dienst A, Dienst B und Caddy zwingend in Betrieb: Lab 06 migriert deren Caddy-Konfiguration in nginx-Server-Blöcke und ruft sie im Browser auf. Beachten Sie dabei, dass die Python-Testserver einen Server-Neustart nicht überleben (siehe Hinweis in Schritt 4) – starten Sie sie vor Lab 06 bei Bedarf erneut:
+>
+> ```bash
+> cd /srv/dienst-a && python3 -m http.server 8001 &
+> cd /srv/dienst-b && python3 -m http.server 8002 &
+> ```
+
+### Vollständiger Rückbau (nur bei Lehrgangsende)
+
 1. Stoppen Sie die Python-Testserver:
 
 ```bash
@@ -599,7 +618,7 @@ kill $(lsof -t -i:8001) $(lsof -t -i:8002)
 rm -rf /srv/dienst-a /srv/dienst-b
 ```
 
-3. Wenn der Server für weitere Übungen weitergenutzt wird, kann Caddy aktiv bleiben. Wenn nicht:
+3. Deaktivieren Sie Caddy:
 
 ```bash
 systemctl stop caddy
@@ -633,6 +652,6 @@ systemctl disable caddy
 ![line](images/banner.png)
 
 <p align="center">
-<a href="01_vm_domain_ssh.md"><img src="images/previous.png" width="150px"></a>
-<a href="README.md"><img src="images/next.png" width="150px"></a>
+<a href="Lab_03.md"><img src="images/previous.png" width="150px"></a>
+<a href="Lab_05.md"><img src="images/next.png" width="150px"></a>
 </p>

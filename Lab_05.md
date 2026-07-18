@@ -177,6 +177,8 @@ ufw reload
 > **Wichtiger Sicherheitshinweis: Docker und ufw**
 > ufw schützt **native Host-Dienste** zuverlässig (z. B. Cockpit aus Lab 04). Für Docker-Container gilt das nicht automatisch: Docker trägt eigene Regeln in eine separate iptables-Chain (`DOCKER-USER`) ein, die **vor** den ufw-Regeln ausgewertet wird. Ein Container, der mit `-p <port>:<port>` (ohne IP-Präfix) veröffentlicht wird, ist damit direkt aus dem Internet erreichbar – unabhängig davon, was `ufw status` anzeigt. In den folgenden Schritten wird deshalb durchgängig mit `-p 127.0.0.1:<port>:<port>` gearbeitet, um Container-Ports explizit auf die lokale Schnittstelle zu beschränken.
 
+> **Hinweis:** Für die Installation auf dem lokalen Linux-Mint-Rechner (statt auf dem Server) – inklusive Rootless-Betrieb und Docker Compose – siehe das Zusatz-Lab [Lab_Docker_Rootless.md](Lab_Docker_Rootless.md).
+
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
@@ -348,6 +350,18 @@ nodered-data/       ←→   /data/
 > | Anlegen | Pfad muss angegeben werden | Docker legt das Volume beim ersten Start automatisch an |
 > | Portabilität | Pfad ist host-spezifisch | Volume kann mit `docker volume`-Befehlen verwaltet werden |
 > | Typischer Einsatz | Konfigurationsdateien und Inhalte, die vom Host gepflegt werden | Anwendungsdaten (Flows, Datenbanken) |
+
+Die beiden Speicherwege im direkten Vergleich – der entscheidende Unterschied ist, **wer den Host-seitigen Speicherort bestimmt**:
+
+```mermaid
+flowchart LR
+    subgraph BM["Bind Mount (nginx-web)"]
+        HostDir["Host:<br/>/srv/www/<br/>(von Ihnen gewählt)"] <-->|"-v /srv/www:/usr/share/nginx/html:ro"| CDir["Container:<br/>/usr/share/nginx/html/"]
+    end
+    subgraph NV["Benanntes Volume (nodered)"]
+        DockerVol["Docker-Volume: nodered-data<br/>(von Docker verwaltet)"] <-->|"-v nodered-data:/data"| CData["Container:<br/>/data/"]
+    end
+```
 
 #### 4.2 Node-RED starten
 
@@ -575,6 +589,10 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 ---
 
 ## Aufräumarbeiten
+
+> **⚠️ Wichtig:** Führen Sie diesen Rückbau **nur aus, wenn Sie den Lehrgang an dieser Stelle beenden**. Die Container `nginx-web` und `nodered`, das Volume `nodered-data` und das Verzeichnis `/srv/www` werden in Lab 06 (Docker-Netzwerke, vhost-Migration) und in Lab 08 (Compose-Migration von `nodered`) zwingend weiterverwendet.
+
+### Vollständiger Rückbau (nur bei Lehrgangsende)
 
 ```bash
 # Container stoppen und löschen

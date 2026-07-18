@@ -288,5 +288,5 @@ journalctl -b -u cockpit           # Logs nur vom aktuellen Boot
 ![line](images/banner.png)
 <p align="center">
 <a href="README.md"><img src="images/previous.png" width="150px"></a>
-<a href="02_erweiterung_dienste_skalierung.md"><img src="images/next.png" width="150px"></a>
+<a href="Lab_01_ausbau.md"><img src="images/next.png" width="150px"></a>
 </p>

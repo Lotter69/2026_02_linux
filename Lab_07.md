@@ -252,6 +252,15 @@ docker history portal:1.0
 
 Die Ausgabe zeigt den Schichtenstapel von oben (neueste Schicht) nach unten (Basis): Ganz oben liegt Ihre `COPY`-Zeile als hauchdünner Layer (wenige hundert Byte), darunter der deutlich größere `RUN`-Layer mit der nginx-Installation, und ganz unten die Schichten von `debian:trixie-slim` selbst. Das Basis-Image wurde dabei nicht kopiert, sondern wird **geteilt** – jedes weitere Image auf Basis von `debian:trixie-slim` nutzt dieselben unteren Schichten mit.
 
+```mermaid
+flowchart BT
+    Base["debian:trixie-slim<br/>Basis-Layer (geteilt mit anderen Images)"]
+    Run["RUN apt-get install nginx-light<br/>eigener Layer (groß, aber aus dem Cache wiederverwendbar)"]
+    Copy["COPY index.html<br/>eigener Layer (klein, wird bei Änderungen neu gebaut)"]
+
+    Base --> Run --> Copy
+```
+
 #### 3.2 Den Build-Cache beobachten
 
 Bauen Sie das Image erneut, ohne etwas zu ändern:
@@ -662,6 +671,8 @@ docker images
 | `docker logs <container>` | Ausgaben eines (auch beendeten) Containers lesen |
 | `docker exec <container> influx write/query` | Daten in InfluxDB schreiben/abfragen |
 | `openssl rand -hex 32` | Kryptografisch zufälliges Token erzeugen |
+
+> **Vertiefung (optional):** In [Lab_07_ausbau.md](Lab_07_ausbau.md) übertragen Sie das apt-install-Muster dieses Labs eigenständig auf einen zeitgesteuerten Backup-Container – als offene Übungsaufgabe mit Musterlösung.
 
 ---
 

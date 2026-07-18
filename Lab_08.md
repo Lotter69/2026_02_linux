@@ -33,13 +33,13 @@ Bisher haben Sie jeden Container-Dienst mit einem eigenen, oft mehrzeiligen `doc
 |---|---|
 | **Server** | Debian stable (aktuell Trixie), öffentliche IPv4-Adresse (aus Lab 03) |
 | **nginx** | Mit ACME-Modul als Reverse Proxy aktiv (aus Lab 06) |
-| **Docker** | Installiert, inklusive Buildx-Plugin (aus Lab 05/07) |
-| **Node-RED** | Container `nodered` mit Volume `nodered-data`, aktivierter `adminAuth`, `dashboard`-vhost (aus Lab 05) |
+| **Docker** | Installiert (aus Lab 05), inklusive Buildx-Plugin (aus Lab 07) |
+| **Node-RED** | Container `nodered` mit Volume `nodered-data` und aktivierter `adminAuth` (aus Lab 05), `dashboard`-vhost (aus Lab 06) |
 | **Portal** | Verzeichnis `/srv/portal` (Dockerfile, `app.py`, `requirements.txt`, `.dockerignore`) und `<TOKEN>` (aus Lab 07) |
 | **DNS** | Bestehende A-Records, zusätzlich neue A-Records `grafana.<IHRE-DOMAIN>` und `portal.<IHRE-DOMAIN>` |
 | **SSH-Zugriff** | Key-Authentifizierung |
 
-> **Tipp zur Fehlerbehebung:** Falls das Volume `nodered-data` in den Aufräumarbeiten von Lab 05 versehentlich gelöscht wurde, richten Sie den Node-RED-Container einmalig gemäß Lab 05, Schritt 4.2/4.5 neu ein, bevor Sie mit diesem Lab fortfahren.
+> **Tipp zur Fehlerbehebung:** Falls Sie die Aufräumarbeiten aus Lab 05 vollständig ausgeführt haben (Volume `nodered-data` gelöscht), richten Sie den Node-RED-Container einmalig gemäß Lab 05, Schritt 4.2/4.5 neu ein, bevor Sie mit diesem Lab fortfahren.
 
 ---
 
@@ -50,6 +50,7 @@ Bisher haben Sie jeden Container-Dienst mit einem eigenen, oft mehrzeiligen `doc
   - [Anatomie einer compose.yaml](#anatomie-einer-composeyaml)
   - [.env und Variablen-Substitution](#env-und-variablen-substitution)
   - [MQTT in Kürze](#mqtt-in-kürze)
+  - [Die Ziel-Architektur im Überblick](#die-ziel-architektur-im-überblick)
   - [Compose, Swarm, Kubernetes](#compose-swarm-kubernetes)
   - [depends_on regelt Reihenfolge, nicht Bereitschaft](#depends_on-regelt-reihenfolge-nicht-bereitschaft)
 - [Aufgaben](#aufgaben)
@@ -94,6 +95,39 @@ Eine `.env`-Datei im selben Verzeichnis wie die `compose.yaml` wird automatisch 
 ### MQTT in Kürze
 
 MQTT ist ein schlankes **Publish/Subscribe-Protokoll**: Ein zentraler **Broker** nimmt Nachrichten entgegen, die unter einem **Topic** (einem hierarchischen Namen wie `sensoren/raum1`) veröffentlicht werden, und leitet sie an alle Teilnehmer weiter, die genau dieses Topic abonniert haben. Sensoren müssen dabei nichts über die Empfänger ihrer Daten wissen – sie veröffentlichen nur unter einem Topic; wer die Daten weiterverarbeitet (hier: Node-RED), entscheidet sich unabhängig davon, was es abonniert. Genau diese Entkopplung macht MQTT für Sensordaten so verbreitet.
+
+### Die Ziel-Architektur im Überblick
+
+Bevor Sie den Stack Schritt für Schritt aufbauen, hier das Zielbild: Alle fünf Dienste leben gemeinsam im Netzwerk `iot-net`. Innerhalb dieses Netzwerks kommunizieren sie über ihre Servicenamen (Docker-DNS, wie in Lab 06 gelernt) – nach außen sichtbar wird davon nur, was nginx explizit als vhost veröffentlicht:
+
+```mermaid
+flowchart LR
+    Sensor(["mosquitto_pub<br/>(Sensor-Simulation)"])
+    Browser(["Browser"])
+
+    subgraph IotNet["Docker-Netzwerk: iot-net"]
+        mosquitto["mosquitto :1883"]
+        nodered["nodered :1880"]
+        influxdb["influxdb :8086<br/>(kein Host-Port)"]
+        grafana["grafana :3000"]
+        portal["portal :8000"]
+    end
+
+    nginx["nginx<br/>(Reverse Proxy, 80/443)"]
+
+    Sensor -->|MQTT publish| mosquitto
+    mosquitto -->|mqtt in| nodered
+    nodered -->|influxdb out| influxdb
+    influxdb -->|Flux Query| grafana
+    influxdb -->|Flux Query| portal
+
+    Browser -->|HTTPS| nginx
+    nginx -->|"127.0.0.1:1880"| nodered
+    nginx -->|"127.0.0.1:3000"| grafana
+    nginx -->|"127.0.0.1:8000"| portal
+```
+
+`mosquitto` und `influxdb` haben bewusst keinen nginx-vhost – sie sind ausschließlich innerhalb von `iot-net` erreichbar, exakt das Muster aus Lab 06, Schritt 7, jetzt im produktiven Maßstab.
 
 ### Compose, Swarm, Kubernetes
 
@@ -289,7 +323,7 @@ docker volume ls    # nodered-data ist weiterhin vorhanden
 ```
 
 > **Was passiert hier?**  
-> `docker rm` löscht nur den **Container** – das benannte Volume `nodered-data` bleibt unabhängig davon bestehen, exakt wie in Lab 05 (Schritt 3.3) besprochen: Volumes sind vom Lebenszyklus einzelner Container entkoppelt. Genau das machen Sie sich jetzt zunutze.
+> `docker rm` löscht nur den **Container** – das benannte Volume `nodered-data` bleibt unabhängig davon bestehen, exakt wie in Lab 05 (Schritt 4.4) besprochen: Volumes sind vom Lebenszyklus einzelner Container entkoppelt. Genau das machen Sie sich jetzt zunutze.
 
 Ergänzen Sie die `compose.yaml`:
 
