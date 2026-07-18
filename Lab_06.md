@@ -6,7 +6,7 @@
 
 Das Unternehmen bereitet sich auf die Zertifizierung nach ISO/IEC 27001 vor. Im Rahmen der Auditvorbereitung hat ein externer Pentest die bestehende Infrastruktur überprüft und zwei Feststellungen dokumentiert, die vor dem eigentlichen Zertifizierungsaudit behoben werden müssen.
 
-Erstens: Die TLS-Zertifikate werden vollständig automatisiert über Caddy bezogen, ohne dass nachvollziehbar dokumentiert ist, über welches Protokoll und von welchem Anbieter dies geschieht. Für Control **A.8.24 (Use of Cryptography)** der ISO 27001:2022 verlangt der Auditor eine nachvollziehbare, bewusst getroffene und dokumentierte Entscheidung über die eingesetzten kryptografischen Verfahren – ein impliziter Automatismus reicht dafür nicht aus.
+Erstens: Die TLS-Zertifikate werden vollständig automatisiert über Caddy bezogen. Welcher Zertifikatsanbieter dabei genutzt wird und über welches Protokoll, ist zwar in Caddys allgemeiner Dokumentation nachzulesen – aber an keiner Stelle im tatsächlich eingesetzten Caddyfile selbst erkennbar. Für Control **A.8.24 (Use of Cryptography)** der ISO 27001:2022 verlangt der Auditor, dass eine solche Entscheidung im eigenen, geprüften Konfigurationsbestand nachvollziehbar dokumentiert ist – ein impliziter Software-Standard, der sich mit einem künftigen Update jederzeit ändern könnte, ohne dass sich an der Konfiguration etwas ändert, reicht dafür nicht aus.
 
 Zweitens: Sämtliche Docker-Container laufen im selben, nicht weiter unterteilten Standardnetzwerk; mehrere Backend-Dienste sind zudem über Host-Ports erreichbar, obwohl das nicht erforderlich wäre. Für Control **A.8.22 (Segregation of Networks)**, in Verbindung mit **A.8.20 (Networks Security)**, verlangt der Auditor eine erkennbare, begründete Trennung zusammengehöriger Dienste in eigene Netzwerksegmente.
 
@@ -16,7 +16,7 @@ Im Rahmen des Risikobehandlungsplans gibt die Leitungsebene die Umsetzung frei; 
 
 ## Einführung
 
-In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisch übernommen – komfortabel, aber für ein Audit eine Black Box: Welcher Anbieter wird genutzt? Über welches Protokoll? Wer hat das entschieden? In diesem Lab lösen Sie Caddy durch **nginx** ab und konfigurieren die Zertifikatsausstellung mit dem seit 2025 verfügbaren, nativen `ngx_http_acme_module` explizit selbst. Anschließend bündeln Sie zusammengehörige Docker-Container gezielt in einem eigenen Netzwerk, statt sie unkontrolliert im Default-Netz laufen zu lassen. Zum Abschluss richten Sie eine einfache, manuell gepflegte Lastverteilung über mehrere Container-Instanzen ein – und erleben dabei bewusst den Unterschied zu einer automatisierten Lösung wie Traefik.
+In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisch übernommen – komfortabel, aber für ein Audit ein Problem: *Welcher* Anbieter und *welches* Protokoll verwendet werden, steht nirgends im Caddyfile selbst, sondern ergibt sich stillschweigend aus Caddys eingebautem Standardverhalten. In diesem Lab lösen Sie Caddy durch **nginx** ab und konfigurieren die Zertifikatsausstellung mit dem seit 2025 verfügbaren, nativen `ngx_http_acme_module` explizit selbst – dessen Konfigurationsmodell verlangt zwingend einen benannten Issuer, ein Zertifikat „ohne jede Angabe" gibt es hier nicht. Anschließend bündeln Sie zusammengehörige Docker-Container gezielt in einem eigenen Netzwerk, statt sie unkontrolliert im Default-Netz laufen zu lassen. Zum Abschluss richten Sie eine einfache, manuell gepflegte Lastverteilung über mehrere Container-Instanzen ein – und erleben dabei bewusst den Unterschied zu einer automatisierten Lösung wie Traefik.
 
 ## Lernziele
 
@@ -74,7 +74,7 @@ In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisc
 
 ### ACME als offenes Protokoll
 
-ACME (*Automated Certificate Management Environment*) ist ein offenes, standardisiertes Protokoll zur automatisierten Ausstellung und Erneuerung von TLS-Zertifikaten – ursprünglich von Let's Encrypt entwickelt, heute von zahlreichen Zertifizierungsstellen unterstützt. Caddy, Traefik, Certbot und nginx sind allesamt nur unterschiedliche **ACME-Clients**, die mit einem austauschbaren **Issuer** (der Zertifizierungsstelle) sprechen. Diese Trennung von Werkzeug und Anbieter ist genau der Punkt, der bei Caddys impliziter Automatik im Audit nicht sichtbar war – und den Sie in diesem Lab bewusst offenlegen.
+ACME (*Automated Certificate Management Environment*) ist ein offenes, standardisiertes Protokoll zur automatisierten Ausstellung und Erneuerung von TLS-Zertifikaten – ursprünglich von Let's Encrypt entwickelt, heute von zahlreichen Zertifizierungsstellen unterstützt. Caddy, Traefik, Certbot und nginx sind allesamt nur unterschiedliche **ACME-Clients**, die mit einem austauschbaren **Issuer** (der Zertifizierungsstelle) sprechen. Diese Trennung von Werkzeug und Anbieter existiert bei Caddy zwar genauso – nur eben unsichtbar: Automatisches HTTPS funktioniert dort komplett ohne jede Angabe von CA oder Protokoll, weshalb in der Praxis oft nie jemand eine explizite Entscheidung trifft oder festhält. Das nginx-ACME-Modul erzwingt diese Angabe strukturell, weil ohne einen benannten `acme_issuer` gar kein Zertifikat ausgestellt wird – genau das machen Sie sich in diesem Lab zunutze.
 
 ### Das native ACME-Modul von nginx
 
