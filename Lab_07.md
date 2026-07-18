@@ -392,7 +392,7 @@ Die statische Startseite hat ausgedient:
 ```bash
 cd /srv/portal
 rm index.html
-nano requirements.txt`
+nano requirements.txt
 ```
 
 In der Datei `requirements.txt` tragen Sie bitte folgenden Text ein (Erklärung siehe unten):
