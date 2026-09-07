@@ -87,7 +87,8 @@ Skript ausführbar machen und kurz testen:
 chmod +x ~/dienste/test.sh
 ~/dienste/test.sh &        # & startet das Skript im Hintergrund
 cat ~/dienste/test.log     # sollte zwei Einträge zeigen
-kill %1                    # Hintergrundprozess wieder beenden
+jobs                       # zeigt die laufenden Jobs an
+kill %1                    # Hintergrundprozess (Job) wieder beenden, 
 ```
 
 ---
@@ -407,7 +408,7 @@ Korrigieren Sie den Pfad, laden Sie neu und starten Sie den Dienst erneut.
 
 ---
 
-## Aufräumarbeiten
+## Aufräumarbeiten (nur nach Rücksprache mit Referenten)
 
 ```bash
 sudo systemctl disable --now netmon
