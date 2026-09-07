@@ -349,32 +349,7 @@ suche in der /etc/ssh/sshd_config die Zeile mit `PasswordAuthentication` und ers
 suche in der /etc/ssh/sshd_config die Zeile mit `PubkeyAuthentication` und ersetze mit `PubkeyAuthentication yes`
 
 
-
-| Segment | Bedeutung |
-|---|---|
-| `sed -i` | Befehl: Datei direkt bearbeiten (`-i` = in-place, ohne Umleitung in eine neue Datei) |
-| `s/MUSTER/ERSATZ/` | Ersetzungsbefehl: jede zur MUSTER passende Stelle durch ERSATZ ersetzen |
-| `^` | Anker: Zeilenanfang |
-| `#\?` | optionales `#`-Zeichen (das `\?` macht das davorstehende Zeichen optional) – erfasst auch auskommentierte Zeilen |
-| `PasswordAuthentication.*` | der gesuchte Parametername, gefolgt von `.*` (beliebiger Rest der Zeile, z. B. ` yes`) |
-| `/etc/ssh/sshd_config` | Zieldatei, in der ersetzt wird |
-
-> Die zweite Zeile folgt exakt demselben Aufbau – nur mit `PubkeyAuthentication` statt `PasswordAuthentication` und `yes` statt `no` als Ersatztext.
-
-Prüfen Sie die Änderungen:
-
-```bash
-grep -E "^PasswordAuthentication|^PubkeyAuthentication" /etc/ssh/sshd_config
-# -E: erweiterte Regex | "...|...": Alternation – Zeilen, die mit einem der beiden Begriffe beginnen
-```
-
-Erwartete Ausgabe:
-```
-PubkeyAuthentication yes
-PasswordAuthentication no
-```
-
-Laden Sie die SSH-Konfiguration neu:
+##### Laden Sie die SSH-Konfiguration neu:
 
 ```bash
 systemctl reload ssh
