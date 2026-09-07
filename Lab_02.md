@@ -252,6 +252,8 @@ Neben `.service`-Dateien kennt systemd weitere Unit-Typen, die in späteren Erwe
 | `.timer` | `apt-daily.timer` | Geplante Ausführung (Ersatz für cron) |
 | `.target` | `multi-user.target` | Gruppeneinheit, vergleichbar mit einem Runlevel |
 
+[↑ Zum Inhaltsverzeichnis](#inhalt)
+
 ---
 
 ### Schritt 4: Die Unit-Datei schrittweise verbessern
