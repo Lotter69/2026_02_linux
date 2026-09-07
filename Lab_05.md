@@ -87,6 +87,12 @@ Im Vergleich zur direkten Installation auf dem Host stellt sich dabei eine wicht
 
 Docker ist auf dem Server noch nicht vorhanden. In diesem Schritt binden Sie das offizielle Docker-Repository als Paketquelle ein und installieren Docker.
 
+> Hinweis: Die aktuelle Version von Docker Stand September 2026 ist Version 29. Mit diesem Befehl installieren Sie Docker Version 26:
+> 
+> ```bash
+> apt install docker.io docker-cli
+> ```
+
 #### 1.1 Paketquellen vorbereiten
 
 Falls ältere oder inoffizielle Docker-Pakete vorhanden sind, entfernen Sie diese zuerst:
