@@ -30,7 +30,7 @@ Genau das ist eine typische Situation in der Praxis: Eigenentwicklungen, herunte
 - [Aufgaben](#aufgaben)
   - [Schritt 1: Den Ausgangszustand verstehen – was fehlt ohne Unit-Datei?](#schritt-1-den-ausgangszustand-verstehen--was-fehlt-ohne-unit-datei)
   - [Schritt 2: Eine minimale Unit-Datei schreiben](#schritt-2-eine-minimale-unit-datei-schreiben)
-  - [Schritt 3: Analyse der vorhanden Unit-Datei von Cockpit(#schritt-3-Die-Unit-datei-von-cockpit-analysieren)]
+  - [Schritt 3: Analyse der vorhanden Unit-Datei von Cockpit](#schritt-3-Die-Unit-datei-von-cockpit-analysieren)]
   - [Schritt 4: Die Unit-Datei schrittweise verbessern](#schritt-4-die-unit-datei-schrittweise-verbessern)
     - [4.1 Benutzerkontext festlegen](#41-benutzerkontext-festlegen)
     - [4.2 Neustartverhalten definieren](#42-neustartverhalten-definieren)
