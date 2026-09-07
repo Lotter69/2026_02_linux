@@ -235,7 +235,7 @@ Das Ergebnis sollte die IP-Adresse Ihrer VM enthalten. Beispielausgabe bei `dig`
 
 ```
 ;; ANSWER SECTION:
-server.<IHRE-DOMAIN>.  300  IN  A  49.12.34.56
+<subdomain>.<IHRE-DOMAIN>.  300  IN  A  49.12.34.56
 ```
 
 Alternativ können Sie Online-Tools wie [dnschecker.org](https://dnschecker.org) nutzen, um die Propagierung weltweit zu überprüfen.
