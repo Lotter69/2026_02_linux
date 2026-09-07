@@ -333,18 +333,18 @@ Falls eine Passphrase für den ssh-key vergeben wurde, werden Sie danach gefragt
 Sobald der Key-basierte Login erfolgreich funktioniert, deaktivieren Sie die Passwortauthentifizierung auf dem Server. Führen Sie die folgenden Befehle **auf dem Server** aus:
 
 
-Sicherheitskopie der SSH-Konfiguration anlegen
+##### Sicherheitskopie der SSH-Konfiguration anlegen
 
 ```bash
 cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
 ```
 
-Passwortauthentifizierung deaktivieren
+##### Passwortauthentifizierung deaktivieren
 
 suche in der /etc/ssh/sshd_config die Zeile mit `PasswordAuthentication` und ersetze mit `PasswordAuthentication no`
 
 
-Sicherstellen, dass nur autorisierte Keys akzeptiert werden
+##### Sicherstellen, dass nur autorisierte Keys akzeptiert werden
 
 suche in der /etc/ssh/sshd_config die Zeile mit `PubkeyAuthentication` und ersetze mit `PubkeyAuthentication yes`
 
