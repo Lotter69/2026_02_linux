@@ -235,9 +235,7 @@ Rufen Sie `https://localhost:9090` erneut im Browser auf und prüfen Sie, ob das
 
 ---
 
-### Schritt 4: systemd – Unit-Datei analysieren
-
-#### 4.2 Wichtige systemctl-Befehle im Überblick
+### Schritt 4: Wichtige systemctl-Befehle im Überblick
 
 ```bash
 sudo systemctl start cockpit       # Sofort starten
