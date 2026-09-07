@@ -180,49 +180,19 @@ Sie erkennen darin die Regeln, die ufw aus Ihren Befehlen erzeugt hat – unter 
 
 ### Schritt 2: Caddy installieren
 
-Debian bringt Caddy nicht in seinen Standard-Paketquellen mit. Deshalb wird das offizielle Caddy-Repository als zusätzliche Paketquelle eingebunden. Der Vorteil: Einmal eingerichtet, werden Caddy-Updates künftig automatisch über das gewohnte `apt upgrade` eingespielt – genau wie alle anderen Systempakete.
-
-1. Installieren Sie notwendige Hilfswerkzeuge:
-
-```bash
-apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
-```
-
-Diese vier Pakete erfüllen unterschiedliche Aufgaben:
-
-- `debian-keyring` und `debian-archive-keyring` stellen sicher, dass APT die kryptografischen Grundwerkzeuge für die Paketverifizierung vollständig zur Verfügung hat. Sie sind auf frischen Serverinstallationen gelegentlich noch nicht vorhanden.
-- `apt-transport-https` ermöglicht es APT, Paketquellen über HTTPS abzurufen. Ohne dieses Paket kann APT nur unverschlüsselte HTTP-Quellen ansprechen.
-- `curl` ist ein Kommandozeilenwerkzeug zum Herunterladen von Dateien über HTTP/HTTPS. Es wird im nächsten Schritt benötigt, um den GPG-Schlüssel und die Repository-Adresse abzurufen.
-
-2. Fügen Sie den öffentlichen GPG-Schlüssel des Caddy-Repositories und die Repository-Adresse ihrer Liste der vertrauenswürdign Repositories hinzu.
-
-```bash
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' \    # Erzeugen: Schlüssel-Datei laden
-  | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  # Filtern/Umwandeln: in Binärformat wandeln | Ablegen: per -o direkt in Datei schreiben
-
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \    # Erzeugen: Repository-Zeile laden
-  | tee /etc/apt/sources.list.d/caddy-stable.list
-  # Ablegen: in Datei schreiben + zur Kontrolle auf dem Bildschirm anzeigen
-```
-
-Der erste Befehl lädt den **öffentlichen GPG-Schlüssel** des Caddy-Projekts herunter und speichert ihn im APT-Schlüsselbund. APT verwendet diesen Schlüssel, um die digitale Signatur jedes heruntergeladenen Caddy-Pakets zu prüfen – so wird sichergestellt, dass das Paket tatsächlich vom Caddy-Projekt stammt und nicht nachträglich verändert wurde. `gpg --dearmor` wandelt den Schlüssel dabei vom textuellen PEM-Format in ein binäres Format um, das APT erwartet.
-
-Der zweite Befehl trägt die **Repository-Adresse** in die APT-Konfiguration ein. APT weiß damit künftig, wo es nach Caddy-Paketen und deren Updates suchen soll. Die Datei landet in `/etc/apt/sources.list.d/` – dem Standardort für zusätzliche Paketquellen unter Debian.
-
-3. Aktualisieren Sie die Paketlisten – darunter jetzt auch das neu hinzugefügte Caddy-Repository:
+1. Aktualisieren Sie die Paketlisten – darunter jetzt auch das neu hinzugefügte Caddy-Repository:
 
 ```bash
 apt update
 ```
 
-4. Installieren Sie Caddy:
+2. Installieren Sie Caddy:
 
 ```bash
 apt install caddy -y
 ```
 
-5. Überprüfen Sie Installation und Dienststatus:
+3. Überprüfen Sie Installation und Dienststatus:
 
 ```bash
 caddy version
@@ -231,8 +201,6 @@ systemctl status caddy
 
 Caddy wird automatisch als systemd-Dienst registriert und gestartet. Die Konfigurationsdatei liegt unter `/etc/caddy/Caddyfile`.
 
-> **Was ist systemd?**
-> systemd ist das Init-System moderner Linux-Distributionen. Es verwaltet Dienste, die beim Systemstart automatisch gestartet, überwacht und bei Absturz neu gestartet werden. Mit `systemctl start | stop | restart | status caddy` steuern Sie den Caddy-Dienst.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
