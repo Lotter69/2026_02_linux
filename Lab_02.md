@@ -410,7 +410,6 @@ Korrigieren Sie den Pfad, laden Sie neu und starten Sie den Dienst erneut.
 
 – Wann ist eine Drop-in-Datei die bessere Wahl gegenüber einer vollständigen eigenen Unit-Datei?  
 – Welche Konsequenz hat es, wenn `After=network.target` fehlt und das Skript Netzwerkverbindungen aufbaut?  
-– Wie würden Sie vorgehen, wenn ein Dienst zwar startet, aber nach 30 Sekunden still stirbt – ohne Fehlermeldung im Journal?
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
