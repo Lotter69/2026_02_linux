@@ -86,7 +86,6 @@ Skript ausführbar machen und kurz testen:
 ```bash
 chmod +x ~/dienste/test.sh
 ~/dienste/test.sh &        # & startet das Skript im Hintergrund
-sleep 15
 cat ~/dienste/test.log     # sollte zwei Einträge zeigen
 kill %1                    # Hintergrundprozess wieder beenden
 ```
