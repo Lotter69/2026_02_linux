@@ -119,6 +119,8 @@ Der Linux-Kernel enthält mit **netfilter** ein eingebautes Paketfiltersystem. *
 
 Bevor weitere Dienste installiert werden, schränken wir den eingehenden Datenverkehr auf das notwendige Minimum ein. Cockpit läuft aktuell noch direkt auf Port 9090 – nach dieser Übung wird es ausschließlich über Caddy auf Port 443 erreichbar sein. Port 9090 wird dann von außen nicht mehr benötigt.
 
+> Hinweis: Das Programm `ufw` ist vermutlich noch nicht installiert.
+
 1. Setzen Sie die Standardregeln – alles ablehnen, nur explizit Erlaubtes durchlassen:
 
 ```bash
