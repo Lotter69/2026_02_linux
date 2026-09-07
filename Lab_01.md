@@ -230,7 +230,7 @@ Rufen Sie `https://localhost:9090` erneut im Browser auf und prüfen Sie, ob das
 
 ---
 
-### Schritt 4: systemd – Unit-Datei analysieren und Befehle nachschlagen
+### Schritt 4: systemd – Unit-Datei analysieren
 
 #### 4.1 Die Unit-Datei von Cockpit analysieren
 
