@@ -390,14 +390,13 @@ Bei der zweiten Verbindung sollte die Fehlermeldung `Permission denied (publicke
 
 - Warum ist es sinnvoll, einen Domänennamen statt der IP-Adresse direkt zu verwenden – auch wenn sich die IP selten ändert?
 - Welche Konsequenz hat eine zu hohe TTL, wenn Sie die Server-IP kurzfristig ändern müssen?
-- Was würde passieren, wenn Sie den privaten SSH-Schlüssel verlieren und kein Notfallzugang (z. B. Web-Konsole) verfügbar wäre?
-- Warum ist eine Passphrase auf dem privaten Schlüssel sinnvoll, auch wenn sie die tägliche Nutzung etwas aufwändiger macht?
+- Ist eine Passphrase auf dem privaten Schlüssel sinnvoll?
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
-## Aufräumarbeiten
+## Aufräumarbeiten (nur nach Rücksprache mit Referenten)
 
 Wenn Sie den Server nur für diese Übung genutzt haben:
 
