@@ -555,7 +555,7 @@ flowchart TD
 
 ---
 
-## Aufräumarbeiten
+## Aufräumarbeiten (nur nach Rücksprache mit Referenten)
 
 > **⚠️ Wichtig:** Führen Sie den vollständigen Rückbau unten **nur aus, wenn Sie den Lehrgang an dieser Stelle beenden**. Machen Sie mit Lab 05 und Lab 06 weiter, bleiben Dienst A, Dienst B und Caddy zwingend in Betrieb: Lab 06 migriert deren Caddy-Konfiguration in nginx-Server-Blöcke und ruft sie im Browser auf. Beachten Sie dabei, dass die Python-Testserver einen Server-Neustart nicht überleben (siehe Hinweis in Schritt 4) – starten Sie sie vor Lab 06 bei Bedarf erneut:
 >
