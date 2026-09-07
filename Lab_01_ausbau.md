@@ -33,7 +33,7 @@ Nachdem Sie Cockpit lokal auf einem einzelnen Rechner betrieben haben – ohne w
 
 **Skalierbarkeit & Energieeffizienz**
 - Cockpit läuft permanent im Hintergrund. Welche Alternative bietet systemd, um einen Dienst nur dann zu starten, wenn tatsächlich eine Verbindung eingeht? *(Stichwort: Socket-Aktivierung, `cockpit.socket`)*
-- Wie verhält sich Ihr Setup, wenn Sie 50 Server statt eines verwalten möchten? Welche Werkzeuge würden Sie dann einsetzen?
+- Wie verhält es sich, wenn nicht nur der Dienst Cockpit, sondern 50 weitere Dienste bereitgestellt werden sollen?
 
 **Ausfallsicherheit**
 - Was wäre notwendig, um Cockpit hochverfügbar zu betreiben (kein Single Point of Failure)?
