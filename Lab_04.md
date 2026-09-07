@@ -54,7 +54,6 @@ Die Lösung ist ein **Reverse Proxy**: Ein einziger Dienst nimmt alle eingehende
 - Mehrere Dienste als **virtuelle Hosts** hinter einem Reverse Proxy bündeln.
 - **Automatisches HTTPS** via Let's Encrypt ohne manuelle Zertifikatsverwaltung nutzen.
 - Einen Dienst mit **Basic Authentication** zusätzlich schützen.
-- **HTTP-Sicherheits-Header** setzen und deren Schutzwirkung verstehen.
 
 ---
 
@@ -465,12 +464,6 @@ Rufen Sie `https://dienst-b.<IHRE-DOMAIN>` im Browser auf – ein Login-Dialog e
 > **Sicherheitshinweis:** Basic Authentication überträgt Anmeldedaten Base64-kodiert. Ohne HTTPS wären diese trivial abfangbar und die Base64-codierte Zeichenfolge kann wieder in Benutzername und Passwort zurückgerechnet werden. Da Caddy HTTPS erzwingt und HTTP-Anfragen automatisch auf HTTPS weiterleitet, ist die Kombination aus Basic Auth und TLS hier sicher und praxistauglich.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
-
----
-
-> **Weiterführend: HTTP-Sicherheits-Header mit Caddy**
-> Caddy ermöglicht es, jeden virtuellen Host um HTTP-Sicherheits-Header zu erweitern – etwa `Strict-Transport-Security`, `X-Frame-Options` oder `X-Content-Type-Options`. Diese Header weisen den Browser des Benutzers an, zusätzliche Schutzmaßnahmen zu aktivieren, und sind in produktiven Umgebungen empfehlenswert. Die vollständige Referenz der `header`-Direktive finden Sie in der Caddy-Dokumentation:
-> [caddyserver.com/docs/caddyfile/directives/header](https://caddyserver.com/docs/caddyfile/directives/header)
 
 ---
 
