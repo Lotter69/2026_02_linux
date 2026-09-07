@@ -31,6 +31,7 @@ Diese Übung deckt genau diese Grundlage ab: Sie beauftragen einen Server bei ei
 - Ein Account bei einem Cloud-Anbieter (z. B. Hetzner, DigitalOcean, IONOS, Netcup)
 - Ein Account bei einem Domain-Registrar (z. B. INWX, Namecheap, Porkbun, united-domains)
 - Ca. 10–15 Minuten Zeit für die DNS-Propagierung
+- Für den Veranstaltungszeitraum ist für Sie eine VM mit öffentlicher IP und ssh-Zugang vorbereitet und Sie bekommen die Zugangsdaten. Gerne können Sie auch selbst eine VM bei einem Provider in Betrieb nehmen.
 
 ---
 
