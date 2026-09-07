@@ -54,7 +54,6 @@ Die Lösung ist ein **Reverse Proxy**: Ein einziger Dienst nimmt alle eingehende
 - Mehrere Dienste als **virtuelle Hosts** hinter einem Reverse Proxy bündeln.
 - **Automatisches HTTPS** via Let's Encrypt ohne manuelle Zertifikatsverwaltung nutzen.
 - Einen Dienst mit **Basic Authentication** zusätzlich schützen.
-- **HTTP-Sicherheits-Header** setzen und deren Schutzwirkung verstehen.
 
 ---
 
@@ -119,6 +118,8 @@ Der Linux-Kernel enthält mit **netfilter** ein eingebautes Paketfiltersystem. *
 ### Schritt 1: Firewall mit ufw einrichten
 
 Bevor weitere Dienste installiert werden, schränken wir den eingehenden Datenverkehr auf das notwendige Minimum ein. Cockpit läuft aktuell noch direkt auf Port 9090 – nach dieser Übung wird es ausschließlich über Caddy auf Port 443 erreichbar sein. Port 9090 wird dann von außen nicht mehr benötigt.
+
+> Hinweis: Das Programm `ufw` ist vermutlich noch nicht installiert.
 
 1. Setzen Sie die Standardregeln – alles ablehnen, nur explizit Erlaubtes durchlassen:
 
@@ -468,12 +469,6 @@ Rufen Sie `https://dienst-b.<IHRE-DOMAIN>` im Browser auf – ein Login-Dialog e
 
 ---
 
-> **Weiterführend: HTTP-Sicherheits-Header mit Caddy**
-> Caddy ermöglicht es, jeden virtuellen Host um HTTP-Sicherheits-Header zu erweitern – etwa `Strict-Transport-Security`, `X-Frame-Options` oder `X-Content-Type-Options`. Diese Header weisen den Browser des Benutzers an, zusätzliche Schutzmaßnahmen zu aktivieren, und sind in produktiven Umgebungen empfehlenswert. Die vollständige Referenz der `header`-Direktive finden Sie in der Caddy-Dokumentation:
-> [caddyserver.com/docs/caddyfile/directives/header](https://caddyserver.com/docs/caddyfile/directives/header)
-
----
-
 ### Schritt 6: Ergebnis im Browser überprüfen
 
 Rufen Sie nun alle drei Dienste im Browser auf und vergleichen Sie mit dem, was Sie zu Beginn dieser Übung gesehen haben.
@@ -562,7 +557,7 @@ flowchart TD
 
 ---
 
-## Aufräumarbeiten
+## Aufräumarbeiten (nur nach Rücksprache mit Referenten)
 
 > **⚠️ Wichtig:** Führen Sie den vollständigen Rückbau unten **nur aus, wenn Sie den Lehrgang an dieser Stelle beenden**. Machen Sie mit Lab 05 und Lab 06 weiter, bleiben Dienst A, Dienst B und Caddy zwingend in Betrieb: Lab 06 migriert deren Caddy-Konfiguration in nginx-Server-Blöcke und ruft sie im Browser auf. Beachten Sie dabei, dass die Python-Testserver einen Server-Neustart nicht überleben (siehe Hinweis in Schritt 4) – starten Sie sie vor Lab 06 bei Bedarf erneut:
 >
