@@ -146,14 +146,14 @@ Beantworten Sie: Welche Informationen finden Sie in den Logs? Wann und aus welch
 ### Reflexion
 
 – In welchen Szenarien ist ein dauerhaft laufender Dienst sinnvoll – und wann ist Socket-Aktivierung die bessere Wahl?  
-– Wie würden Sie dieses Setup automatisiert auf mehreren Servern ausrollen? *(Stichwort: Ansible)*  
-– Was würde sich ändern, wenn Cockpit in einem Container statt direkt auf dem Host betrieben würde?
+– Wie würden Sie dieses Setup automatisiert auf mehreren Servern ausrollen?  
+
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
-## Aufräumarbeiten
+## Aufräumarbeiten (nur nach Rücksprache mit Referenten)
 
 Versetzen Sie Ihr System in den ursprünglichen Zustand:
 
