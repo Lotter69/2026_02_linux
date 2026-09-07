@@ -227,7 +227,7 @@ journalctl -t netmon -f
 
 ---
 
-### Schritt 3 Die Unit-Datei von Cockpit analysieren
+### Schritt 3: Die Unit-Datei von Cockpit analysieren
 
 Jeder mit apt installierte Dienst bringt eine Unit-Datei mit, die systemd beschreibt, wie der Dienst zu starten ist. Sehen Sie sich die Unit-Datei von Cockpit an:
 
@@ -258,7 +258,7 @@ Neben `.service`-Dateien kennt systemd weitere Unit-Typen, die in späteren Erwe
 
 Die minimale Unit-Datei funktioniert – ist aber noch nicht produktionstauglich. Erweitern Sie sie schrittweise.
 
-#### 3.1 Benutzerkontext festlegen
+#### 4.1 Benutzerkontext festlegen
 
 Ein Dienst, der als `root` läuft, ist ein Sicherheitsrisiko. Legen Sie einen dedizierten Systembenutzer an und weisen Sie ihn dem Dienst zu:
 
@@ -279,7 +279,7 @@ User=netmon
 Group=netmon
 ```
 
-#### 3.2 Neustartverhalten definieren
+#### 4.2 Neustartverhalten definieren
 
 ```ini
 [Service]
@@ -290,7 +290,7 @@ Restart=on-failure
 RestartSec=10s
 ```
 
-#### 3.3 Abhängigkeiten und Startreihenfolge festlegen
+#### 4.3 Abhängigkeiten und Startreihenfolge festlegen
 
 Der Dienst soll erst starten, nachdem das Netzwerk verfügbar ist:
 
@@ -300,7 +300,7 @@ Description=Netzwerkmonitor – schreibt TCP-Statistiken ins Syslog
 After=network.target
 ```
 
-#### 3.4 Vollständige Unit-Datei
+#### 4.4 Vollständige Unit-Datei
 
 Nach allen Ergänzungen sollte die Datei so aussehen:
 
@@ -332,7 +332,7 @@ sudo systemctl status netmon
 
 ---
 
-### Schritt 4: Autostart aktivieren und Persistenz prüfen
+### Schritt 5: Autostart aktivieren und Persistenz prüfen
 
 ```bash
 sudo systemctl enable netmon
@@ -352,7 +352,7 @@ Läuft der Dienst? Sind Einträge im Syslog vorhanden?
 
 ---
 
-### Schritt 5: Fehler in Unit-Dateien diagnostizieren
+### Schritt 6: Fehler in Unit-Dateien diagnostizieren
 
 Eine häufige Situation in der Praxis: Eine Unit-Datei existiert, aber der Dienst startet nicht. Üben Sie die Diagnose gezielt.
 
