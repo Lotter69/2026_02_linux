@@ -212,10 +212,10 @@ Nun verknüpfen Sie den Domänennamen mit der öffentlichen IPv4-Adresse Ihrer V
 3. Speichern Sie den Eintrag.
 
 > **Was ist TTL?**
-> Die *Time to Live* gibt in Sekunden an, wie lange DNS-Resolver diesen Eintrag zwischenspeichern dürfen, bevor sie ihn erneut abfragen. Ein niedriger Wert (z. B. 300) ermöglicht schnelle Änderungen, erzeugt aber mehr Anfragen. Ein DNS-Resolver (meist beim Internetprovider oder bei öffentlichen Diensten wie Google DNS oder Cloudflare betrieben) ist der Server, der Namensauflösungen im Auftrag der Nutzer durchführt und Ergebnisse zwischenspeichert.Für stabile Produktivumgebungen sind Werte von 3600 (1 Stunde) üblich.
+> Die *Time to Live* gibt in Sekunden an, wie lange DNS-Resolver diesen Eintrag zwischenspeichern dürfen, bevor sie ihn erneut abfragen. Ein DNS-Resolver (meist beim Internetprovider oder bei öffentlichen Diensten wie Google DNS oder Cloudflare betrieben) ist der Server, der Namensauflösungen im Auftrag der Nutzer durchführt und Ergebnisse zwischenspeichert. Ein niedriger Wert (z. B. 300) ermöglicht schnelle Änderungen, erzeugt aber mehr Anfragen. Für stabile Produktivumgebungen sind Werte von 3600 (1 Stunde) üblich.
 
 > **Exkurs: Wildcard statt Einzeleinträge**
->Statt für jeden zukünftigen Hostnamen einen eigenen A-Record anzulegen, könnten Sie auch einen einzigen Wildcard-Record setzen: Name *, Typ A, Wert <IPv4-Adresse>. Damit löst jede beliebige Subdomain von <IHRE-DOMAIN> automatisch auf diese IP auf – auch solche, die Sie nie angelegt haben. Für diese Übung verwenden wir bewusst einen expliziten Einzeleintrag, damit der Zusammenhang zwischen DNS-Konfiguration und Namensauflösung nachvollziehbar bleibt. Prüfen Sie in späteren Übungen, ob in Ihrer Zone bereits ein Wildcard-Eintrag existiert, bevor Sie dort neue Einzeleinträge anlegen.
+>Statt für jeden zukünftigen Hostnamen einen eigenen A-Record anzulegen, könnten Sie auch einen einzigen Wildcard-Record setzen: Name *, Typ A, Wert <IPv4-Adresse>. Damit löst jede beliebige Subdomain von <IHRE-DOMAIN> automatisch auf diese IP auf – auch solche, die Sie nie angelegt haben. 
 
 #### 3.2 DNS-Propagierung abwarten und prüfen
 
@@ -225,10 +225,10 @@ Prüfen Sie die Auflösung von Ihrem lokalen Rechner aus:
 
 ```bash
 # macOS / Linux
-dig server.<IHRE-DOMAIN>
+dig <subdomain>.<IHRE-DOMAIN>
 
 # Windows (PowerShell)
-Resolve-DnsName server.<IHRE-DOMAIN>
+Resolve-DnsName <subdomain>.<IHRE-DOMAIN>
 ```
 
 Das Ergebnis sollte die IP-Adresse Ihrer VM enthalten. Beispielausgabe bei `dig`:
