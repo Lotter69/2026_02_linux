@@ -30,13 +30,14 @@ Genau das ist eine typische Situation in der Praxis: Eigenentwicklungen, herunte
 - [Aufgaben](#aufgaben)
   - [Schritt 1: Den Ausgangszustand verstehen – was fehlt ohne Unit-Datei?](#schritt-1-den-ausgangszustand-verstehen--was-fehlt-ohne-unit-datei)
   - [Schritt 2: Eine minimale Unit-Datei schreiben](#schritt-2-eine-minimale-unit-datei-schreiben)
-  - [Schritt 3: Die Unit-Datei schrittweise verbessern](#schritt-3-die-unit-datei-schrittweise-verbessern)
-    - [3.1 Benutzerkontext festlegen](#31-benutzerkontext-festlegen)
-    - [3.2 Neustartverhalten definieren](#32-neustartverhalten-definieren)
-    - [3.3 Abhängigkeiten und Startreihenfolge festlegen](#33-abhängigkeiten-und-startreihenfolge-festlegen)
-    - [3.4 Vollständige Unit-Datei](#34-vollständige-unit-datei)
-  - [Schritt 4: Autostart aktivieren und Persistenz prüfen](#schritt-4-autostart-aktivieren-und-persistenz-prüfen)
-  - [Schritt 5: Fehler in Unit-Dateien diagnostizieren](#schritt-5-fehler-in-unit-dateien-diagnostizieren)
+  - [Schritt 3: Analyse der vorhanden Unit-Datei von Cockpit()]
+  - [Schritt 4: Die Unit-Datei schrittweise verbessern](#schritt-3-die-unit-datei-schrittweise-verbessern)
+    - [4.1 Benutzerkontext festlegen](#31-benutzerkontext-festlegen)
+    - [4.2 Neustartverhalten definieren](#32-neustartverhalten-definieren)
+    - [4.3 Abhängigkeiten und Startreihenfolge festlegen](#33-abhängigkeiten-und-startreihenfolge-festlegen)
+    - [4.4 Vollständige Unit-Datei](#34-vollständige-unit-datei)
+  - [Schritt 5: Autostart aktivieren und Persistenz prüfen](#schritt-4-autostart-aktivieren-und-persistenz-prüfen)
+  - [Schritt 6: Fehler in Unit-Dateien diagnostizieren](#schritt-5-fehler-in-unit-dateien-diagnostizieren)
 - [Rückblick und Zusammenfassung](#rückblick-und-zusammenfassung)
 - [Aufräumarbeiten](#aufräumarbeiten)
 - [Autoren und Urheberrecht](#autoren-und-urheberrecht)
@@ -168,31 +169,6 @@ Beide Befehle liefern Fehler – nicht weil der Dienst inaktiv ist, sondern weil
 
 ---
 
-#### 4.1 Die Unit-Datei von Cockpit analysieren
-
-Jeder mit apt installierte Dienst bringt eine Unit-Datei mit, die systemd beschreibt, wie der Dienst zu starten ist. Sehen Sie sich die Unit-Datei von Cockpit an:
-
-```bash
-systemctl cat cockpit.service
-```
-
-Die drei wichtigsten Abschnitte sind:
-
-| Abschnitt | Bedeutung |
-|---|---|
-| `[Unit]` | Beschreibung und Abhängigkeiten (`Requires=`, `After=`) |
-| `[Service]` | Startbefehl (`ExecStart=`), Neustartverhalten (`Restart=`) |
-| `[Install]` | Autostart-Ziel (`WantedBy=multi-user.target`) |
-
-Neben `.service`-Dateien kennt systemd weitere Unit-Typen, die in späteren Erweiterungsaufgaben relevant werden:
-
-| Typ | Beispiel | Funktion |
-|---|---|---|
-| `.service` | `cockpit.service` | Hintergrundprozess / Daemon |
-| `.socket` | `cockpit.socket` | Socket-Aktivierung: Dienst startet erst bei eingehender Verbindung |
-| `.timer` | `apt-daily.timer` | Geplante Ausführung (Ersatz für cron) |
-| `.target` | `multi-user.target` | Gruppeneinheit, vergleichbar mit einem Runlevel |
-
 ### Schritt 2: Eine minimale Unit-Datei schreiben
 
 Es gibt drei Orte, an denen Angaben zum Start von Diensten gemacht werden können:
@@ -251,7 +227,34 @@ journalctl -t netmon -f
 
 ---
 
-### Schritt 3: Die Unit-Datei schrittweise verbessern
+### Schritt 3 Die Unit-Datei von Cockpit analysieren
+
+Jeder mit apt installierte Dienst bringt eine Unit-Datei mit, die systemd beschreibt, wie der Dienst zu starten ist. Sehen Sie sich die Unit-Datei von Cockpit an:
+
+```bash
+systemctl cat cockpit.service
+```
+
+Die drei wichtigsten Abschnitte sind:
+
+| Abschnitt | Bedeutung |
+|---|---|
+| `[Unit]` | Beschreibung und Abhängigkeiten (`Requires=`, `After=`) |
+| `[Service]` | Startbefehl (`ExecStart=`), Neustartverhalten (`Restart=`) |
+| `[Install]` | Autostart-Ziel (`WantedBy=multi-user.target`) |
+
+Neben `.service`-Dateien kennt systemd weitere Unit-Typen, die in späteren Erweiterungsaufgaben relevant werden:
+
+| Typ | Beispiel | Funktion |
+|---|---|---|
+| `.service` | `cockpit.service` | Hintergrundprozess / Daemon |
+| `.socket` | `cockpit.socket` | Socket-Aktivierung: Dienst startet erst bei eingehender Verbindung |
+| `.timer` | `apt-daily.timer` | Geplante Ausführung (Ersatz für cron) |
+| `.target` | `multi-user.target` | Gruppeneinheit, vergleichbar mit einem Runlevel |
+
+---
+
+### Schritt 4: Die Unit-Datei schrittweise verbessern
 
 Die minimale Unit-Datei funktioniert – ist aber noch nicht produktionstauglich. Erweitern Sie sie schrittweise.
 
