@@ -261,7 +261,7 @@ journalctl -b -u cockpit           # Logs nur vom aktuellen Boot
 ## Autoren und Urheberrecht
 
 - Erstellt von: Michael Lotter, Florian Reichl
-- Datum: 2025
+- Datum: 2026
 - Version: v1.0
 
 ![line](images/banner.png)
