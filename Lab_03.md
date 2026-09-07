@@ -321,7 +321,7 @@ Testen Sie jetzt den Login mit dem Schlüssel – **ohne** Schließen der besteh
 ssh root@server.<IHRE-DOMAIN>
 ```
 
-Falls eine Passphrase vergeben wurde, werden Sie danach gefragt. Bei erfolgreicher Verbindung erscheint der Server-Prompt.
+Falls eine Passphrase für den ssh-key vergeben wurde, werden Sie danach gefragt. Bei erfolgreicher Verbindung erscheint der Server-Prompt.
 
 > **Tipp zur Fehlerbehebung:** Wenn der Login fehlschlägt:
 > - Prüfen Sie die Berechtigungen auf der VM: `chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys`
@@ -337,7 +337,8 @@ Sobald der Key-basierte Login erfolgreich funktioniert, deaktivieren Sie die Pas
 cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
 
 # Passwortauthentifizierung deaktivieren
-sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+suche in der /etc/ssh/sshd_config die Zeile mit `PasswordAuthentication` und ersetze mit `PasswordAuthentication no`
+s
 
 # Sicherstellen, dass nur autorisierte Keys akzeptiert werden
 sed -i 's/^#\?PubkeyAuthentication.*/PubkeyAuthentication yes/' /etc/ssh/sshd_config
