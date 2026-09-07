@@ -55,6 +55,18 @@ Ihre Aufgabe: Cockpit installieren, den Dienst dauerhaft und zuverlässig betrei
 
 ### Schritt 1: System aktualisieren und Cockpit installieren
 
+#### Aufgaben als Administrator ausführen
+
+Ein normaler Linux-Benutzer darf viele Dinge nicht tun. Zum Beispiel darf ein normaler Benutzer keine Software installieren.
+
+Falls man doch Software installieren möchte, so wird man nur kurzzeitig Administrator, der bei Linux `root` heißt.
+
+Um einen einzelnen Befehl als Administrator auszuführen schreibt man einfach `sudo` vor den Befehl. Zum Beispiel `sudo apt install einProgramm`.
+
+Man kann auch das Benutzerkonto für längere Zeit zu `root` umschalten: Mit `sudo -s` ist man für die nächsten Befehle `root`. Solange, bis man diesen Zustand mit `exit` wieder beendet.
+
+Hinweis: Den Befehl `sudo` dürfen nur Benutzer verwenden, die zur Benutzergruppe `sudo` gehören. Alle anderen Benutzer erhalten eine Fehlermeldung.
+
 #### 1.1 Software aktualisieren
 
 Bevor ein neues Paket installiert wird, synchronisieren Sie die lokale Paketdatenbank. Öffnen Sie ein Terminal und führen Sie aus:
