@@ -67,7 +67,7 @@ Diese Übung deckt genau diese Grundlage ab: Sie beauftragen einen Server bei ei
 
 ### Was ist SSH-Key-Authentifizierung?
 
-SSH unterstützt zwei Authentifizierungsverfahren: Passwort und Schlüsselpaar. Bei der Schlüsselpaar-Methode wird ein mathematisch zusammenhängendes Schlüsselpaar erzeugt – ein **privater Schlüssel** (verbleibt auf Ihrem Rechner) und ein **öffentlicher Schlüssel** (wird auf dem Server hinterlegt). Beim Login prüft der Server, ob der private Schlüssel zum hinterlegten öffentlichen Schlüssel passt. Da kein Passwort über das Netzwerk übertragen wird, ist diese Methode deutlich sicherer – insbesondere gegenüber Brute-Force-Angriffen.
+SSH unterstützt zwei Authentifizierungsverfahren: Passwort und Schlüsselpaar. Bei der Schlüsselpaar-Methode wird ein mathematisch zusammenhängendes Schlüsselpaar erzeugt – ein **privater Schlüssel** (verbleibt auf Ihrem Rechner) und ein **öffentlicher Schlüssel** (wird auf dem Server hinterlegt). Beim Login weist der Client kryptografisch nach, dass er im Besitz des privaten Schlüssels ist, indem er eine Signatur erzeugt, die der Server mit dem hinterlegten öffentlichen Schlüssel verifiziert. Der private Schlüssel selbst wird dabei nie übertragen. Da kein Passwort über das Netzwerk übertragen wird, ist diese Methode deutlich sicherer – insbesondere gegenüber Brute-Force-Angriffen.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
