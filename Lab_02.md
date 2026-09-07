@@ -95,6 +95,8 @@ kill %1                    # Hintergrundprozess wieder beenden
 
 Nun das eigentliche Skript für den Dienst. Es erfüllt eine typische netzwerktechnische Aufgabe: Es erfasst regelmäßig den Zustand aktiver TCP-Verbindungen und schreibt die Zusammenfassung ins Syslog – nützlich etwa für die Fehlersuche bei unerwartet hoher Verbindungslast.
 
+Dieses Skript speichern wir im Verzeichnis `/opt`. Dies ist nach dem [FHS](https://de.wikipedia.org/wiki/Filesystem_Hierarchy_Standard) ein Ort für zusätzliche Programme.
+
 ```bash
 sudo mkdir -p /opt/netmon
 sudo nano /opt/netmon/netmon.sh
