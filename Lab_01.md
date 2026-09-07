@@ -65,7 +65,10 @@ Ihre Aufgabe: Cockpit installieren, den Dienst dauerhaft und zuverlässig betrei
 >
 >Man kann auch das Benutzerkonto für längere Zeit zu `root` umschalten: Mit `sudo -s` ist man für die nächsten Befehle `root`. Solange, bis man diesen Zustand mit `exit` wieder beendet.
 >
-> Hinweis: Den Befehl `sudo` dürfen nur Benutzer verwenden, die zur Benutzergruppe `sudo` gehören. Alle anderen Benutzer erhalten eine Fehlermeldung.
+> Hinweise: 
+> - Den Befehl `sudo` dürfen nur Benutzer verwenden, die zur Benutzergruppe `sudo` gehören. Alle anderen Benutzer erhalten eine Fehlermeldung.
+> - Jedes mal, wenn man `sudo` benutzt, wird man nach dem eigenen Passwort gefragt.
+> - Wird `sudo` innerhalb kurzer Zeit mehrmals aufgerufen, so muss man nur einmal das Passwort eingeben.
 
 #### 1.1 Software aktualisieren
 
