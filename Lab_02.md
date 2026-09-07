@@ -191,7 +191,9 @@ Neben `.service`-Dateien kennt systemd weitere Unit-Typen, die in späteren Erwe
 | `.service` | `cockpit.service` | Hintergrundprozess / Daemon |
 | `.socket` | `cockpit.socket` | Socket-Aktivierung: Dienst startet erst bei eingehender Verbindung |
 | `.timer` | `apt-daily.timer` | Geplante Ausführung (Ersatz für cron) |
-| `.target` | `multi-user.target` | Gruppeneinheit, vergleichbar mit einem Runlevel |### Schritt 2: Eine minimale Unit-Datei schreiben
+| `.target` | `multi-user.target` | Gruppeneinheit, vergleichbar mit einem Runlevel |
+
+### Schritt 2: Eine minimale Unit-Datei schreiben
 
 Es gibt drei Orte, an denen Angaben zum Start von Diensten gemacht werden können:
 
