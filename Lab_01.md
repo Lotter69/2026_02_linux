@@ -93,6 +93,8 @@ dpkg -l cockpit
 
 > **Tipp:** Achten Sie auf den Status `ii` am Zeilenanfang – das bedeutet: **i**nstalliert und korrekt konfiguriert. Ein `rc` würde bedeuten, das Paket wurde entfernt, aber Konfigurationsdateien sind noch vorhanden.
 
+> **Was ist `dpkg`?**
+> `dpkg`
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
@@ -234,31 +236,6 @@ Rufen Sie `https://localhost:9090` erneut im Browser auf und prüfen Sie, ob das
 ---
 
 ### Schritt 4: systemd – Unit-Datei analysieren
-
-#### 4.1 Die Unit-Datei von Cockpit analysieren
-
-Jeder mit apt installierte Dienst bringt eine Unit-Datei mit, die systemd beschreibt, wie der Dienst zu starten ist. Sehen Sie sich die Unit-Datei von Cockpit an:
-
-```bash
-systemctl cat cockpit.service
-```
-
-Die drei wichtigsten Abschnitte sind:
-
-| Abschnitt | Bedeutung |
-|---|---|
-| `[Unit]` | Beschreibung und Abhängigkeiten (`Requires=`, `After=`) |
-| `[Service]` | Startbefehl (`ExecStart=`), Neustartverhalten (`Restart=`) |
-| `[Install]` | Autostart-Ziel (`WantedBy=multi-user.target`) |
-
-Neben `.service`-Dateien kennt systemd weitere Unit-Typen, die in späteren Erweiterungsaufgaben relevant werden:
-
-| Typ | Beispiel | Funktion |
-|---|---|---|
-| `.service` | `cockpit.service` | Hintergrundprozess / Daemon |
-| `.socket` | `cockpit.socket` | Socket-Aktivierung: Dienst startet erst bei eingehender Verbindung |
-| `.timer` | `apt-daily.timer` | Geplante Ausführung (Ersatz für cron) |
-| `.target` | `multi-user.target` | Gruppeneinheit, vergleichbar mit einem Runlevel |
 
 #### 4.2 Wichtige systemctl-Befehle im Überblick
 

@@ -167,7 +167,30 @@ Beide Befehle liefern Fehler – nicht weil der Dienst inaktiv ist, sondern weil
 
 ---
 
-### Schritt 2: Eine minimale Unit-Datei schreiben
+#### 4.1 Die Unit-Datei von Cockpit analysieren
+
+Jeder mit apt installierte Dienst bringt eine Unit-Datei mit, die systemd beschreibt, wie der Dienst zu starten ist. Sehen Sie sich die Unit-Datei von Cockpit an:
+
+```bash
+systemctl cat cockpit.service
+```
+
+Die drei wichtigsten Abschnitte sind:
+
+| Abschnitt | Bedeutung |
+|---|---|
+| `[Unit]` | Beschreibung und Abhängigkeiten (`Requires=`, `After=`) |
+| `[Service]` | Startbefehl (`ExecStart=`), Neustartverhalten (`Restart=`) |
+| `[Install]` | Autostart-Ziel (`WantedBy=multi-user.target`) |
+
+Neben `.service`-Dateien kennt systemd weitere Unit-Typen, die in späteren Erweiterungsaufgaben relevant werden:
+
+| Typ | Beispiel | Funktion |
+|---|---|---|
+| `.service` | `cockpit.service` | Hintergrundprozess / Daemon |
+| `.socket` | `cockpit.socket` | Socket-Aktivierung: Dienst startet erst bei eingehender Verbindung |
+| `.timer` | `apt-daily.timer` | Geplante Ausführung (Ersatz für cron) |
+| `.target` | `multi-user.target` | Gruppeneinheit, vergleichbar mit einem Runlevel |### Schritt 2: Eine minimale Unit-Datei schreiben
 
 Es gibt drei Orte, an denen Angaben zum Start von Diensten gemacht werden können:
 
