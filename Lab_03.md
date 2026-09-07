@@ -84,7 +84,7 @@ Wählen Sie folgende Eckdaten:
 
 | Eigenschaft       | Empfehlung für diese Übung              |
 |-------------------|-----------------------------------------|
-| Betriebssystem    | Ubuntu 24.04 LTS (64-Bit)               |
+| Betriebssystem    | Debian stable (aktuell Trixie), 64-Bit  |
 | CPU / RAM         | 1 vCPU, 1–2 GB RAM (kleinstes Paket)    |
 | Speicher          | 20 GB SSD                               |
 | Standort          | EU-Rechenzentrum (z. B. Deutschland)    |
@@ -180,11 +180,10 @@ Nach der Registrierung verwalten Sie die DNS-Einträge Ihrer Domain entweder dir
 
 Folgende Domainnamen werden im weiteren Verlauf benötigt:
 
-| Verwendungszweck       | Beispiel-Hostname          |
-|------------------------|----------------------------|
-| SSH-Zugriff auf die VM | `cockpit.<IHRE-DOMAIN>`    |
-| Spätere Dienste        | `dienst-a.<IHRE-DOMAIN>`       |
-|                        | `dienst-b.<IHRE-DOMAIN>`   |
+| Verwendungszweck                    | Beispiel-Hostname |
+|--------------------------------------|-------------------|
+| SSH-Zugriff auf die VM (dieses Lab)  | `server.<IHRE-DOMAIN>` |
+| Spätere Dienste (ab Lab 04)          | `cockpit.<IHRE-DOMAIN>`, `dienst-a.<IHRE-DOMAIN>`, `dienst-b.<IHRE-DOMAIN>` |
 
 > **Keine eigene Domain zur Hand?**
 > Für Test- und Übungszwecke bieten Dienste wie **nip.io** oder **sslip.io** eine kostenlose Alternative: Sie kodieren die IP-Adresse direkt im Hostnamen. Zum Beispiel löst `cockpit.49-12-34-56.nip.io` automatisch auf `49.12.34.56` auf – ohne DNS-Konfiguration. Diese Methode eignet sich für lokale Tests, nicht aber für produktive Umgebungen oder Let's Encrypt-Zertifikate.
@@ -435,6 +434,6 @@ Wenn Sie den Server nur für diese Übung genutzt haben:
 ![line](images/banner.png)
 
 <p align="center">
-<a href="README.md"><img src="images/previous.png" width="150px"></a>
-<a href="02_reverse_proxy_caddy.md"><img src="images/next.png" width="150px"></a>
+<a href="Lab_02.md"><img src="images/previous.png" width="150px"></a>
+<a href="Lab_04.md"><img src="images/next.png" width="150px"></a>
 </p>

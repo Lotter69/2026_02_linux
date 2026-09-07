@@ -63,6 +63,9 @@ Bevor ein neues Paket installiert wird, synchronisieren Sie die lokale Paketdate
 sudo apt update
 ```
 
+> **Was passiert hier?**  
+> `apt update` lädt die aktuellen Paketlisten von den konfigurierten Quellen herunter. Es werden dabei **keine** Pakete installiert oder aktualisiert – nur die Metadaten (Paketname, Version, Abhängigkeiten) werden erneuert.
+
 Mit der aktualisierten Paketdatenbank bringen wir die Software auf unserem Rechner auf den aktuellen Stand. Geben Sie im Terminal folgenden Befehl ein:
 
 ```bash
@@ -70,7 +73,7 @@ sudo apt upgrade
 ```
 
 > **Was passiert hier?**  
-> `apt update` lädt die aktuellen Paketlisten von den konfigurierten Quellen herunter. Es werden dabei **keine** Pakete installiert oder aktualisiert – nur die Metadaten (Paketname, Version, Abhängigkeiten) werden erneuert.
+> `apt upgrade` lädt die Pakete herunter, welche sich aktualisieren lassen. Im Anschluss werden diese Pakete installiert bzw. aktualisiert.
 
 
 
@@ -288,5 +291,5 @@ journalctl -b -u cockpit           # Logs nur vom aktuellen Boot
 ![line](images/banner.png)
 <p align="center">
 <a href="README.md"><img src="images/previous.png" width="150px"></a>
-<a href="02_erweiterung_dienste_skalierung.md"><img src="images/next.png" width="150px"></a>
+<a href="Lab_01_ausbau.md"><img src="images/next.png" width="150px"></a>
 </p>

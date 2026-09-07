@@ -21,7 +21,7 @@ Genau das ist eine typische Situation in der Praxis: Eigenentwicklungen, herunte
 |---|---|
 | **Betriebssystem** | Linux Mint 21.x (Ubuntu-basiert) |
 | **Benutzerrechte** | sudo-Berechtigung erforderlich |
-| **Vorkenntnisse** | Grundlegende systemctl-Befehle (siehe Hauptübung) |
+| **Vorkenntnisse** | Grundlegende systemctl-Befehle (siehe Lab 01) |
 
 ---
 
@@ -405,6 +405,6 @@ sudo userdel netmon
 
 ![line](images/banner.png)
 <p align="center">
-<a href="cockpit-laboruebung.md"><img src="images/previous.png" width="150px"></a>
-<a href="README.md"><img src="images/next.png" width="150px"></a>
+<a href="Lab_01_ausbau.md"><img src="images/previous.png" width="150px"></a>
+<a href="Lab_03.md"><img src="images/next.png" width="150px"></a>
 </p>

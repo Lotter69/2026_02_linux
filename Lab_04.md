@@ -60,7 +60,7 @@ Die Lösung ist ein **Reverse Proxy**: Ein einziger Dienst nimmt alle eingehende
 
 ## Voraussetzungen
 
-- Ein Linux-Server (Ubuntu 24.04 LTS) mit öffentlicher IPv4-Adresse, administrierbar per SSH
+- Ein Linux-Server (Debian stable, aktuell Trixie) mit öffentlicher IPv4-Adresse, administrierbar per SSH
 - Ein Domänenname mit DNS-Verwaltungszugriff
 - Folgende DNS-A-Records zeigen bereits auf die IP-Adresse des Servers:
   - `cockpit.<IHRE-DOMAIN>`
@@ -180,7 +180,7 @@ Sie erkennen darin die Regeln, die ufw aus Ihren Befehlen erzeugt hat – unter 
 
 ### Schritt 2: Caddy installieren
 
-Ubuntu bringt Caddy nicht in seinen Standard-Paketquellen mit. Deshalb wird das offizielle Caddy-Repository als zusätzliche Paketquelle eingebunden. Der Vorteil: Einmal eingerichtet, werden Caddy-Updates künftig automatisch über das gewohnte `apt upgrade` eingespielt – genau wie alle anderen Systempakete.
+Debian bringt Caddy nicht in seinen Standard-Paketquellen mit. Deshalb wird das offizielle Caddy-Repository als zusätzliche Paketquelle eingebunden. Der Vorteil: Einmal eingerichtet, werden Caddy-Updates künftig automatisch über das gewohnte `apt upgrade` eingespielt – genau wie alle anderen Systempakete.
 
 1. Installieren Sie notwendige Hilfswerkzeuge:
 
@@ -208,7 +208,7 @@ curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' \    # 
 
 Der erste Befehl lädt den **öffentlichen GPG-Schlüssel** des Caddy-Projekts herunter und speichert ihn im APT-Schlüsselbund. APT verwendet diesen Schlüssel, um die digitale Signatur jedes heruntergeladenen Caddy-Pakets zu prüfen – so wird sichergestellt, dass das Paket tatsächlich vom Caddy-Projekt stammt und nicht nachträglich verändert wurde. `gpg --dearmor` wandelt den Schlüssel dabei vom textuellen PEM-Format in ein binäres Format um, das APT erwartet.
 
-Der zweite Befehl trägt die **Repository-Adresse** in die APT-Konfiguration ein. APT weiß damit künftig, wo es nach Caddy-Paketen und deren Updates suchen soll. Die Datei landet in `/etc/apt/sources.list.d/` – dem Standardort für zusätzliche Paketquellen unter Ubuntu.
+Der zweite Befehl trägt die **Repository-Adresse** in die APT-Konfiguration ein. APT weiß damit künftig, wo es nach Caddy-Paketen und deren Updates suchen soll. Die Datei landet in `/etc/apt/sources.list.d/` – dem Standardort für zusätzliche Paketquellen unter Debian.
 
 3. Aktualisieren Sie die Paketlisten – darunter jetzt auch das neu hinzugefügte Caddy-Repository:
 
@@ -571,6 +571,16 @@ dienst-b.<IHRE-DOMAIN> {
 }
 ```
 
+Auf einen Blick zusammengefasst, ist Caddy damit der **einzige** Dienst, den das Internet direkt erreicht – alle drei Backends bleiben ausschließlich auf `localhost` erreichbar und werden erst durch Caddy nach außen sichtbar gemacht:
+
+```mermaid
+flowchart TD
+    Internet(["Internet"]) -->|"https://*.&lt;IHRE-DOMAIN&gt;:443"| Caddy["Caddy<br/>(einziger offener Port)"]
+    Caddy -->|"cockpit.&lt;IHRE-DOMAIN&gt;"| Cockpit["Cockpit<br/>localhost:9090"]
+    Caddy -->|"dienst-a.&lt;IHRE-DOMAIN&gt;"| DienstA["Dienst A<br/>localhost:8001"]
+    Caddy -->|"dienst-b.&lt;IHRE-DOMAIN&gt;<br/>+ Basic Auth"| DienstB["Dienst B<br/>localhost:8002"]
+```
+
 ---
 
 ### Reflexion
@@ -586,6 +596,15 @@ dienst-b.<IHRE-DOMAIN> {
 
 ## Aufräumarbeiten
 
+> **⚠️ Wichtig:** Führen Sie den vollständigen Rückbau unten **nur aus, wenn Sie den Lehrgang an dieser Stelle beenden**. Machen Sie mit Lab 05 und Lab 06 weiter, bleiben Dienst A, Dienst B und Caddy zwingend in Betrieb: Lab 06 migriert deren Caddy-Konfiguration in nginx-Server-Blöcke und ruft sie im Browser auf. Beachten Sie dabei, dass die Python-Testserver einen Server-Neustart nicht überleben (siehe Hinweis in Schritt 4) – starten Sie sie vor Lab 06 bei Bedarf erneut:
+>
+> ```bash
+> cd /srv/dienst-a && python3 -m http.server 8001 &
+> cd /srv/dienst-b && python3 -m http.server 8002 &
+> ```
+
+### Vollständiger Rückbau (nur bei Lehrgangsende)
+
 1. Stoppen Sie die Python-Testserver:
 
 ```bash
@@ -599,7 +618,7 @@ kill $(lsof -t -i:8001) $(lsof -t -i:8002)
 rm -rf /srv/dienst-a /srv/dienst-b
 ```
 
-3. Wenn der Server für weitere Übungen weitergenutzt wird, kann Caddy aktiv bleiben. Wenn nicht:
+3. Deaktivieren Sie Caddy:
 
 ```bash
 systemctl stop caddy
@@ -620,7 +639,7 @@ systemctl disable caddy
 - [Mozilla SSL Configuration Generator](https://ssl-config.mozilla.org/) – Best-Practice TLS-Konfigurationen für verschiedene Servertypen
 - [securityheaders.com](https://securityheaders.com) – Online-Tool zur Analyse der HTTP-Sicherheits-Header einer Domain
 - [Cockpit Dokumentation](https://cockpit-project.org/documentation.html) – offizielle Dokumentation zur Einrichtung und Nutzung von Cockpit
-- [ufw Manpage](https://manpages.ubuntu.com/manpages/noble/en/man8/ufw.8.html) – vollständige Referenz aller ufw-Optionen
+- [ufw Manpage](https://manpages.debian.org/trixie/ufw/ufw.8.en.html) – vollständige Referenz aller ufw-Optionen
 
 ---
 
@@ -633,6 +652,6 @@ systemctl disable caddy
 ![line](images/banner.png)
 
 <p align="center">
-<a href="01_vm_domain_ssh.md"><img src="images/previous.png" width="150px"></a>
-<a href="README.md"><img src="images/next.png" width="150px"></a>
+<a href="Lab_03.md"><img src="images/previous.png" width="150px"></a>
+<a href="Lab_05.md"><img src="images/next.png" width="150px"></a>
 </p>
