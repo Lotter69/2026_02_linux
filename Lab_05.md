@@ -523,7 +523,7 @@ Caddy fordert nun automatisch TLS-Zertifikate für `www.<IHRE-DOMAIN>` und `dash
 
 ### Schritt 6: Ergebnis im Browser überprüfen
 
-#### 6.1 Laufende Container prüfen
+#### 6.1 Laufende Container prüfen (Linux-Server)
 
 ```bash
 docker ps
@@ -531,7 +531,7 @@ docker ps
 
 Sie sollten zwei laufende Container sehen: `nginx-web` und `nodered`.
 
-#### 6.2 Dienste im Browser aufrufen
+#### 6.2 Dienste im Browser aufrufen (Client)
 
 ```
 https://www.<IHRE-DOMAIN>          →  Ihre Unternehmenswebseite
