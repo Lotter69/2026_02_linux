@@ -135,7 +135,7 @@ flowchart TD
 
 Wir testen jetzt die Namensauflösung. Dazu legen wir einen Container an, der nach der Namensauflösung sofort wieder gelöscht wird.
 
-Der Container wird mit `--network app-net` an das app-net angeschlossen. Es wird eine kleine Version von Debian Trxie gestartet. In dieser wird der Befehl `getent hosts redis-cache` ausgeführt. Wenn alles klaptt, sollte man eine IP-Adresse sehen:
+Der Container wird mit `--network app-net` an das app-net angeschlossen. Es wird eine kleine Version von Debian Trxie gestartet. In dieser wird der Befehl `getent hosts redis-cache` ausgeführt. Wenn alles klaptt, sollte man die IP-Adresse des Hosts `redis-cache` sehen:
 
 ```bash
 docker run --rm --network app-net debian:trixie-slim getent hosts redis-cache
