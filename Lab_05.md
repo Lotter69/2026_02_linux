@@ -276,7 +276,7 @@ docker run -d \
 | `-v /srv/www:/usr/share/nginx/html:ro` | Bind Mount: Host-Verzeichnis → Container-Verzeichnis, `:ro` = read-only |
 
 > **Automatischer Neustart mit `--restart`**
-> Ohne diese Option startet ein Container nach einem Serverneustart **nicht** automatisch wieder. Docker kennt vier Restart-Richtlinien:
+> Diese Option ist wichtig, damit der nginx-Webserver nach einem Neustart unserer Linux-Servers ebenfalls automatisch gestartet wird.
 >
 > | Wert | Verhalten |
 > |---|---|
