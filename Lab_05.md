@@ -506,9 +506,6 @@ dashboard.<IHRE-DOMAIN> {
 }
 ```
 
-> **Warum funktioniert `localhost:8080` – und sind keine Container-IP-Adressen nötig?**
-> Mit `-p 127.0.0.1:8080:80` bindet Docker den Container-Port 80 an den Host-Port 8080 — beschränkt auf die lokale Schnittstelle. Caddy läuft auf demselben Host und erreicht den Container daher einfach über `localhost:8080` – genau wie jeder andere lokale Prozess, aber ohne dass der Port zusätzlich aus dem Internet erreichbar wäre. Container-IP-Adressen werden nur benötigt, wenn Container direkt miteinander kommunizieren sollen, ohne Port-Mapping über den Host.
-
 Validieren und laden Sie die Konfiguration:
 
 ```bash
