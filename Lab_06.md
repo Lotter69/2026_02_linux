@@ -143,13 +143,6 @@ echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx
 > ```
 > (gleiche Befehlsstruktur wie oben – nur der Codename fest statt per Command Substitution eingetragen)
 
-Damit apt bei künftigen Updates konsequent das offizielle nginx-Paket statt der älteren Distributionsvariante bevorzugt, legen Sie eine Pinning-Regel an:
-
-```bash
-printf 'Package: *\nPin: origin nginx.org\nPin-Priority: 900\n' \    # Erzeugen: drei Zeilen Pinning-Konfiguration
-  | tee /etc/apt/preferences.d/99nginx                                # Ablegen: in neue Datei schreiben
-```
-
 Paketliste aktualisieren und nginx mitsamt ACME-Modul installieren:
 
 ```bash
