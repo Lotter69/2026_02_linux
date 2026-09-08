@@ -85,16 +85,21 @@ Im Vergleich zur direkten Installation auf dem Host stellt sich dabei eine wicht
 
 ### Schritt 1: Docker installieren
 
-Docker ist auf dem Server noch nicht vorhanden. In diesem Schritt binden Sie das offizielle Docker-Repository als Paketquelle ein und installieren Docker.
+
+Docker ist auf dem Server noch nicht vorhanden. 
+
+#### _Variante A: schnelle Installation_
 
 > Hinweis: Die aktuelle Version von Docker Stand September 2026 ist Version 29. Mit diesem Befehl installieren Sie in Debian Trixie die Docker-Version 26:
 > 
 > ```bash
 > apt install docker.io docker-cli
 > ```
+#### _Variante B: Installationsempfehlung des Herstellers_
 
 #### 1.1 Paketquellen vorbereiten
 
+In diesem Schritt binden Sie das offizielle Docker-Repository als Paketquelle ein und installieren Docker
 Falls ältere oder inoffizielle Docker-Pakete vorhanden sind, entfernen Sie diese zuerst:
 
 ```bash
