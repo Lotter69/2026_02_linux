@@ -464,6 +464,15 @@ docker restart nodered
 
 Prüfen Sie, dass die Absicherung greift:
 
+Entweder Sie nutzen wieder den curl-Befehl und lassen sich den Fehlercode anzeigen. Oder Sie machen es sich einfach und installieren einen textbasierten Webbrowser, wie z. B. w3m.
+
+```bash
+apt install w3m
+w3m localhost:1880/flows
+```
+
+oder
+
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" http://localhost:1880/flows
 ```
