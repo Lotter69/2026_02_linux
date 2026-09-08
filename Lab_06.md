@@ -73,14 +73,6 @@ In Lab 04 und Lab 05 hat Caddy die Zertifikatsverwaltung vollständig automatisc
 
 ## Hintergrundwissen
 
-### Warum nginx statt Traefik?
-
-Traefik wäre für dieses Lab ebenfalls eine nachvollziehbare Wahl gewesen: Es ist speziell für den Betrieb hinter Docker entwickelt, erkennt neue Container automatisch über Labels in ihrer `docker run`- bzw. Compose-Konfiguration und trägt sie selbstständig in Routing und Lastverteilung ein – inklusive automatischem HTTPS über ACME, ganz ähnlich wie Caddy.
-
-Genau diese Automatik ist aber der Grund, warum in diesem Lab bewusst **nginx** eingesetzt wird, nicht Traefik: Für die in der Aufgabenstellung geforderte Auditierbarkeit (Control A.8.24 und A.8.22) muss jede sicherheitsrelevante Konfigurationsänderung – ein neues Zertifikat, ein neu aufgenommener Container in die Lastverteilung – als **sichtbarer, dokumentierter Schritt** in einer Konfigurationsdatei nachvollziehbar sein. Traefik würde einen neuen Container automatisch anhand seiner Labels erkennen und sofort produktiv schalten, ohne dass irgendwo ein Mensch diese Änderung explizit freigegeben oder festgehalten hätte – komfortabel im Betrieb, aber für einen Auditor nicht nachvollziehbar, *wann* und *wodurch* sich das System verändert hat. nginx erzwingt dagegen für jede Änderung eine manuell bearbeitete Konfigurationsdatei (`nginx -t && systemctl reload nginx`) – mehr Aufwand, aber maximale Nachvollziehbarkeit.
-
-> **Kein grundsätzliches Urteil:** In einer Umgebung ohne die hier geforderte lückenlose Audit-Dokumentation wäre die Automatik von Traefik oft die bessere Wahl – schneller einzurichten und mit weniger manuellem Pflegeaufwand verbunden. Die Entscheidung in diesem Lab ist durch die konkrete Aufgabenstellung begründet, nicht durch einen generellen technischen Nachteil von Traefik.
-
 ### ACME als offenes Protokoll
 
 ACME (*Automated Certificate Management Environment*) ist ein offenes, standardisiertes Protokoll zur automatisierten Ausstellung und Erneuerung von TLS-Zertifikaten – ursprünglich von Let's Encrypt entwickelt, heute von zahlreichen Zertifizierungsstellen unterstützt. Caddy, Traefik, Certbot und nginx sind allesamt nur unterschiedliche **ACME-Clients**, die mit einem austauschbaren **Issuer** (der Zertifizierungsstelle) sprechen. Diese Trennung von Werkzeug und Anbieter existiert bei Caddy zwar genauso – nur eben unsichtbar: Automatisches HTTPS funktioniert dort komplett ohne jede Angabe von CA oder Protokoll, weshalb in der Praxis oft nie jemand eine explizite Entscheidung trifft oder festhält. Das nginx-ACME-Modul erzwingt diese Angabe strukturell, weil ohne einen benannten `acme_issuer` gar kein Zertifikat ausgestellt wird – genau das machen Sie sich in diesem Lab zunutze.
