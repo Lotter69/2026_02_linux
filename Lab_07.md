@@ -6,7 +6,7 @@
 
 Das Unternehmen bereitet sich weiterhin auf die Zertifizierung nach ISO/IEC 27001 vor. Im vorangegangenen Lab wurde bereits nachgewiesen, dass die Zertifikatsverwaltung mit nginx und dem nativen ACME-Modul explizit konfiguriert und damit auditierbar dokumentiert ist. Nun steht die zweite Feststellung des externen Pentests im Fokus: **Control A.8.22 (Segregation of Networks)** verlangt eine erkennbare, begründete Trennung zusammengehöriger Dienste in eigene Netzwerksegmente.
 
-Bisher laufen sämtliche Docker-Container im selben, nicht weiter unterteilten Standardnetzwerk; mehrere Backend-Dienste sind zudem über Host-Ports erreichbar, obwohl das nicht erforderlich wäre. Das Betriebsteam erhält nun den Auftrag, zusammengehörige Container-Dienste bewusst in eigenen Docker-Netzwerken zu bündeln und von anderen Diensten zu trennen. Zusätzlich soll eine einfache, manuell gepflegte Lastverteilung über mehrere Container-Instanzen eines Dienstes eingerichtet werden.
+Bisher laufen sämtliche Docker-Container im selben, nicht weiter unterteilten Standardnetzwerk; mehrere Backend-Dienste auf dem Server sind direkt über Port-Nummer erreichbar, obwohl das nicht erforderlich wäre. (Der Prozess, der den Webserver betreibt, könnte z. B. auf eine Datenbank zugreifen, in der Logging-Daten gespeichert sind, obwohl das nicht vorgesehen ist.) Das Betriebsteam erhält nun den Auftrag, zusammengehörige Container-Dienste bewusst in eigenen Docker-Netzwerken zu bündeln und von anderen Diensten zu trennen. Zusätzlich soll eine einfache, manuell gepflegte Lastverteilung über mehrere Container-Instanzen eines Dienstes eingerichtet werden.
 
 ---
 
