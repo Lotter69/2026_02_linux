@@ -12,7 +12,7 @@ Bisher laufen sämtliche Docker-Container im selben, nicht weiter unterteilten S
 
 ## Einführung
 
-In diesem Lab lernen Sie, wie Sie mit **benutzerdefinierten Docker-Netzwerken** zusammengehörige Dienste gezielt bündeln und von anderen Diensten isolieren – genau das, was Control A.8.22 verlangt. Sie legen ein eigenes Netzwerk an, verbinden bestehende Container nachträglich damit und starten einen neuen Dienst, der **ausschließlich für andere Container** erreichbar ist – nicht für den Host, nicht für das Internet. Anschließend richten Sie eine einfache Lastverteilung über mehrere Container-Instanzen ein und erweitern diese manuell um eine weitere Instanz.
+In diesem Lab lernen Sie, wie Sie mit **benutzerdefinierten Docker-Netzwerken** zusammengehörige Dienste gezielt bündeln und von anderen Diensten isolieren – genau das, was Control A.8.22 verlangt. Sie legen ein eigenes Netzwerk an, verbinden bestehende Container nachträglich damit und starten einen neuen Dienst, der **ausschließlich für andere Container** erreichbar ist – nicht für den Host, nicht für das Internet. 
 
 ## Lernziele
 
@@ -21,7 +21,6 @@ In diesem Lab lernen Sie, wie Sie mit **benutzerdefinierten Docker-Netzwerken** 
 - Einen Dienst ohne Host-Port-Exposition starten und nur innerhalb eines Docker-Netzwerks verfügbar machen
 - Die Namensauflösung innerhalb und außerhalb eines Docker-Netzwerks praktisch nachvollziehen
 - IP-Vergabe und Routing in Docker-Netzwerken verstehen
-- Mehrere Container-Instanzen händisch als nginx-Upstream-Gruppe für die Lastverteilung konfigurieren
 - Die technische Umsetzung den ISO-27001-Controls A.8.20 und A.8.22 zuordnen
 
 ## Voraussetzungen
@@ -51,7 +50,6 @@ In diesem Lab lernen Sie, wie Sie mit **benutzerdefinierten Docker-Netzwerken** 
     - [1.5 Gegenprobe: Auflösung außerhalb von app-net](#15-gegenprobe-auflösung-außerhalb-von-app-net)
     - [1.6 Port-Check auf dem Host](#16-port-check-auf-dem-host)
     - [1.7 Hintergrund: IP-Vergabe und Routing in Docker-Netzwerken](#17-hintergrund-ip-vergabe-und-routing-in-docker-netzwerken)
-  - [Schritt 2: Lastverteilung einrichten und Last erzeugen](#schritt-2-lastverteilung-einrichten-und-last-erzeugen)
 - [Reflexion und weiterführende Fragen](#reflexion-und-weiterführende-fragen)
 - [Rückblick und Zusammenfassung](#rückblick-und-zusammenfassung)
 - [Aufräumarbeiten](#aufräumarbeiten)
@@ -209,139 +207,12 @@ Zunächst ein Überblick über alle vorhandenen Netzwerke – auch über die von
 docker network ls
 ```
 
-Das einem Netzwerk zugewiesene Subnetz lässt sich gezielt abfragen, ohne sich durch die vollständige, unübersichtliche `inspect`-Ausgabe zu lesen:
+oder umfängliche Netzwerkinformationen im json-Format
 
 ```bash
-docker network inspect app-net --format '{{(index .IPAM.Config 0).Subnet}}'
+docker network inspect app-net 
 ```
 
-Beispielausgabe:
-
-```
-172.18.0.0/16
-```
-
-Und die IP-Adressen aller Container, die aktuell Mitglied von `app-net` sind:
-
-```bash
-docker network inspect app-net --format '{{range .Containers}}{{.Name}} -> {{.IPv4Address}}{{"\n"}}{{end}}'
-```
-
-Beispielausgabe:
-
-```
-redis-cache -> 172.18.0.2/16
-nodered -> 172.18.0.3/16
-```
-
-[↑ Zum Inhaltsverzeichnis](#inhalt)
-
----
-
-### Schritt 2: Lastverteilung einrichten und Last erzeugen
-
-In der Fortsetzung arbeiten Sie mit `demo.<IHRE-DOMAIN>` analog zu den bisherigen Einträgen. Dafür wird der in den Voraussetzungen genannte A-Record `demo.<IHRE-DOMAIN>` benötigt. Falls in Ihrer Zone bereits ein Wildcard-Eintrag (`*`) existiert (siehe Hinweis in Lab 05, Schritt 2), ist kein eigener Eintrag nötig. Die folgende Überprüfung sollte in beiden Fällen erfolgreich sein:
-
-```bash
-dig demo.<IHRE-DOMAIN> +short
-```
-
-Starten Sie drei Instanzen eines einfachen Demo-Dienstes, der bei jeder Antwort seinen eigenen Containernamen zurückgibt:
-
-```bash
-docker run -d --name demo1 --restart unless-stopped -p 127.0.0.1:9001:80 nginxdemos/hello
-docker run -d --name demo2 --restart unless-stopped -p 127.0.0.1:9002:80 nginxdemos/hello
-docker run -d --name demo3 --restart unless-stopped -p 127.0.0.1:9003:80 nginxdemos/hello
-# -d: im Hintergrund | --name: Containername | --restart: Neustart-Policy | -p: nur lokal gebundener Host-Port:Container-Port
-# (ausführlich erklärt in Lab 05, Schritt 3.3)
-```
-
-Tragen Sie alle drei Instanzen händisch als Upstream-Gruppe in nginx ein:
-
-```bash
-nano /etc/nginx/conf.d/demo.conf
-```
-
-```nginx
-upstream demo_backend {
-    server 127.0.0.1:9001;
-    server 127.0.0.1:9002;
-    server 127.0.0.1:9003;
-}
-
-server {
-    listen 443 ssl;
-    server_name demo.<IHRE-DOMAIN>;
-
-    acme_certificate letsencrypt;
-    ssl_certificate $acme_certificate;
-    ssl_certificate_key $acme_certificate_key;
-    ssl_certificate_cache max=2;
-
-    location / {
-        proxy_pass http://demo_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-```bash
-nginx -t
-systemctl reload nginx
-```
-
-Erzeugen Sie mehrere Anfragen und beobachten Sie die Verteilung anhand des jeweils zurückgegebenen Containernamens:
-
-```bash
-for i in $(seq 1 12); do curl -s https://demo.<IHRE-DOMAIN> | grep "Server name"; done
-```
-
-Sie sollten alle drei Container-Hostnamen im Round-Robin-Wechsel sehen. Optional können Sie mit einem echten Lasttest-Werkzeug eine größere Anfragenzahl erzeugen:
-
-```bash
-ab -n 100 -c 10 https://demo.<IHRE-DOMAIN>/
-```
-
-Fügen Sie nun bewusst eine vierte Instanz hinzu:
-
-```bash
-docker run -d --name demo4 --restart unless-stopped -p 127.0.0.1:9004:80 nginxdemos/hello
-# gleiches Muster wie demo1-demo3, nur neuer Name und neuer Host-Port
-```
-
-Tragen Sie sie händisch in die Upstream-Gruppe ein:
-
-```bash
-nano /etc/nginx/conf.d/demo.conf
-```
-
-```nginx
-upstream demo_backend {
-    server 127.0.0.1:9001;
-    server 127.0.0.1:9002;
-    server 127.0.0.1:9003;
-    server 127.0.0.1:9004;
-}
-```
-
-```bash
-nginx -t
-systemctl reload nginx
-```
-
-Die Upstream-Gruppe verteilt Anfragen jetzt im Round-Robin-Verfahren auf vier Container-Instanzen – `demo4` wurde bewusst per Hand ergänzt, nicht automatisch erkannt:
-
-```mermaid
-flowchart TD
-    Client(["Browser/curl"]) -->|"https://demo.&lt;IHRE-DOMAIN&gt;"| nginx["nginx<br/>upstream demo_backend"]
-    nginx -->|round robin| demo1["demo1 :9001"]
-    nginx -->|round robin| demo2["demo2 :9002"]
-    nginx -->|round robin| demo3["demo3 :9003"]
-    nginx -. nachträglich ergänzt .-> demo4["demo4 :9004"]
-```
-
-Wiederholen Sie den Testlauf aus diesem Schritt – `demo4` erscheint erst jetzt in der Verteilung, und zwar genau deshalb, weil Sie es bewusst eingetragen und neu geladen haben, nicht weil es automatisch erkannt wurde.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -355,11 +226,6 @@ Wiederholen Sie den Testlauf aus diesem Schritt – `demo4` erscheint erst jetzt
 - Wie würde sich das Vorgehen ändern, wenn statt zwei künftig drei oder vier zusammenspielende Dienste in einem Netzwerk gebündelt werden müssten?
 - Warum reicht für Control A.8.22 nicht allein die technische Netzwerktrennung, sondern auch eine dokumentierte Begründung, welche Dienste zusammengehören?
 
-**Zur Lastverteilung**
-
-- Was unterscheidet das manuelle Eintragen von `demo4` in die Upstream-Gruppe vom automatischen Verhalten, das Traefik bieten würde?
-- Für welche Art von Produktivsystem würden Sie die manuelle, für welche die automatische Variante empfehlen – und warum?
-
 ---
 
 ## Rückblick und Zusammenfassung
@@ -370,7 +236,6 @@ Wiederholen Sie den Testlauf aus diesem Schritt – `demo4` erscheint erst jetzt
 - Einen bestehenden Container nachträglich an ein zusätzliches Netzwerk angebunden
 - Die Namensauflösung innerhalb und außerhalb eines Docker-Netzwerks praktisch nachvollzogen
 - IP-Vergabe und Routing in Docker-Netzwerken verstanden
-- Eine manuell gepflegte Lastverteilung über mehrere Container-Instanzen eingerichtet und live erweitert
 - Die technischen Maßnahmen den ISO-27001-Controls A.8.20 und A.8.22 zugeordnet
 
 ### Zentrale Befehle dieser Übung
@@ -384,17 +249,12 @@ Wiederholen Sie den Testlauf aus diesem Schritt – `demo4` erscheint erst jetzt
 | `docker network disconnect <netz> <container>` | Container aus einem Netzwerk entfernen |
 | `docker run --network <netz>` | Container von Anfang an einem bestimmten Netzwerk zuweisen |
 | `getent hosts <name>` | Namensauflösung innerhalb eines Containers prüfen |
-| `upstream <name> { server ...; }` | nginx-Upstream-Gruppe für Lastverteilung definieren |
 
 ---
 
 ## Aufräumarbeiten
 
 ```bash
-# Lastverteilungs-Demo entfernen
-docker stop demo1 demo2 demo3 demo4
-docker rm demo1 demo2 demo3 demo4
-rm /etc/nginx/conf.d/demo.conf
 
 # Bündelungs-Demo entfernen
 docker stop redis-cache
