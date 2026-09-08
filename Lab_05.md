@@ -308,8 +308,8 @@ Sie sollten den HTML-Inhalt Ihrer Seite sehen.
 Ablauf beim einem Software-Update:
 - Stoppen des Containers
 - Löschen des Containers – damit werden auch die **im Container** gespeicherten Daten gelöscht
-- Laden des neuen Images
-- Starten eines neuen Containers auf Grundlage des neuen Images – die Daten, die über einen Bind mount **extern gespeichert** waren, bleiben so erhalten.
+- Laden des neuen Images von der Registry
+- Starten eines neuen Containers auf Grundlage des neuen Images – die Daten, die über einen Bind mount **extern gespeichert** sind, bleiben so erhalten
 
 Wenn nginx aktualisiert wird – Sie also den alten Container löschen und einen neuen aus einem neueren Image starten –, bleiben die Webinhalte in `/srv/www` vollständig erhalten. Sie liegen auf dem Host und werden durch den Bind Mount lediglich eingehängt. Der Container-Neustart hat keinen Einfluss auf das Host-Verzeichnis. Testen und verifizieren Sie das beschriebene Verhalten.
 
