@@ -162,7 +162,7 @@ Docker erstellt für Container ein internes Brückennetzwerk (`docker0`). Damit 
 grep DEFAULT_FORWARD_POLICY /etc/default/ufw
 ```
 
-Falls der Wert `"DROP"` ist, ändern Sie ihn auf `"ACCEPT"`:
+Falls der Wert `DROP` ist, ändern Sie ihn auf `ACCEPT`:
 
 ```bash
 sed -i 's/DEFAULT_FORWARD_POLICY="DROP"/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
