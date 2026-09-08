@@ -89,10 +89,6 @@ Seit August 2025 bietet nginx mit `ngx_http_acme_module` ein offizielles, in Rus
 
 Im Default-Bridge-Netzwerk von Docker können sich grundsätzlich alle Container gegenseitig erreichen – unabhängig davon, ob sie inhaltlich zusammengehören. Ein eigenes, benutzerdefiniertes Netzwerk dient nicht primär der Automatisierung, sondern der bewussten **Bündelung zusammengehöriger Dienste** und der **Abgrenzung** gegenüber allem, was nicht dazugehört – genau das, was Control A.8.22 verlangt. In einer späteren Übung werden Sie dieses Prinzip in größerem Maßstab wiederverwenden: eine zeitbasierte Datenbank (z. B. InfluxDB), ein Connector-Dienst und eine Visualisierung (z. B. Grafana) werden dann gemeinsam in einem eigenen Netzwerk laufen, ohne dass die Datenbank selbst von außen erreichbar sein muss. In diesem Lab üben Sie das Prinzip bereits an einem kleinen Beispiel.
 
-### Ein kurzer Rückblick: automatische vs. bewusste Konfiguration
-
-Ein automatisiertes Werkzeug hätte neue Container selbstständig erkannt und sofort produktiv geschaltet – komfortabel, aber für ein Audit schwer nachvollziehbar, *wann* und *wodurch* eine Änderung wirksam wurde (siehe „Warum nginx statt Traefik?" zu Beginn dieses Abschnitts). Die in diesem Lab bewusst gewählte, manuelle Konfiguration über nginx erzeugt mehr Aufwand, aber auch maximale Nachvollziehbarkeit: Jede Änderung ist ein dokumentierter Schritt in einer Konfigurationsdatei.
-
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
@@ -150,13 +146,6 @@ echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx
 > apt update
 > ```
 > (gleiche Befehlsstruktur wie oben – nur der Codename fest statt per Command Substitution eingetragen)
-
-Damit apt bei künftigen Updates konsequent das offizielle nginx-Paket statt der älteren Distributionsvariante bevorzugt, legen Sie eine Pinning-Regel an:
-
-```bash
-printf 'Package: *\nPin: origin nginx.org\nPin-Priority: 900\n' \    # Erzeugen: drei Zeilen Pinning-Konfiguration
-  | tee /etc/apt/preferences.d/99nginx                                # Ablegen: in neue Datei schreiben
-```
 
 Paketliste aktualisieren und nginx mitsamt ACME-Modul installieren:
 
