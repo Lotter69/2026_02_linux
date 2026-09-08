@@ -179,7 +179,7 @@ Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (d
 
 Die Netzwerk-Zugehörigkeiten aus diesem Schritt im Überblick – `nodered` ist Mitglied beider Netzwerke und damit die einzige Brücke zwischen ihnen, `redis-cache` ausschließlich Mitglied von `app-net`:
 
-!(Diagramm der Docker-Netzwerks)[../images/DockerNetzwerk.drawio.png]
+!(Diagramm der Docker-Netzwerks)[images/DockerNetzwerk.drawio.png]
 
 #### 1.7 Hintergrund: IP-Vergabe und Routing in Docker-Netzwerken
 
