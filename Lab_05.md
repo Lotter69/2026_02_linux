@@ -531,7 +531,9 @@ docker ps
 
 Sie sollten zwei laufende Container sehen: `nginx-web` und `nodered`.
 
-#### 6.2 Dienste im Browser aufrufen (Client)
+#### 6.2 Dienste im Browser aufrufen
+
+Rufen Sie nachfolgende Adresse lokal im Browser auf Ihrem Notebook/PC auf:
 
 ```
 https://www.<IHRE-DOMAIN>          →  Ihre Unternehmenswebseite
