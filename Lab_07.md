@@ -179,23 +179,7 @@ Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (d
 
 Die Netzwerk-Zugehörigkeiten aus diesem Schritt im Überblick – `nodered` ist Mitglied beider Netzwerke und damit die einzige Brücke zwischen ihnen, `redis-cache` ausschließlich Mitglied von `app-net`:
 
-```mermaid
-flowchart TD
-    nodered["nodered<br/>(ein Container, zwei Netzwerke)"]
-
-    subgraph Default["Standard-Bridge-Netzwerk"]
-        HostPort["nginx auf dem Host<br/>127.0.0.1:1880"]
-    end
-
-    subgraph AppNet["app-net"]
-        redis["redis-cache<br/>(kein Host-Port)"]
-    end
-
-    HostPort --> nodered
-    nodered --> redis
-    nodered -. Mitglied von .-> Default
-    nodered -. Mitglied von .-> AppNet
-```
+!(Diagramm der Docker-Netzwerks)[../images/DockerNetzwerk.drawio.png]
 
 #### 1.7 Hintergrund: IP-Vergabe und Routing in Docker-Netzwerken
 
