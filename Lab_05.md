@@ -551,16 +551,17 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 - Warum wird für die Webseite ein Bind Mount verwendet, für Node-RED-Daten aber ein benanntes Volume? Welche Anforderungen bestimmen diese Wahl?
 - Was passiert, wenn Sie `docker rm nodered` ausführen? Was passiert zusätzlich, wenn Sie `docker volume rm nodered-data` ausführen?
 - Wie können Sie die Daten eines benannten Volumes sichern?
+- Wählen Sie einen beliebigen Dienst und begründen Sie eine sinnvolle Speicherstrategie.
 
 **Zu den Containern und Caddy:**
 
-- Was müsste sich ändern, wenn Sie Caddy ebenfalls als Container betreiben wollten – warum wäre `localhost:8080` dann nicht mehr ausreichend?
+- Was müsste sich ändern, wenn Sie Caddy ebenfalls als Container betreiben wollten – warum wäre `localhost:8080` in `/etc/caddy/Caddyfile` dann nicht mehr ausreichend?
 - Was spricht dafür, Caddy auf dem Host zu installieren statt als Container – insbesondere im Hinblick auf systemd-Integration und TLS?
 
 **Zur Absicherung von Docker-Containern:**
 
 - Warum schützt `ufw status` allein nicht zuverlässig vor einem öffentlich erreichbaren Docker-Container? Welche Rolle spielt die `DOCKER-USER`-Chain dabei?
-- Was wäre der konkrete Unterschied im Risiko, wenn `nodered` ohne `adminAuth` betrieben würde und der Port versehentlich ohne `127.0.0.1`-Präfix veröffentlicht wäre?
+- Was wäre der konkrete Unterschied im Risiko, wenn `nodered` ohne `adminAuth` betrieben würde und der Port versehentlich ***ohne** `127.0.0.1`-Präfix veröffentlicht wäre?
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -601,7 +602,7 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 
 ---
 
-## Aufräumarbeiten
+## Aufräumarbeiten (nur nach Rücksprache mit den Referenten)
 
 > **⚠️ Wichtig:** Führen Sie diesen Rückbau **nur aus, wenn Sie den Lehrgang an dieser Stelle beenden**. Die Container `nginx-web` und `nodered`, das Volume `nodered-data` und das Verzeichnis `/srv/www` werden in Lab 06 (Docker-Netzwerke, vhost-Migration) und in Lab 08 (Compose-Migration von `nodered`) zwingend weiterverwendet.
 
