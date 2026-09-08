@@ -601,7 +601,7 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 
 ## Aufräumarbeiten (nur nach Rücksprache mit den Referenten)
 
-> **⚠️ Wichtig:** Führen Sie diesen Rückbau **nur aus, wenn Sie den Lehrgang an dieser Stelle beenden**. Die Container `nginx-web` und `nodered`, das Volume `nodered-data` und das Verzeichnis `/srv/www` werden in Lab 06 (Docker-Netzwerke, vhost-Migration) und in Lab 08 (Compose-Migration von `nodered`) zwingend weiterverwendet.
+> **⚠️ Wichtig:** Führen Sie diesen Rückbau **nur aus, wenn Sie den Lehrgang an dieser Stelle beenden**. Die Container `nginx-web` und `nodered`, das Volume `nodered-data` und das Verzeichnis `/srv/www` werden in Lab 06/07 (vhost-Migration, Docker-Netzwerke) und in Lab 09 (Compose-Migration von `nodered`) zwingend weiterverwendet.
 
 ### Vollständiger Rückbau (nur bei Lehrgangsende)
 

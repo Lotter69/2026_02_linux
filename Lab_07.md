@@ -1,39 +1,38 @@
-# Lab 07: Eigene Docker-Images mit Dockerfile bauen
+# Lab 07: Docker-Netzwerke segmentieren und Lastverteilung einrichten
 
 ![line](images/banner.png)
 
 ## Berufliche Aufgabenstellung
 
-Die Vorbereitung auf die Zertifizierung nach ISO/IEC 27001 geht in die nächste Runde. Parallel dazu meldet sich die Fachabteilung mit einem konkreten Auftrag: Im Firmengebäude sollen künftig Umgebungsdaten (zunächst Temperaturen) erfasst und den Mitarbeitenden über ein einfaches **Messdaten-Portal** im Browser zugänglich gemacht werden. Die Daten sollen später von Sensoren per MQTT angeliefert, gesammelt und in einer Zeitreihendatenbank abgelegt werden – der Aufbau dieser Datenpipeline ist für die nächste Übung (Lab 08) eingeplant.
+Das Unternehmen bereitet sich weiterhin auf die Zertifizierung nach ISO/IEC 27001 vor. Im vorangegangenen Lab wurde bereits nachgewiesen, dass die Zertifikatsverwaltung mit nginx und dem nativen ACME-Modul explizit konfiguriert und damit auditierbar dokumentiert ist. Nun steht die zweite Feststellung des externen Pentests im Fokus: **Control A.8.22 (Segregation of Networks)** verlangt eine erkennbare, begründete Trennung zusammengehöriger Dienste in eigene Netzwerksegmente.
 
-Bei der Sichtung der Betriebsprozesse hat der Auditor allerdings eine Lücke festgehalten: Für **fertige Fremd-Images** (nginx, Node-RED, Redis) existiert ein nachvollziehbarer Bezugsweg über Docker Hub – für **eigenentwickelte Dienste** fehlt dagegen ein wiederholbarer, dokumentierter Erstellungsprozess. Control **A.8.9 (Configuration Management)** verlangt, dass die Konfiguration eines Dienstes als kontrollierte Information vorliegt; Control **A.8.32 (Change Management)** verlangt, dass jede Änderung nachvollziehbar als neue, identifizierbare Version ausgeliefert wird. Ein „auf dem Server zusammengefrickelter" Container, dessen Innenleben niemand rekonstruieren kann, erfüllt beides nicht.
-
-Das Betriebsteam erhält daher den Auftrag, das Messdaten-Portal als **eigenes Docker-Image** zu liefern: gebaut aus einem versionierten **Dockerfile**, mit eindeutigen Tags versehen und gegen eine Wegwerf-Testdatenbank verprobt – so, dass jede Version jederzeit identisch reproduziert werden kann.
+Bisher laufen sämtliche Docker-Container im selben, nicht weiter unterteilten Standardnetzwerk; mehrere Backend-Dienste sind zudem über Host-Ports erreichbar, obwohl das nicht erforderlich wäre. Das Betriebsteam erhält nun den Auftrag, zusammengehörige Container-Dienste bewusst in eigenen Docker-Netzwerken zu bündeln und von anderen Diensten zu trennen. Zusätzlich soll eine einfache, manuell gepflegte Lastverteilung über mehrere Container-Instanzen eines Dienstes eingerichtet werden.
 
 ---
 
 ## Einführung
 
-In Lab 05 und Lab 06 haben Sie ausschließlich fertige Images von Docker Hub verwendet – `nginx`, `nodered/node-red`, `redis`, `nginxdemos/hello`. In diesem Lab wechseln Sie die Perspektive: vom Nutzer fremder Baupläne zum Autor eigener. Sie schreiben Ihr erstes **Dockerfile**, bauen daraus mit `docker build` ein Image, verstehen das dahinterliegende **Schichtenmodell** (Layer und Build-Cache) und lernen, warum Konfiguration über **Umgebungsvariablen** ins Image gehört – Geheimnisse wie Zugangs-Token dagegen niemals. Das Ergebnis ist das Messdaten-Portal in zwei Ausbaustufen: `portal:1.0` als statische Vorschau und `portal:2.0` als konfigurierbare Anwendung, die ihre Messwerte live aus einer InfluxDB-Testinstanz liest.
+In diesem Lab lernen Sie, wie Sie mit **benutzerdefinierten Docker-Netzwerken** zusammengehörige Dienste gezielt bündeln und von anderen Diensten isolieren – genau das, was Control A.8.22 verlangt. Sie legen ein eigenes Netzwerk an, verbinden bestehende Container nachträglich damit und starten einen neuen Dienst, der **ausschließlich für andere Container** erreichbar ist – nicht für den Host, nicht für das Internet. Anschließend richten Sie eine einfache Lastverteilung über mehrere Container-Instanzen ein und erweitern diese manuell um eine weitere Instanz.
 
 ## Lernziele
 
-- Den Unterschied zwischen **Image** und **Container** sowie das Schichtenmodell (Layer, Build-Cache) erklären
-- Ein eigenes Image mit einem **Dockerfile** bauen: `FROM`, `COPY`, `RUN`, `ENV`, `WORKDIR`, `EXPOSE`, `USER`, `CMD`
-- Software innerhalb eines Dockerfiles selbst per `apt install` einrichten und von einem fertigen Anwendungsimage abgrenzen
-- `docker build`, Tagging (`name:tag`), `docker images`, `docker history` und `docker rmi` / `docker image prune` anwenden
-- Den **Build-Kontext** verstehen und mit `.dockerignore` begrenzen
-- Best Practices anwenden: kleine Basis-Images, Cache-freundliche Layer-Reihenfolge, Container als **Non-Root-Benutzer**
-- Eine Anwendung über **Umgebungsvariablen** konfigurierbar machen und gegen einen Test-Container verproben
-- `docker logs` und `docker ps -a` zur Fehlersuche einsetzen
+- Ein eigenes Docker-Netzwerk anlegen und seine Eigenschaften verstehen
+- Einen laufenden Container nachträglich an ein zusätzliches Netzwerk anbinden
+- Einen Dienst ohne Host-Port-Exposition starten und nur innerhalb eines Docker-Netzwerks verfügbar machen
+- Die Namensauflösung innerhalb und außerhalb eines Docker-Netzwerks praktisch nachvollziehen
+- IP-Vergabe und Routing in Docker-Netzwerken verstehen
+- Mehrere Container-Instanzen händisch als nginx-Upstream-Gruppe für die Lastverteilung konfigurieren
+- Die technische Umsetzung den ISO-27001-Controls A.8.20 und A.8.22 zuordnen
 
 ## Voraussetzungen
 
 | Anforderung | Details |
 |---|---|
 | **Server** | Debian stable (aktuell Trixie), öffentliche IPv4-Adresse (aus Lab 03) |
+| **nginx** | Mit ACME-Modul als Reverse Proxy aktiv (aus Lab 06) |
 | **Docker** | Installiert und betriebsbereit (aus Lab 05) |
-| **nginx** | Mit ACME-Modul als Reverse Proxy aktiv (aus Lab 06) – wird in diesem Lab nicht verändert |
+| **Node-RED** | Container `nodered` mit `-p 127.0.0.1:1880:1880` aktiv (aus Lab 05) |
+| **DNS** | Bestehende A-Records aus Lab 03–06, zusätzlich ein neuer A-Record `demo.<IHRE-DOMAIN>` (oder Wildcard-Eintrag) |
 | **SSH-Zugriff** | Key-Authentifizierung |
 
 ---
@@ -41,34 +40,18 @@ In Lab 05 und Lab 06 haben Sie ausschließlich fertige Images von Docker Hub ver
 ## Inhalt
 
 - [Hintergrundwissen](#hintergrundwissen)
-  - [Vom Bauplan-Nutzer zum Bauplan-Autor](#vom-bauplan-nutzer-zum-bauplan-autor)
-  - [Das Schichtenmodell: Images bestehen aus Layern](#das-schichtenmodell-images-bestehen-aus-layern)
-  - [Anwendungsimage oder Betriebssystem-Image als Basis?](#anwendungsimage-oder-betriebssystem-image-als-basis)
-  - [Anatomie eines Dockerfiles](#anatomie-eines-dockerfiles)
-  - [Repository, Tag und die Falle mit latest](#repository-tag-und-die-falle-mit-latest)
-  - [Vom Legacy-Builder zu BuildKit](#vom-legacy-builder-zu-buildkit)
+  - [Docker-Netzwerke als Bündelungskonzept](#docker-netzwerke-als-bündelungskonzept)
+  - [ISO-27001-Control A.8.22: Segregation of Networks](#iso-27001-control-a822-segregation-of-networks)
 - [Aufgaben](#aufgaben)
-  - [Schritt 1: Build-Werkzeug installieren](#schritt-1-build-werkzeug-installieren)
-  - [Schritt 2: Das erste eigene Image (Portal v1)](#schritt-2-das-erste-eigene-image-portal-v1)
-    - [2.1 Projektverzeichnis und Startseite anlegen](#21-projektverzeichnis-und-startseite-anlegen)
-    - [2.2 Das Dockerfile schreiben](#22-das-dockerfile-schreiben)
-    - [2.3 Das Image bauen](#23-das-image-bauen)
-    - [2.4 Einen Container aus dem eigenen Image starten](#24-einen-container-aus-dem-eigenen-image-starten)
-  - [Schritt 3: Layer, Build-Cache und Tags verstehen](#schritt-3-layer-build-cache-und-tags-verstehen)
-    - [3.1 Layer sichtbar machen](#31-layer-sichtbar-machen)
-    - [3.2 Den Build-Cache beobachten](#32-den-build-cache-beobachten)
-    - [3.3 Ein zweites Tag vergeben](#33-ein-zweites-tag-vergeben)
-    - [3.4 Den Build-Kontext begrenzen mit .dockerignore](#34-den-build-kontext-begrenzen-mit-dockerignore)
-  - [Schritt 4: Test-Datenbank bereitstellen und mit Messwerten füllen](#schritt-4-test-datenbank-bereitstellen-und-mit-messwerten-füllen)
-    - [4.1 Netzwerk und InfluxDB-Container starten](#41-netzwerk-und-influxdb-container-starten)
-    - [4.2 Testdaten einspielen](#42-testdaten-einspielen)
-    - [4.3 Testdaten abfragen](#43-testdaten-abfragen)
-  - [Schritt 5: Eine konfigurierbare Anwendung (Portal v2)](#schritt-5-eine-konfigurierbare-anwendung-portal-v2)
-    - [5.1 Den Anwendungscode anlegen](#51-den-anwendungscode-anlegen)
-    - [5.2 Das Dockerfile für v2](#52-das-dockerfile-für-v2)
-    - [5.3 Bauen, starten, prüfen](#53-bauen-starten-prüfen)
-  - [Schritt 6: Fehlersuche mit docker logs](#schritt-6-fehlersuche-mit-docker-logs)
-  - [Schritt 7: Bilanz und Aufräumen von Images](#schritt-7-bilanz-und-aufräumen-von-images)
+  - [Schritt 1: Eigenes Docker-Netzwerk anlegen und Dienste bewusst bündeln](#schritt-1-eigenes-docker-netzwerk-anlegen-und-dienste-bewusst-bündeln)
+    - [1.1 Eigenes Netzwerk anlegen](#11-eigenes-netzwerk-anlegen)
+    - [1.2 Bestehenden Container zusätzlich anbinden](#12-bestehenden-container-zusätzlich-anbinden)
+    - [1.3 Neuen, rein internen Dienst starten](#13-neuen-rein-internen-dienst-starten)
+    - [1.4 Namensauflösung innerhalb des Netzwerks prüfen](#14-namensauflösung-innerhalb-des-netzwerks-prüfen)
+    - [1.5 Gegenprobe: Auflösung außerhalb von app-net](#15-gegenprobe-auflösung-außerhalb-von-app-net)
+    - [1.6 Port-Check auf dem Host](#16-port-check-auf-dem-host)
+    - [1.7 Hintergrund: IP-Vergabe und Routing in Docker-Netzwerken](#17-hintergrund-ip-vergabe-und-routing-in-docker-netzwerken)
+  - [Schritt 2: Lastverteilung einrichten und Last erzeugen](#schritt-2-lastverteilung-einrichten-und-last-erzeugen)
 - [Reflexion und weiterführende Fragen](#reflexion-und-weiterführende-fragen)
 - [Rückblick und Zusammenfassung](#rückblick-und-zusammenfassung)
 - [Aufräumarbeiten](#aufräumarbeiten)
@@ -78,45 +61,13 @@ In Lab 05 und Lab 06 haben Sie ausschließlich fertige Images von Docker Hub ver
 
 ## Hintergrundwissen
 
-### Vom Bauplan-Nutzer zum Bauplan-Autor
+### Docker-Netzwerke als Bündelungskonzept
 
-In Lab 06 haben Sie die Begriffe bereits sauber getrennt: Ein **Image** ist der unveränderliche Bauplan, ein **Container** die daraus erzeugte, laufende Instanz. Bisher stammten alle Baupläne von Docker Hub. Ein **Dockerfile** ist nun die Anleitung, nach der Docker einen solchen Bauplan selbst erstellt: eine einfache Textdatei mit Anweisungen, die – Zeile für Zeile abgearbeitet – aus einem Basis-Image ein neues Image erzeugen. Weil das Dockerfile eine gewöhnliche Textdatei ist, kann es versioniert, geprüft und auditiert werden – genau die Eigenschaft, die die Aufgabenstellung verlangt.
+Im Default-Bridge-Netzwerk von Docker können sich grundsätzlich alle Container gegenseitig erreichen – unabhängig davon, ob sie inhaltlich zusammengehören. Ein eigenes, benutzerdefiniertes Netzwerk dient nicht primär der Automatisierung, sondern der bewussten **Bündelung zusammengehöriger Dienste** und der **Abgrenzung** gegenüber allem, was nicht dazugehört – genau das, was Control A.8.22 verlangt. In einer späteren Übung werden Sie dieses Prinzip in größerem Maßstab wiederverwenden: eine zeitbasierte Datenbank (z. B. InfluxDB), ein Connector-Dienst und eine Visualisierung (z. B. Grafana) werden dann gemeinsam in einem eigenen Netzwerk laufen, ohne dass die Datenbank selbst von außen erreichbar sein muss. In diesem Lab üben Sie das Prinzip bereits an einem kleinen Beispiel.
 
-### Das Schichtenmodell: Images bestehen aus Layern
+### ISO-27001-Control A.8.22: Segregation of Networks
 
-Ein Image ist kein monolithisches Abbild, sondern ein Stapel aufeinanderliegender, **schreibgeschützter Schichten (Layer)**. Jede Anweisung im Dockerfile, die das Dateisystem verändert (`FROM`, `RUN`, `COPY`), erzeugt einen eigenen Layer. Beim Start eines Containers legt Docker lediglich eine dünne, beschreibbare Schicht obenauf – deshalb starten Container so schnell, und deshalb teilen sich zehn Container aus demselben Image den Speicherplatz des Images.
-
-Für Sie als Autor hat das eine praktische Konsequenz: Docker merkt sich einmal gebaute Layer im **Build-Cache**. Ändert sich eine Dockerfile-Zeile (oder eine Datei, die sie kopiert) nicht, wird der Layer beim nächsten Build nicht neu erstellt, sondern aus dem Cache übernommen. Ändert sich dagegen eine Zeile, müssen **sie und alle folgenden** neu gebaut werden. Die Reihenfolge der Anweisungen entscheidet also darüber, wie schnell Ihre Builds sind – selten Geändertes gehört nach oben, häufig Geändertes nach unten.
-
-### Anwendungsimage oder Betriebssystem-Image als Basis?
-
-Für ein Dockerfile gibt es grundsätzlich zwei Ausgangspunkte: ein **Anwendungsimage** wie `nginx` – von den Software-Autoren selbst gepflegt, vorkonfiguriert und startklar – oder ein **Betriebssystem-Image** wie `debian:trixie-slim`, auf dem Sie die benötigte Software selbst per `apt install` einrichten. Anwendungsimages sparen Arbeit, verbergen aber, welche Pakete in welcher Version tatsächlich enthalten sind. Der Betriebssystem-Weg macht in Ihrem Dockerfile explizit sichtbar, was installiert wird – genau die Nachvollziehbarkeit, die Control A.8.9 aus der Aufgabenstellung verlangt. In diesem Lab bauen Sie Portal v1 deshalb bewusst auf `debian:trixie-slim` auf und installieren nginx selbst per `apt`; Portal v2 zeigt zum Vergleich den anderen Weg mit dem vorkonfigurierten Anwendungsimage `python:3.12-slim-trixie`.
-
-### Anatomie eines Dockerfiles
-
-| Anweisung | Bedeutung |
-|---|---|
-| `FROM` | Basis-Image, auf dem aufgebaut wird – immer die erste Anweisung |
-| `RUN` | Führt einen Befehl **während des Builds** aus (z. B. Pakete installieren) und legt das Ergebnis als Layer ab |
-| `COPY` | Kopiert Dateien aus dem Build-Kontext in das Image |
-| `WORKDIR` | Setzt das Arbeitsverzeichnis für alle folgenden Anweisungen |
-| `ENV` | Setzt eine Umgebungsvariable mit Vorgabewert – beim Start per `-e` überschreibbar |
-| `EXPOSE` | **Dokumentiert**, auf welchem Port die Anwendung lauscht – öffnet selbst keinen Port |
-| `USER` | Legt fest, unter welchem Benutzer alle folgenden Anweisungen und der Container laufen |
-| `CMD` | Der Befehl, der **beim Start des Containers** ausgeführt wird – genau einer pro Image |
-| `ENTRYPOINT` | Ein „festverdrahteter" Startbefehl; `CMD` liefert dann nur noch Standardargumente dazu. In diesem Lab nicht benötigt |
-
-Der wichtigste Unterschied für Einsteiger: `RUN` passiert **einmal beim Bauen**, `CMD` **bei jedem Containerstart**.
-
-### Repository, Tag und die Falle mit latest
-
-Ein Image-Name wie `portal:2.0` besteht aus dem **Repository** (`portal`) und dem **Tag** (`2.0`). Das Tag ist eine frei wählbare Versionsbezeichnung – technisch nur ein Etikett, das auf eine Image-ID zeigt. Fehlt das Tag, ergänzt Docker automatisch `latest`. Das ist tückisch: `latest` ist **kein Versprechen**, dass es sich um die neueste Version handelt, sondern nur ein Tag wie jedes andere, das jemand (oder niemand) pflegt. Für die in der Aufgabenstellung geforderte Nachvollziehbarkeit nach A.8.32 gilt deshalb: Eigene Images bekommen **explizite, unveränderliche Versions-Tags** – `latest` ist höchstens ein zusätzlicher Komfort-Verweis.
-
-### Vom Legacy-Builder zu BuildKit
-
-`docker build` gibt es seit den Anfängen von Docker. Der ursprüngliche, eingebaute Builder gilt inzwischen als veraltet (deprecated); sein Nachfolger **BuildKit** baut schneller, parallelisiert unabhängige Schritte und zeigt eine übersichtlichere Ausgabe. BuildKit wird über das Plugin **Buildx** bereitgestellt, das Docker in seiner offiziellen Installationsanleitung standardmäßig mitinstalliert – in Lab 05 haben Sie es bewusst weggelassen, weil es dort noch nicht gebraucht wurde. Das holen Sie jetzt nach.
-
-> **Hinweis:** Im Repository dieses Kurses liegt unter `docker/cockpit/Dockerfile` ein weiterführendes Beispiel – ein Image, das systemd und Cockpit in einem Container betreibt. Es ist als Anschauungsobjekt für Fortgeschrittene gedacht (systemd im Container ist ein Sonderfall) und **nicht** Gegenstand dieser Übung.
+Control A.8.22 verlangt eine erkennbare Trennung von Netzwerken, um die Ausbreitung von Sicherheitsvorfällen zu begrenzen und den Zugriff auf sensible Dienste zu kontrollieren. Im Kontext von Docker-Containern bedeutet das: Container, die nicht miteinander kommunizieren müssen, sollten auch nicht im selben Netzwerk liegen. Ein benutzerdefiniertes Docker-Netzwerk mit bewusst ausgewählten Mitgliedern ist die technische Umsetzung dieser Anforderung – dokumentiert durch die `docker network`-Befehle und nachvollziehbar durch `docker network inspect`.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -124,506 +75,281 @@ Ein Image-Name wie `portal:2.0` besteht aus dem **Repository** (`portal`) und de
 
 ## Aufgaben
 
-### Schritt 1: Build-Werkzeug installieren
+### Schritt 1: Eigenes Docker-Netzwerk anlegen und Dienste bewusst bündeln
 
-Das Docker-Repository ist seit Lab 05 eingebunden – es fehlt nur das Buildx-Plugin:
+Bisher waren alle Container über `-p <host-port>:<container-port>` für den Host (und damit für nginx) erreichbar. In diesem Schritt lernen Sie das Gegenteil: einen Dienst, der **ausschließlich für andere Container** erreichbar sein soll – nicht für den Host, nicht für das Internet.
 
-```bash
-apt update
-apt install -y docker-buildx-plugin
-docker buildx version
-```
-
-> **Was passiert hier?**  
-> `docker build` würde auch ohne dieses Plugin funktionieren, dann aber mit dem veralteten Legacy-Builder und einer entsprechenden `DEPRECATED`-Warnung. Mit installiertem Buildx-Plugin verwendet `docker build` automatisch BuildKit – Sie müssen an Ihrer Arbeitsweise nichts ändern.
-
-[↑ Zum Inhaltsverzeichnis](#inhalt)
-
----
-
-### Schritt 2: Das erste eigene Image (Portal v1)
-
-Die erste Ausbaustufe des Portals ist bewusst minimal: eine statische HTML-Seite, ausgeliefert von einem nginx, das Sie selbst aus einem Debian-Basis-Image heraus einrichten. So bleibt der Kopf frei für das eigentlich Neue – das Dockerfile und den Build-Vorgang.
-
-#### 2.1 Projektverzeichnis und Startseite anlegen
+#### 1.1 Eigenes Netzwerk anlegen
 
 ```bash
-mkdir -p /srv/portal
-cd /srv/portal
-nano index.html
+docker network create app-net
 ```
 
-```html
-<!DOCTYPE html>
-<html lang="de">
-<head><meta charset="UTF-8"><title>Messdaten-Portal</title></head>
-<body>
-  <h1>Messdaten-Portal</h1>
-  <p>Version 1 &ndash; die Anbindung an die Messdatenbank folgt.</p>
-</body>
-</html>
-```
+Damit legen Sie ein eigenes, benutzerdefiniertes Docker-Netzwerk namens `app-net` an. Container, die diesem Netzwerk beitreten, können sich gegenseitig über ihren Containernamen erreichen – Docker betreibt dafür intern einen eigenen DNS-Server pro Netzwerk.
 
-#### 2.2 Das Dockerfile schreiben
+#### 1.2 Bestehenden Container zusätzlich anbinden
 
 ```bash
-nano Dockerfile
+docker network connect app-net nodered
 ```
 
-```dockerfile
-FROM debian:trixie-slim
+`nodered` läuft bereits (aus Lab 05) mit `-p 127.0.0.1:1880:1880` im Standard-Netzwerk – darüber bleibt er für nginx auf dem Host erreichbar, aber weiterhin nicht direkt aus dem Internet. Mit diesem Befehl bekommt `nodered` ein zweites Standbein: Er gehört jetzt **gleichzeitig** zwei Netzwerken an. Ein Container kann beliebig vielen Netzwerken angehören, ohne neu erstellt werden zu müssen.
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends nginx-light && \
-    rm -rf /var/lib/apt/lists/*
-
-COPY index.html /var/www/html/index.html
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-| Zeile | Bedeutung |
-|---|---|
-| `FROM debian:trixie-slim` | Basis-Image: ein schlankes Debian 13 (Trixie) ohne Dokumentation, man-pages und ähnlichen Ballast – die `-slim`-Variante der offiziellen Debian-Images |
-| `RUN apt-get update && apt-get install ... && rm -rf ...` | Installiert nginx selbst, statt ein fertiges nginx-Image zu verwenden – dazu gleich mehr |
-| `COPY index.html ...` | Kopiert Ihre Startseite an die Stelle, an der das Debian-Paket `nginx-light` sein Standard-Wurzelverzeichnis erwartet |
-| `EXPOSE 80` | Dokumentiert, dass die Anwendung im Container auf Port 80 lauscht |
-| `CMD ["nginx", "-g", "daemon off;"]` | Startet nginx im Vordergrund – ohne diese Zeile würde der Hauptprozess sofort beenden und der Container mit ihm |
-
-> **Warum `apt-get` statt `apt`?**  
-> In Schritt 1 und in allen bisherigen Labs haben Sie stets `apt` verwendet – die neuere, für die **interaktive Nutzung am Terminal** gedachte Oberfläche mit übersichtlicherer, teils farbiger Ausgabe. `apt-get` (zusammen mit `apt-cache`) ist das ältere, „rohere" Geschwisterwerkzeug: Sein Kommandozeilen-Interface und Ausgabeformat gelten als stabil und sind explizit für den Einsatz in **Skripten** gedacht – `apt` weist in seiner eigenen Dokumentation ausdrücklich darauf hin, sich nicht für Skripte zu eignen, weil sich Verhalten und Ausgabe zwischen Versionen ändern dürfen. Ein Dockerfile ist im Kern ein Skript, das bei jedem Build exakt reproduzierbar ablaufen soll – genau die Nachvollziehbarkeit, die schon die Aufgabenstellung dieses Labs verlangt. Deshalb verwenden alle Dockerfiles in diesem Kurs `apt-get`, während jede interaktive, host-seitige Installation – wie eben in Schritt 1 dieses Labs – bei `apt` bleibt.
-
-> **⚠️ Wichtig:** `EXPOSE` öffnet **keinen** Port. Es ist reine Dokumentation für Menschen und Werkzeuge. Ob und wie ein Container-Port auf dem Host erreichbar wird, entscheidet nach wie vor ausschließlich das `-p`-Flag beim Start (bzw. später `ports:` in Docker Compose).
-
-> **Warum `nginx-light` statt `nginx`?**  
-> Debian bietet nginx in drei Paketvarianten an: `nginx-light` (Kernfunktionen, für dieses Lab ausreichend), `nginx-full` (zusätzliche Module, z. B. für erweiterte SSL-Konfigurationen) und `nginx-extras` (noch mehr Module, u. a. Lua-Skripting). Da das Portal nur eine statische Datei ausliefert, genügt die schlankste Variante – ein weiteres Beispiel für „nur installieren, was tatsächlich gebraucht wird". `--no-install-recommends` verstärkt diesen Effekt: APT installiert dann nur zwingend benötigte, aber keine lediglich empfohlenen Zusatzpakete.
-
-> **⚠️ Wichtig: `apt-get update` und `apt-get install` in derselben Zeile**  
-> Docker cacht jede Dockerfile-Zeile als eigenen Layer. Stünden `apt-get update` und `apt-get install nginx-light` in getrennten `RUN`-Anweisungen, könnte Docker bei einem späteren Rebuild die `update`-Zeile unverändert aus dem Cache übernehmen, obwohl sich die tatsächlich verfügbaren Paketversionen im Repository längst geändert haben – Sie würden dann ein veraltetes Paket installieren, ohne es zu bemerken. Beide Befehle stehen deshalb in einer einzigen `RUN`-Zeile, verbunden mit `&&`.
-
-> **Warum `rm -rf /var/lib/apt/lists/*` in derselben Zeile?**  
-> Jede Anweisung erzeugt einen eigenen, unveränderlichen Layer. Würden Sie das Aufräumen der heruntergeladenen Paketlisten in einer eigenen, späteren `RUN`-Anweisung vornehmen, blieben die Dateien im vorherigen Layer trotzdem vollständig gespeichert – im sichtbaren Dateisystem des Containers wären sie zwar verschwunden, im Image selbst würden sie aber weiterhin Platz belegen. Erst die Bereinigung **innerhalb derselben** `RUN`-Anweisung, in der die Dateien entstanden sind, reduziert tatsächlich die Image-Größe.
-
-Anders als bei einem fertigen Anwendungsimage wie `nginx:trixie` müssen Sie hier selbst ein `CMD` angeben: Das Basis-Image `debian:trixie-slim` kennt nginx nicht und bringt daher auch kein passendes `CMD` mit. `nginx -g "daemon off;"` überschreibt dabei nur eine einzige Konfigurationsoption – nginx soll im Vordergrund bleiben, statt wie gewohnt als Dienst im Hintergrund zu arbeiten (daemon).
-
-#### 2.3 Das Image bauen
+#### 1.3 Neuen, rein internen Dienst starten
 
 ```bash
-docker build -t portal:1.0 .
+docker run -d \
+  --name redis-cache \
+  --restart unless-stopped \
+  --network app-net \
+  redis:7
 ```
 
 | Element | Bedeutung |
 |---|---|
-| `docker build` | Baut ein Image nach den Anweisungen eines Dockerfiles |
-| `-t portal:1.0` | Vergibt Repository-Name und Tag (*t* wie *tag*): Repository `portal`, Version `1.0` |
-| `.` | Der **Build-Kontext**: das Verzeichnis, dessen Inhalt Docker für den Build bereitgestellt wird – hier das aktuelle Verzeichnis. Nur Dateien aus dem Kontext können mit `COPY` ins Image gelangen |
+| `redis:7` | Das **Image** – der Bauplan für die Redis-Software, Version 7. Wird von Docker Hub geladen. |
+| `--name redis-cache` | Der Name, den der daraus erstellte **Container** bekommt. Innerhalb von `app-net` ist das zugleich der Hostname, unter dem dieser Container per DNS auffindbar ist. |
+| `--network app-net` | Der Container wird direkt bei seiner Erstellung diesem Netzwerk zugewiesen – im Unterschied zu `nodered`, der nachträglich per `network connect` hinzugefügt wurde. |
+| (kein `-p`) | Bewusst weggelassen: Es gibt keinen Host-Port. Der Container ist außerhalb von `app-net` nicht erreichbar – nicht vom Host, nicht aus dem Internet. |
 
-Prüfen Sie das Ergebnis:
-
-```bash
-docker images
-```
-
-In der Liste erscheint jetzt neben den bekannten Fremd-Images Ihr eigenes: `portal` mit dem Tag `1.0`.
-
-#### 2.4 Einen Container aus dem eigenen Image starten
-
-Ein selbst gebautes Image verhält sich beim Start exakt wie ein fremdes:
-
-```bash
-docker run -d --name portal --restart unless-stopped -p 127.0.0.1:8000:80 portal:1.0
-# -d: im Hintergrund | --name: Containername | --restart: Neustart-Policy | -p: nur lokal gebundener Host-Port:Container-Port
-# (ausführlich erklärt in Lab 05, Schritt 3.3)
-curl http://localhost:8000
-```
-
-Die Antwort ist Ihre eigene Startseite. Das Portal bleibt – wie alle Backend-Dienste seit Lab 05 – bewusst nur an `127.0.0.1` gebunden; die Veröffentlichung über nginx und eine eigene Subdomain folgt in Lab 08, wenn das Portal echte Daten zeigt.
-
-[↑ Zum Inhaltsverzeichnis](#inhalt)
-
----
-
-### Schritt 3: Layer, Build-Cache und Tags verstehen
-
-#### 3.1 Layer sichtbar machen
-
-```bash
-docker history portal:1.0
-```
-
-Die Ausgabe zeigt den Schichtenstapel von oben (neueste Schicht) nach unten (Basis): Ganz oben liegt Ihre `COPY`-Zeile als hauchdünner Layer (wenige hundert Byte), darunter der deutlich größere `RUN`-Layer mit der nginx-Installation, und ganz unten die Schichten von `debian:trixie-slim` selbst. Das Basis-Image wurde dabei nicht kopiert, sondern wird **geteilt** – jedes weitere Image auf Basis von `debian:trixie-slim` nutzt dieselben unteren Schichten mit.
+> **Image, Container, Software – was ist hier eigentlich was?**
+> Diese drei Begriffe werden leicht vermischt:
+> - **Image** (`redis:7`): ein unveränderlicher Bauplan, der auf Docker Hub liegt.
+> - **Container** (`redis-cache`): die laufende, konkrete Instanz, die aus diesem Bauplan erzeugt wurde – mit eigenem Namen und eigenem Lebenszyklus.
+> - **Software** (Redis): das Programm, das innerhalb dieses Containers tatsächlich läuft – eine In-Memory-Datenbank, die in der Praxis meist als schneller Zwischenspeicher (Cache) vor einer langsameren Hauptdatenbank eingesetzt wird.
+>
+> Es gibt in diesem Abschnitt also nur **einen** Container: `redis-cache`. „Redis" und „redis-cache" meinen praktisch dasselbe Ding – einmal als Produktname, einmal als der konkrete Name, den dieser eine Container in Ihrer Umgebung trägt.
 
 ```mermaid
-flowchart BT
-    Base["debian:trixie-slim<br/>Basis-Layer (geteilt mit anderen Images)"]
-    Run["RUN apt-get install nginx-light<br/>eigener Layer (groß, aber aus dem Cache wiederverwendbar)"]
-    Copy["COPY index.html<br/>eigener Layer (klein, wird bei Änderungen neu gebaut)"]
-
-    Base --> Run --> Copy
+flowchart TD
+    Registry["Docker Hub<br/>(Registry)"] -->|"docker pull"| Image["Image<br/>redis:7"]
+    Image -->|"docker run --name redis-cache"| Container["Container<br/>redis-cache"]
+    Container --> Process["laufender Prozess<br/>Redis"]
 ```
 
-#### 3.2 Den Build-Cache beobachten
+> **Vorgriff:** In einer späteren Übung übernehmen eine Zeitreihendatenbank (z. B. InfluxDB), ein Connector-Dienst und eine Visualisierung (z. B. Grafana) genau dieses Muster – mehrere zusammenspielende Container in einem eigenen Netzwerk, von denen nur die Visualisierung nach außen erreichbar sein muss. `redis-cache` steht hier stellvertretend für diesen späteren Datenhaltungsdienst – nicht als sinnvoller Produktiv-Cache für `nodered`, sondern als einfaches Beispiel-Image für das Bündelungsprinzip.
 
-Bauen Sie das Image erneut, ohne etwas zu ändern:
+#### 1.4 Namensauflösung innerhalb des Netzwerks prüfen
 
 ```bash
-docker build -t portal:1.0 .
-```
-
-Der Build ist praktisch sofort fertig – alle Schritte sind mit `CACHED` markiert. Ändern Sie nun eine Kleinigkeit an der Startseite:
-
-```bash
-nano index.html    # z. B. den Text um "(Testbetrieb)" ergänzen
-docker build -t portal:1.0 .
-```
-
-> **Was passiert hier?**  
-> Der `FROM`-Layer **und** der `RUN`-Layer mit der nginx-Installation kommen weiterhin aus dem Cache – nur die `COPY`-Anweisung wird neu ausgeführt, weil Docker erkannt hat, dass sich die kopierte Datei geändert hat. Bei einem Basis-Image, das Sie selbst mit `apt install` befüllen, ist das besonders wertvoll: Der aufwändige Installationsschritt wird nicht bei jeder Kleinigkeit wiederholt. Genau dieses Verhalten machen Sie sich in Schritt 5 zunutze, indem Sie selten Geändertes (Abhängigkeiten) **vor** häufig Geändertem (Anwendungscode) kopieren.
-
-Der laufende Container zeigt übrigens weiterhin die alte Seite: Er wurde aus dem alten Image erzeugt, und ein Image-Neubau ändert bestehende Container nicht. Das Update-Muster kennen Sie aus Lab 05: stoppen, löschen, neu erstellen – hier noch nicht nötig, das erledigt Schritt 5.
-
-#### 3.3 Ein zweites Tag vergeben
-
-```bash
-docker tag portal:1.0 portal:latest
-docker images
-```
-
-`portal:1.0` und `portal:latest` erscheinen als zwei Zeilen – aber mit **derselben IMAGE ID**. Ein Tag ist nur ein Etikett; es existiert weiterhin genau ein Image. Belegt wird dadurch auch kein zusätzlicher Speicherplatz.
-
-#### 3.4 Den Build-Kontext begrenzen mit .dockerignore
-
-Beim Build überträgt Docker den **kompletten** Inhalt des Build-Kontexts an den Build-Prozess – auch Dateien, die nie per `COPY` verwendet werden. Eine `.dockerignore`-Datei schließt Unerwünschtes aus, nach demselben Prinzip wie eine `.gitignore`:
-
-```bash
-nano .dockerignore
-```
-
-```
-.git
-*.md
-__pycache__/
-*.pyc
-.env
-```
-
-> **⚠️ Wichtig:** In den Build-Kontext gehören **niemals Geheimnisse**. Eine versehentlich mitkopierte `.env`-Datei mit Zugangsdaten landet sonst als Layer im Image – und ist dort für jeden auslesbar, der das Image in die Finger bekommt, selbst wenn die Datei in einem späteren Layer wieder „gelöscht" wird. Der Eintrag `.env` ist hier also kein Platzhalter, sondern eine Versicherung; in Lab 08 werden Sie eine solche Datei tatsächlich verwenden.
-
-[↑ Zum Inhaltsverzeichnis](#inhalt)
-
----
-
-### Schritt 4: Test-Datenbank bereitstellen und mit Messwerten füllen
-
-Die zweite Ausbaustufe des Portals soll echte Messwerte aus einer Zeitreihendatenbank anzeigen. Die produktive Datenpipeline entsteht erst in Lab 08 – zum Entwickeln und Testen genügt eine **Wegwerf-Instanz** von InfluxDB: ohne Volume (die Testdaten dürfen vergänglich sein) und ohne Host-Port (das Muster von `redis-cache` aus Lab 06, Schritt 7).
-
-#### 4.1 Netzwerk und InfluxDB-Container starten
-
-Erzeugen Sie zunächst ein eigenes Netzwerk für die Testumgebung und ein Zugriffs-Token:
-
-```bash
-docker network create portal-test
-openssl rand -hex 32    # Erzeugen: 32 Zufallsbytes | Umwandeln: als Hexadezimalzeichen ausgeben
-```
-
-> **⚠️ Wichtig:** Notieren Sie sich die Ausgabe von `openssl rand` – sie ist Ihr `<TOKEN>` für dieses **und** das nächste Lab. Ersetzen Sie in allen folgenden Befehlen `<TOKEN>` durch diesen Wert (und `<SICHERES-PASSWORT>` durch ein selbst gewähltes Passwort).
-
-```bash
-docker run -d --name influxdb --network portal-test \
-  -e DOCKER_INFLUXDB_INIT_MODE=setup \
-  -e DOCKER_INFLUXDB_INIT_USERNAME=admin \
-  -e DOCKER_INFLUXDB_INIT_PASSWORD='<SICHERES-PASSWORT>' \
-  -e DOCKER_INFLUXDB_INIT_ORG=alp \
-  -e DOCKER_INFLUXDB_INIT_BUCKET=iot \
-  -e DOCKER_INFLUXDB_INIT_ADMIN_TOKEN='<TOKEN>' \
-  influxdb:2
-docker logs influxdb
+docker run --rm --network app-net debian:trixie-slim getent hosts redis-cache
 ```
 
 | Element | Bedeutung |
 |---|---|
-| `influxdb:2` | Offizielles Image der Zeitreihendatenbank InfluxDB, Hauptversion 2 |
-| `DOCKER_INFLUXDB_INIT_MODE=setup` | Weist das Image an, sich beim ersten Start selbst einzurichten, statt auf eine interaktive Einrichtung zu warten |
-| `..._ORG=alp` / `..._BUCKET=iot` | **Organisation** und **Bucket** – InfluxDBs Begriffe für Mandant und Datenbehälter. Diese Namen verwenden Sie in Lab 08 unverändert weiter |
-| `..._ADMIN_TOKEN='<TOKEN>'` | Das Zugriffs-Token, mit dem sich Anwendungen (gleich: Ihr Portal) an der API anmelden |
-| `--network portal-test` / kein `-p` | Nur innerhalb des Test-Netzwerks erreichbar – kein Host-Port, keine Angriffsfläche (vgl. Lab 06, Schritt 7.6) |
+| `debian:trixie-slim` | Das **Image** – dieselbe schlanke Debian-Basis wie in Lab 08. Hier nicht als Basis für ein eigenes Image, sondern nur als schnell startendes Test-Werkzeug, das die nötigen Bordmittel (`getent`) bereits mitbringt. |
+| (kein `--name`) | Der daraus gestartete Container bekommt einen von Docker zufällig vergebenen Namen – unwichtig, da er sich gleich wieder selbst löscht. |
+| `--rm` | Der Container wird sofort nach Beendigung des Befehls automatisch gelöscht. Er existiert nur für die Dauer dieses einen Aufrufs. |
+| `getent hosts redis-cache` | Der Befehl, der **innerhalb** des Test-Containers ausgeführt wird. `getent hosts <name>` fragt: „Welche IP-Adresse gehört zu diesem Namen?" – gefragt wird hier nach dem Namen des **Redis-Containers**. |
 
-In der `docker logs`-Ausgabe können Sie den Setup-Ablauf nachvollziehen.
+> **Achtung bei der Eingabe:** Die Datenbank heißt `hosts` (mit „s" am Ende). `getent host redis-cache` (ohne „s") führt zu einer Fehlermeldung, weil `host` keine gültige Datenbank ist – das ist ein Tippfehler, kein Problem der Namensauflösung selbst.
 
-#### 4.2 Testdaten einspielen
+Die Ausgabe zeigt die interne IP-Adresse von `redis-cache`, z. B.:
 
-Das Image bringt das Kommandozeilenwerkzeug `influx` mit, das Sie – wie `mysql` in einem Datenbank-Container – per `docker exec` aufrufen. Spielen Sie drei Temperaturwerte mit gestaffelten Zeitstempeln ein:
+```
+172.18.0.3      redis-cache
+```
+
+#### 1.5 Gegenprobe: Auflösung außerhalb von `app-net`
 
 ```bash
-docker exec influxdb influx write --org alp --bucket iot --token '<TOKEN>' --precision s \
-  "umwelt temp=20.8 $(date -d '-10 min' +%s)"
-docker exec influxdb influx write --org alp --bucket iot --token '<TOKEN>' --precision s \
-  "umwelt temp=21.5 $(date -d '-5 min' +%s)"
-docker exec influxdb influx write --org alp --bucket iot --token '<TOKEN>' --precision s \
-  "umwelt temp=21.9 $(date +%s)"
+docker run --rm debian:trixie-slim getent hosts redis-cache
 ```
 
-> **Was passiert hier?**  
-> `umwelt temp=21.9 1752855000` ist InfluxDBs *Line Protocol*: Ein Datenpunkt besteht aus dem **Measurement** (`umwelt`, vergleichbar mit einem Tabellennamen), einem oder mehreren **Fields** (`temp=21.9`, die eigentlichen Messwerte) und einem **Zeitstempel**. Die Zeitstempel erzeugt hier `date` per Command Substitution `$(...)` – sie liegen 10 Minuten, 5 Minuten und 0 Minuten zurück, damit drei unterscheidbare Punkte entstehen.
+Dieser Befehl liefert **keine** Auflösung. Der einzige, aber entscheidende Unterschied zum vorherigen Befehl: Hier fehlt `--network app-net`. Ohne diese Angabe verwendet Docker automatisch das Standard-Bridge-Netzwerk – ein komplett anderes Netzwerk als `app-net`, mit einem eigenen, separaten internen DNS. `redis-cache` ist dort nicht bekannt, weil er ausschließlich Mitglied von `app-net` ist.
 
-#### 4.3 Testdaten abfragen
+> **Bildlich:** `app-net` ist ein Konferenzraum mit eigenem internen Telefonbuch. `redis-cache` (und zeitweise `nodered`) sitzen in diesem Raum und stehen im Telefonbuch. Ein Test-Container ohne `--network app-net` betritt diesen Raum gar nicht – er bleibt im Foyer (Standard-Bridge-Netz) mit einem eigenen, anderen Telefonbuch, in dem `redis-cache` schlicht nicht eingetragen ist.
+
+#### 1.6 Port-Check auf dem Host
 
 ```bash
-docker exec influxdb influx query --org alp --token '<TOKEN>' \
-  'from(bucket:"iot") |> range(start: -1h)'
+ss -tlnp | grep 6379
+```
+>**Hinweis:** 6379 ist der Standard-Port für Redis
+
+Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (die bewusst über `-p 127.0.0.1:<port>:<port>` veröffentlicht wurden) ist hier gar kein Host-Port nötig – `redis-cache` muss ausschließlich für `nodered` erreichbar sein, und das funktioniert vollständig innerhalb von `app-net`, ohne dass der Host überhaupt einen offenen Port dafür braucht.
+
+> **Warum trotzdem mindestens ein Dienst sichtbar bleiben muss:** `app-net` selbst macht nach außen gar nichts sichtbar. Die einzige Verbindung zur Außenwelt bleibt `nodered` – er gehört weiterhin zusätzlich dem Standard-Netzwerk an und ist dort über `-p 127.0.0.1:1880:1880` für nginx erreichbar (aus Lab 05). `nodered` fungiert damit als Brücke zwischen beiden Welten: lokal erreichbar über sein Host-Port-Mapping (für den Reverse Proxy), nach innen verbunden mit `redis-cache` über `app-net`. `redis-cache` selbst braucht diese Brücke nicht – er muss nur von `nodered` aus erreichbar sein, nicht von irgendwo sonst.
+
+Die Netzwerk-Zugehörigkeiten aus diesem Schritt im Überblick – `nodered` ist Mitglied beider Netzwerke und damit die einzige Brücke zwischen ihnen, `redis-cache` ausschließlich Mitglied von `app-net`:
+
+```mermaid
+flowchart TD
+    nodered["nodered<br/>(ein Container, zwei Netzwerke)"]
+
+    subgraph Default["Standard-Bridge-Netzwerk"]
+        HostPort["nginx auf dem Host<br/>127.0.0.1:1880"]
+    end
+
+    subgraph AppNet["app-net"]
+        redis["redis-cache<br/>(kein Host-Port)"]
+    end
+
+    HostPort --> nodered
+    nodered --> redis
+    nodered -. Mitglied von .-> Default
+    nodered -. Mitglied von .-> AppNet
 ```
 
-Die Ausgabe zeigt Ihre drei Punkte. Die Abfragesprache heißt **Flux**; die Zeile liest sich wörtlich: „Aus dem Bucket `iot` alle Punkte der letzten Stunde." Mehr Flux brauchen Sie in diesem Kurs nicht zu schreiben – aber genau diese Abfrage (leicht erweitert) wird gleich Ihr Portal stellen.
+#### 1.7 Hintergrund: IP-Vergabe und Routing in Docker-Netzwerken
 
-[↑ Zum Inhaltsverzeichnis](#inhalt)
+Die IP-Adresse `172.18.0.3`, die in Schritt 1.4 für `redis-cache` aufgetaucht ist, kam nicht von irgendwoher – sie wurde Docker beim Anlegen von `app-net` automatisch aus einem eigenen Adresspool zugewiesen. Jedes Docker-Netzwerk bekommt dabei ein eigenes Subnetz; das Standard-Netzwerk `bridge` belegt meist `172.17.0.0/16`, eigene Netzwerke wie `app-net` erhalten automatisch das nächste freie Subnetz (z. B. `172.18.0.0/16`).
 
----
+Innerhalb eines solchen Netzwerks ist das, was wie „Routing" wirkt, eigentlich **Switching auf Layer 2**: Alle Container eines Netzwerks hängen an derselben virtuellen Linux-Bridge und liegen im selben Subnetz – es muss also nichts zwischen unterschiedlichen Netzbereichen vermittelt werden. Die Namensauflösung (Containername → IP), die Sie in 1.4 mit `getent hosts` genutzt haben, übernimmt dabei der eingebaute Docker-DNS-Server.
 
-### Schritt 5: Eine konfigurierbare Anwendung (Portal v2)
+Zwischen zwei eigenständigen, unterschiedlichen Netzwerken gibt es dagegen **kein automatisches Routing** – sie sind grundsätzlich voneinander isoliert. Genau das war in 1.5 zu sehen: Ohne `--network app-net` landet ein Container im Standard-Netzwerk, einem komplett anderen Adressbereich mit eigenem, separaten DNS. Nur ein Container, der – wie `nodered` – Mitglied in beiden Netzwerken ist, kann zwischen ihnen vermitteln.
 
-Version 2 des Portals ist eine kleine Python-Anwendung: Sie fragt die letzten Temperaturwerte über die HTTP-API von InfluxDB ab und rendert sie als Tabelle. Bewusst ohne Datenbank-Bibliothek – Sie sollen sehen, dass hinter „Anbindung an InfluxDB" nichts weiter steckt als ein HTTP-Aufruf mit Token, den Sie genauso mit `curl` absetzen könnten.
+Folgende Befehle helfen, sich jederzeit einen Überblick über die vorhandenen Docker-Netzwerke und ihre IP-Vergabe zu verschaffen:
 
-#### 5.1 Den Anwendungscode anlegen
-
-Die statische Startseite hat ausgedient:
-
-```bash
-cd /srv/portal
-rm index.html
-nano requirements.txt
-```
-
-In der Datei `requirements.txt` tragen Sie bitte folgenden Text ein (Erklärung siehe unten):
-
-```
-flask~=3.1
-requests~=2.32
-```
-
-`requirements.txt` ist die Standarddatei, über die Python-Projekte ihre Abhängigkeiten deklarieren: Sie listet die Bibliotheken, die das Programm zur Laufzeit benötigt, mit Versionsvorgabe. Installiert werden diese Bibliotheken nicht durch die Datei selbst, sondern erst gleich in Schritt 5.2 durch den Befehl `pip install -r requirements.txt` im Dockerfile – die Datei ist lediglich die Einkaufsliste, `pip` erledigt die eigentliche Installation. Für dieses Portal sind das **Flask** (ein minimaler Webserver für Python) und **requests** (HTTP-Aufrufe). Die Schreibweise `~=3.1` erlaubt Korrektur-Updates, verhindert aber Versionssprünge – wieder ein Stück Reproduzierbarkeit.
-
-```bash
-nano app.py
-```
-
-```python
-import csv
-import io
-import os
-
-import requests
-from flask import Flask
-
-app = Flask(__name__)
-
-# Konfiguration aus Umgebungsvariablen - mit Vorgabewerten fuer alles
-# Unkritische. Das Token hat bewusst KEINEN Vorgabewert: Fehlt es,
-# bricht der Start sofort ab (Fail fast statt raetselhafter Fehler spaeter).
-INFLUX_URL = os.environ.get("INFLUX_URL", "http://influxdb:8086")
-INFLUX_ORG = os.environ.get("INFLUX_ORG", "alp")
-INFLUX_BUCKET = os.environ.get("INFLUX_BUCKET", "iot")
-INFLUX_TOKEN = os.environ["INFLUX_TOKEN"]
-
-# Die Flux-Abfrage: die letzten 10 Temperaturwerte aus 24 Stunden
-FLUX_QUERY = f'''
-from(bucket: "{INFLUX_BUCKET}")
-  |> range(start: -24h)
-  |> filter(fn: (r) => r._measurement == "umwelt" and r._field == "temp")
-  |> sort(columns: ["_time"], desc: true)
-  |> limit(n: 10)
-'''
-
-
-@app.route("/health")
-def health():
-    return "ok"
-
-
-@app.route("/")
-def index():
-    try:
-        antwort = requests.post(
-            f"{INFLUX_URL}/api/v2/query?org={INFLUX_ORG}",
-            headers={"Authorization": f"Token {INFLUX_TOKEN}",
-                     "Content-Type": "application/json"},
-            json={"query": FLUX_QUERY, "dialect": {"annotations": []}},
-            timeout=5,
-        )
-        antwort.raise_for_status()
-    except requests.RequestException as fehler:
-        return f"<h1>Messdaten-Portal</h1><p>Datenbank nicht erreichbar: {fehler}</p>", 502
-
-    zeilen = ""
-    for datensatz in csv.DictReader(io.StringIO(antwort.text)):
-        zeilen += f"<tr><td>{datensatz['_time']}</td><td>{datensatz['_value']} &deg;C</td></tr>"
-
-    return f"""<!DOCTYPE html>
-<html lang="de">
-<head><meta charset="UTF-8"><title>Messdaten-Portal</title></head>
-<body>
-  <h1>Messdaten-Portal</h1>
-  <p>Letzte Temperaturwerte aus Bucket <code>{INFLUX_BUCKET}</code>:</p>
-  <table border="1"><tr><th>Zeitpunkt</th><th>Temperatur</th></tr>{zeilen}</table>
-</body>
-</html>"""
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
-```
-
-> **Was passiert hier?**  
-> Die Anwendung besteht aus vier Teilen: **(1)** Die Konfiguration kommt vollständig aus Umgebungsvariablen – dieselbe App läuft damit unverändert gegen die Testdatenbank von eben und gegen die Produktions-Datenbank aus Lab 08. **(2)** `/health` ist eine Mini-Route, die nur „ok" antwortet – praktisch, um mit `curl` zu prüfen, ob die App überhaupt läuft, unabhängig von der Datenbank. **(3)** Die Hauptroute `/` schickt die Flux-Abfrage als HTTP-POST an die InfluxDB-API (Anmeldung per `Authorization: Token ...`-Header) und fängt Verbindungsfehler sauber ab. **(4)** InfluxDB antwortet mit CSV-Text; `csv.DictReader` zerlegt ihn zeilenweise, und aus den Spalten `_time` und `_value` entsteht die HTML-Tabelle.
->
-> `host="0.0.0.0"` bedeutet: Die App lauscht im Container auf allen Adressen. Das ist in Containern der Normalfall – die Zugriffskontrolle übernimmt wie gewohnt das Port-Mapping (`-p 127.0.0.1:...`), nicht die Anwendung.
-
-#### 5.2 Das Dockerfile für v2
-
-Überschreiben Sie das Dockerfile:
-
-```bash
-nano Dockerfile
-```
-
-```dockerfile
-FROM python:3.12-slim-trixie
-
-WORKDIR /app
-
-# Erst die Abhaengigkeiten - dieser Layer bleibt im Cache,
-# solange sich requirements.txt nicht aendert
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Erst danach der Anwendungscode, der sich haeufiger aendert
-COPY app.py .
-
-# Vorgabewerte - beim Start per -e ueberschreibbar. Das Token hat
-# bewusst KEINEN Vorgabewert und steht NIE im Image
-ENV INFLUX_URL=http://influxdb:8086 \
-    INFLUX_ORG=alp \
-    INFLUX_BUCKET=iot
-
-RUN useradd --create-home --shell /usr/sbin/nologin portal
-USER portal
-
-EXPOSE 8000
-
-CMD ["python", "app.py"]
-```
-
-Hier sind nun alle wichtigen Anweisungen aus dem Hintergrundwissen versammelt:
-
-| Abschnitt | Bedeutung |
+| Befehl | Bedeutung |
 |---|---|
-| `FROM python:3.12-slim-trixie` | Offizielles Python-Image in der `slim`-Variante auf Basis von Debian 13 (Trixie) – ein fertiges Anwendungsimage, im Gegensatz zum Betriebssystem-Ansatz von Portal v1. Klein halten lohnt sich trotzdem: weniger Download, weniger Angriffsfläche |
-| `WORKDIR /app` | Arbeitsverzeichnis anlegen und wechseln – alle folgenden `COPY`/`RUN`/`CMD` beziehen sich darauf |
-| `COPY requirements.txt` + `RUN pip install` **vor** `COPY app.py` | Die Cache-Lektion aus Schritt 3.2, angewandt: Ändern Sie später nur `app.py`, bleibt der teure `pip install`-Layer im Cache und der Build dauert Sekunden statt Minuten |
-| `ENV ...` | Vorgabewerte für die unkritische Konfiguration. Die Werte passen absichtlich exakt zur Testumgebung aus Schritt 4 **und** zum Compose-Stack in Lab 08 |
-| `RUN useradd ...` + `USER portal` | Ab hier läuft alles – insbesondere der `CMD` – als unprivilegierter Benutzer `portal` statt als root. Bricht jemand über eine Lücke in der App aus, landet er ohne Root-Rechte im Container |
-| `CMD ["python", "app.py"]` | Der Startbefehl in der *Exec-Form* (JSON-Liste): Der Prozess wird direkt gestartet, ohne Shell dazwischen, und empfängt so Signale (z. B. beim `docker stop`) sauber selbst |
+| `docker network ls` | Alle Netzwerke anzeigen, inkl. der Standardnetze `bridge`, `host` und `none` |
+| `docker network create <name>` | Eigenes Netzwerk anlegen |
+| `docker network rm <name>` | Netzwerk löschen (nur möglich, wenn keine Container mehr verbunden sind) |
+| `docker network inspect <name>` | Vollständige Details zu einem Netzwerk: Subnetz, IPAM-Konfiguration, verbundene Container |
+| `docker network connect <netz> <container>` | Laufenden Container zusätzlich an ein Netzwerk anhängen |
+| `docker network disconnect <netz> <container>` | Container aus einem Netzwerk entfernen |
+| `docker network prune` | Alle nicht genutzten (verwaisten) Netzwerke aufräumen |
 
-> **⚠️ Wichtig:** Warum steht `INFLUX_TOKEN` **nicht** im `ENV`-Block? Alles, was per `ENV` gesetzt wird, ist Teil des Images – und damit für jeden lesbar, der `docker history` oder `docker inspect` auf das Image anwendet. Geheimnisse werden deshalb erst **zur Laufzeit** injiziert (`-e` beim `docker run`, später `.env` in Compose). Das ist dieselbe Trennung, die ISO 27001 mit Control **A.5.17 (Authentication Information)** verlangt: Zugangsdaten sind kein Bestandteil auslieferbarer Artefakte.
-
-#### 5.3 Bauen, starten, prüfen
+Zunächst ein Überblick über alle vorhandenen Netzwerke – auch über die von Docker immer automatisch angelegten Standardnetze, in deren Liste `app-net` erst nach dem Anlegen in Schritt 1.1 auftaucht:
 
 ```bash
-docker build -t portal:2.0 .
-docker stop portal && docker rm portal
-docker run -d --name portal --restart unless-stopped \
-  --network portal-test \
-  -p 127.0.0.1:8000:8000 \
-  -e INFLUX_TOKEN='<TOKEN>' \
-  portal:2.0
+docker network ls
 ```
 
+Das einem Netzwerk zugewiesene Subnetz lässt sich gezielt abfragen, ohne sich durch die vollständige, unübersichtliche `inspect`-Ausgabe zu lesen:
+
 ```bash
-curl http://localhost:8000/health
-curl http://localhost:8000
+docker network inspect app-net --format '{{(index .IPAM.Config 0).Subnet}}'
 ```
 
-Die erste Abfrage antwortet mit `ok`, die zweite mit der HTML-Tabelle – darin die drei Testwerte aus Schritt 4.2.
+Beispielausgabe:
 
-> **Warum findet die App den Hostnamen `influxdb`?**  
-> Beide Container sind Mitglieder von `portal-test`, und in einem benutzerdefinierten Docker-Netzwerk ist der Containername zugleich der DNS-Name – exakt der Mechanismus, den Sie in Lab 06 (Schritt 7.4) mit `getent hosts` untersucht haben. Der Vorgabewert `http://influxdb:8086` aus dem Dockerfile passt deshalb ohne weitere Konfiguration.
-
-Werfen Sie noch zwei prüfende Blicke in den laufenden Container:
-
-```bash
-docker logs portal
-docker exec portal id
+```
+172.18.0.0/16
 ```
 
-`docker logs` zeigt die Startmeldung von Flask, `id` bestätigt, dass der Prozess als Benutzer `portal` läuft – nicht als root.
-
-> **Hinweis:** Flask warnt in den Logs, sein eingebauter Server sei ein *development server*. Für dieses Lab (eine interne Anwendung mit einer Handvoll Aufrufen hinter einem Reverse Proxy) ist das vertretbar; in einem echten Produktivsystem würde man der App einen richtigen Anwendungsserver wie `gunicorn` vorschalten – eine der Reflexionsfragen greift das auf.
-
-[↑ Zum Inhaltsverzeichnis](#inhalt)
-
----
-
-### Schritt 6: Fehlersuche mit docker logs
-
-Provozieren Sie nun bewusst den Fehlerfall, gegen den die App sich mit „Fail fast" wehrt – ein Start **ohne** Token:
+Und die IP-Adressen aller Container, die aktuell Mitglied von `app-net` sind:
 
 ```bash
-docker run -d --name portal-defekt --network portal-test portal:2.0
-docker ps
+docker network inspect app-net --format '{{range .Containers}}{{.Name}} -> {{.IPv4Address}}{{"\n"}}{{end}}'
 ```
 
-Der neue Container taucht in `docker ps` **nicht** auf. Wo ist er hin?
+Beispielausgabe:
 
-```bash
-docker ps -a
 ```
-
-`docker ps` zeigt nur laufende Container; erst `-a` (*all*) listet auch beendete – und dort steht `portal-defekt` mit dem Status `Exited (1)`. Der Exit-Code ungleich 0 signalisiert einen Fehler. Die Ursache verrät das Log:
-
-```bash
-docker logs portal-defekt
-```
-
-Am Ende des Python-Tracebacks steht die entscheidende Zeile: `KeyError: 'INFLUX_TOKEN'` – die App hat den Start verweigert, weil das Pflicht-Token fehlt.
-
-> **Tipp zur Fehlerbehebung:** Diese Dreierkette – `docker ps -a` (läuft er überhaupt noch?), Exit-Code lesen, `docker logs` (was war das Letzte, das er gesagt hat?) – ist das Standardvorgehen bei jedem Container, der „einfach nicht da ist". Sie funktioniert auch bei beendeten Containern: Die Logs bleiben erhalten, bis der Container gelöscht wird.
-
-Räumen Sie den Übungspatienten weg:
-
-```bash
-docker rm portal-defekt
+redis-cache -> 172.18.0.2/16
+nodered -> 172.18.0.3/16
 ```
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
-### Schritt 7: Bilanz und Aufräumen von Images
+### Schritt 2: Lastverteilung einrichten und Last erzeugen
 
-Verschaffen Sie sich einen Überblick über den Bestand:
-
-```bash
-docker images
-```
-
-Vergleichen Sie die Größen: Obwohl beide Images auf Debian 13 (Trixie) basieren, unterscheiden sie sich deutlich – `portal:2.0` (Python-Laufzeit plus Bibliotheken) ist ein Vielfaches größer als `portal:1.0` (schlankes nginx). Der Unterschied liegt nicht an der Distribution, sondern daran, wie viel Software pro Image tatsächlich installiert ist: einmal ein einzelnes, bewusst schlankes nginx-Paket, einmal eine komplette Python-Laufzeit mit Abhängigkeiten. Genau das macht `docker history` sichtbar – und genau deshalb ist die Wahl, was Sie in ein Image installieren, die größte einzelne Stellschraube für dessen Größe. Kleinere Images bedeuten schnellere Verteilung und weniger enthaltene Software, die Sicherheitslücken haben könnte.
-
-Durch die wiederholten Builds sind außerdem **verwaiste Layer** entstanden – Zwischenstände, auf die kein Tag mehr zeigt (in `docker images -a` als `<none>` sichtbar). Sie belegen nur noch Platz:
+In der Fortsetzung arbeiten Sie mit `demo.<IHRE-DOMAIN>` analog zu den bisherigen Einträgen. Dafür wird der in den Voraussetzungen genannte A-Record `demo.<IHRE-DOMAIN>` benötigt. Falls in Ihrer Zone bereits ein Wildcard-Eintrag (`*`) existiert (siehe Hinweis in Lab 05, Schritt 2), ist kein eigener Eintrag nötig. Die folgende Überprüfung sollte in beiden Fällen erfolgreich sein:
 
 ```bash
-docker image prune    # entfernt alle Layer ohne Tag ("dangling images"), nach Rueckfrage
+dig demo.<IHRE-DOMAIN> +short
 ```
 
-Entfernen Sie zum Abschluss das Komfort-Tag aus Schritt 3.3:
+Starten Sie drei Instanzen eines einfachen Demo-Dienstes, der bei jeder Antwort seinen eigenen Containernamen zurückgibt:
 
 ```bash
-docker rmi portal:latest
-docker images
+docker run -d --name demo1 --restart unless-stopped -p 127.0.0.1:9001:80 nginxdemos/hello
+docker run -d --name demo2 --restart unless-stopped -p 127.0.0.1:9002:80 nginxdemos/hello
+docker run -d --name demo3 --restart unless-stopped -p 127.0.0.1:9003:80 nginxdemos/hello
+# -d: im Hintergrund | --name: Containername | --restart: Neustart-Policy | -p: nur lokal gebundener Host-Port:Container-Port
+# (ausführlich erklärt in Lab 05, Schritt 3.3)
 ```
 
-> **Was passiert hier?**  
-> `docker rmi` hat hier nur das **Etikett** entfernt – `portal:1.0` (dieselbe IMAGE ID!) existiert weiter, ebenso `portal:2.0`. Ein Image verschwindet erst dann wirklich, wenn sein letztes Tag gelöscht wird und kein Container es mehr verwendet.
+Tragen Sie alle drei Instanzen händisch als Upstream-Gruppe in nginx ein:
+
+```bash
+nano /etc/nginx/conf.d/demo.conf
+```
+
+```nginx
+upstream demo_backend {
+    server 127.0.0.1:9001;
+    server 127.0.0.1:9002;
+    server 127.0.0.1:9003;
+}
+
+server {
+    listen 443 ssl;
+    server_name demo.<IHRE-DOMAIN>;
+
+    acme_certificate letsencrypt;
+    ssl_certificate $acme_certificate;
+    ssl_certificate_key $acme_certificate_key;
+    ssl_certificate_cache max=2;
+
+    location / {
+        proxy_pass http://demo_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+```bash
+nginx -t
+systemctl reload nginx
+```
+
+Erzeugen Sie mehrere Anfragen und beobachten Sie die Verteilung anhand des jeweils zurückgegebenen Containernamens:
+
+```bash
+for i in $(seq 1 12); do curl -s https://demo.<IHRE-DOMAIN> | grep "Server name"; done
+```
+
+Sie sollten alle drei Container-Hostnamen im Round-Robin-Wechsel sehen. Optional können Sie mit einem echten Lasttest-Werkzeug eine größere Anfragenzahl erzeugen:
+
+```bash
+ab -n 100 -c 10 https://demo.<IHRE-DOMAIN>/
+```
+
+Fügen Sie nun bewusst eine vierte Instanz hinzu:
+
+```bash
+docker run -d --name demo4 --restart unless-stopped -p 127.0.0.1:9004:80 nginxdemos/hello
+# gleiches Muster wie demo1-demo3, nur neuer Name und neuer Host-Port
+```
+
+Tragen Sie sie händisch in die Upstream-Gruppe ein:
+
+```bash
+nano /etc/nginx/conf.d/demo.conf
+```
+
+```nginx
+upstream demo_backend {
+    server 127.0.0.1:9001;
+    server 127.0.0.1:9002;
+    server 127.0.0.1:9003;
+    server 127.0.0.1:9004;
+}
+```
+
+```bash
+nginx -t
+systemctl reload nginx
+```
+
+Die Upstream-Gruppe verteilt Anfragen jetzt im Round-Robin-Verfahren auf vier Container-Instanzen – `demo4` wurde bewusst per Hand ergänzt, nicht automatisch erkannt:
+
+```mermaid
+flowchart TD
+    Client(["Browser/curl"]) -->|"https://demo.&lt;IHRE-DOMAIN&gt;"| nginx["nginx<br/>upstream demo_backend"]
+    nginx -->|round robin| demo1["demo1 :9001"]
+    nginx -->|round robin| demo2["demo2 :9002"]
+    nginx -->|round robin| demo3["demo3 :9003"]
+    nginx -. nachträglich ergänzt .-> demo4["demo4 :9004"]
+```
+
+Wiederholen Sie den Testlauf aus diesem Schritt – `demo4` erscheint erst jetzt in der Verteilung, und zwar genau deshalb, weil Sie es bewusst eingetragen und neu geladen haben, nicht weil es automatisch erkannt wurde.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -631,22 +357,16 @@ docker images
 
 ## Reflexion und weiterführende Fragen
 
-**Zum Dockerfile und Schichtenmodell:**
+**Zu Docker-Netzwerken**
 
-- Warum steht `COPY requirements.txt` mit dem `pip install` **vor** `COPY app.py` – und was würde sich an den Build-Zeiten ändern, wenn man die Reihenfolge umdreht?
-- `EXPOSE 8000` und `-p 127.0.0.1:8000:8000` wirken auf den ersten Blick redundant. Welche grundverschiedenen Aufgaben haben die beiden?
-- Was genau würde ein Auditor aus dem Dockerfile für die Controls A.8.9 und A.8.32 ablesen können, das er einem laufenden Container nicht ansieht?
-- Portal v1 installiert nginx selbst per `apt install` auf einem Betriebssystem-Image, Portal v2 verwendet das vorkonfigurierte Anwendungsimage `python:3.12-slim-trixie`. Welche Vor- und Nachteile hat jeder der beiden Ansätze für die Nachvollziehbarkeit nach Control A.8.9?
+- Was unterscheidet die Situation von `redis-cache` von den Containern aus Lab 05, die über `-p` veröffentlicht wurden? Welches Risiko wird durch das Fehlen eines Host-Ports konkret reduziert?
+- Wie würde sich das Vorgehen ändern, wenn statt zwei künftig drei oder vier zusammenspielende Dienste in einem Netzwerk gebündelt werden müssten?
+- Warum reicht für Control A.8.22 nicht allein die technische Netzwerktrennung, sondern auch eine dokumentierte Begründung, welche Dienste zusammengehören?
 
-**Zu Konfiguration und Geheimnissen:**
+**Zur Lastverteilung**
 
-- Warum wäre `ENV INFLUX_TOKEN=abc123` im Dockerfile ein schwerer Fehler – und über welche zwei Docker-Befehle könnte ein Angreifer das Token dann auslesen?
-- Die App stürzt ohne Token sofort ab, statt mit einem Vorgabewert weiterzulaufen. Warum ist dieses „Fail fast" im Betrieb die sicherere Variante?
-
-**Zum Betrieb:**
-
-- Der Flask-Entwicklungsserver genügt hier. Was würde sich in einem Produktivsystem ändern (Stichwort `gunicorn`) – und welche Zeile des Dockerfiles wäre davon betroffen?
-- Die Test-InfluxDB lief bewusst ohne Volume. Was wäre anders gewesen, wenn sie eines gehabt hätte – und warum wäre das für eine Wegwerf-Testinstanz sogar hinderlich?
+- Was unterscheidet das manuelle Eintragen von `demo4` in die Upstream-Gruppe vom automatischen Verhalten, das Traefik bieten würde?
+- Für welche Art von Produktivsystem würden Sie die manuelle, für welche die automatische Variante empfehlen – und warum?
 
 ---
 
@@ -654,55 +374,50 @@ docker images
 
 ### Was Sie erreicht haben
 
-- Das Buildx-Plugin installiert und `docker build` mit BuildKit verwendet
-- Zwei eigene Images gebaut: `portal:1.0` (nginx selbst per `apt install` auf `debian:trixie-slim` eingerichtet) und `portal:2.0` (Python-Anwendung auf dem vorkonfigurierten Image `python:3.12-slim-trixie`)
-- Das Schichtenmodell mit `docker history` untersucht und den Build-Cache gezielt ausgenutzt
-- Tags als Etiketten verstanden (`docker tag`, `docker rmi`) und den Build-Kontext mit `.dockerignore` begrenzt
-- Eine Wegwerf-Testdatenbank (InfluxDB) ohne Volume und ohne Host-Port betrieben und per Line Protocol befüllt
-- Die Anwendung über Umgebungsvariablen konfigurierbar gemacht – Geheimnisse konsequent außerhalb des Images gehalten
-- Den Container als Non-Root-Benutzer betrieben und Startfehler systematisch mit `docker ps -a` und `docker logs` diagnostiziert
+- Ein eigenes Docker-Netzwerk angelegt und einen Dienst bewusst ohne Host-Port-Exposition gebündelt
+- Einen bestehenden Container nachträglich an ein zusätzliches Netzwerk angebunden
+- Die Namensauflösung innerhalb und außerhalb eines Docker-Netzwerks praktisch nachvollzogen
+- IP-Vergabe und Routing in Docker-Netzwerken verstanden
+- Eine manuell gepflegte Lastverteilung über mehrere Container-Instanzen eingerichtet und live erweitert
+- Die technischen Maßnahmen den ISO-27001-Controls A.8.20 und A.8.22 zugeordnet
 
 ### Zentrale Befehle dieser Übung
 
 | Befehl | Bedeutung |
 |---|---|
-| `docker build -t <name>:<tag> .` | Image aus dem Dockerfile im aktuellen Verzeichnis bauen |
-| `docker images` | Lokale Images mit Repository, Tag, ID und Größe auflisten |
-| `docker history <image>` | Schichten eines Images anzeigen |
-| `docker tag <quelle> <ziel>` | Zusätzliches Tag (Etikett) auf dasselbe Image setzen |
-| `docker rmi <image>` | Tag entfernen bzw. Image löschen |
-| `docker image prune` | Verwaiste Layer ohne Tag aufräumen |
-| `docker ps -a` | Auch beendete Container anzeigen (inkl. Exit-Code) |
-| `docker logs <container>` | Ausgaben eines (auch beendeten) Containers lesen |
-| `docker exec <container> influx write/query` | Daten in InfluxDB schreiben/abfragen |
-| `openssl rand -hex 32` | Kryptografisch zufälliges Token erzeugen |
-
-> **Vertiefung (optional):** In [Lab_07_ausbau.md](Lab_07_ausbau.md) übertragen Sie das apt-install-Muster dieses Labs eigenständig auf einen zeitgesteuerten Backup-Container – als offene Übungsaufgabe mit Musterlösung.
+| `docker network ls` | Alle Netzwerke anzeigen, inkl. Standardnetze |
+| `docker network create <name>` | Eigenes Docker-Netzwerk anlegen |
+| `docker network inspect <name>` | Subnetz, IPAM-Konfiguration und verbundene Container eines Netzwerks anzeigen |
+| `docker network connect <netz> <container>` | Laufenden Container zusätzlich an ein Netzwerk anhängen |
+| `docker network disconnect <netz> <container>` | Container aus einem Netzwerk entfernen |
+| `docker run --network <netz>` | Container von Anfang an einem bestimmten Netzwerk zuweisen |
+| `getent hosts <name>` | Namensauflösung innerhalb eines Containers prüfen |
+| `upstream <name> { server ...; }` | nginx-Upstream-Gruppe für Lastverteilung definieren |
 
 ---
 
 ## Aufräumarbeiten
 
-Die Testumgebung dieses Labs wird abgebaut – die Bauergebnisse bleiben:
-
 ```bash
-# Testumgebung entfernen
-docker stop portal influxdb
-docker rm portal influxdb
-docker network rm portal-test
+# Lastverteilungs-Demo entfernen
+docker stop demo1 demo2 demo3 demo4
+docker rm demo1 demo2 demo3 demo4
+rm /etc/nginx/conf.d/demo.conf
 
-# Optional: Image der Test-Datenbank entfernen (wird in Lab 08 erneut geladen)
-docker rmi influxdb:2
+# Bündelungs-Demo entfernen
+docker stop redis-cache
+docker rm redis-cache
+docker network disconnect app-net nodered
+docker network rm app-net
+
+nginx -t
+systemctl reload nginx
 ```
-
-> **⚠️ Wichtig:** Löschen Sie **nicht** das Verzeichnis `/srv/portal` (Dockerfile, `app.py`, `requirements.txt`, `.dockerignore`) und **nicht** das Image `portal:2.0` – beides wird in Lab 08 in den Compose-Stack integriert. Heben Sie außerdem Ihr `<TOKEN>` auf; es wird dort wiederverwendet.
-
-[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ## Autoren und Urheberrecht
 
 - Erstellt von: Michael Lotter, Florian Reichl
-- Datum: 07/2026
+- Datum: 09/2026
 - Version: v1.0
 
 ![line](images/banner.png)

@@ -1,4 +1,4 @@
-# Lab 07: Erweiterung – Weitere eigene Images auf Basis von debian:trixie-slim
+# Lab 08: Erweiterung – Weitere eigene Images auf Basis von debian:trixie-slim
 
 ![line](images/banner.png)
 
@@ -6,7 +6,7 @@
 
 Die Vorbereitung auf die Zertifizierung nach ISO/IEC 27001 wirft eine weitere Frage auf, die bisher unbeantwortet blieb: Die Sensordaten, die künftig über die IoT-Pipeline gesammelt werden, existieren ausschließlich in der laufenden InfluxDB-Instanz – es gibt keinerlei dokumentierte Sicherung dieser Daten. Control **A.8.13 (Information Backup)** verlangt jedoch eine definierte, nachvollziehbare Backup-Routine mit klarem Zeitplan.
 
-Ein Kollege aus dem Entwicklungsteam hat dafür bereits ein kleines Backup-Skript geschrieben und getestet – inklusive der nötigen Zeitsteuerung. Was fehlt, ist ein reproduzierbares, eigenständiges Docker-Image, das dieses Skript zuverlässig und nachvollziehbar betreibt, statt es manuell auf einem Server abzulegen. Genau das ist Ihre Aufgabe in dieser Übung: Sie übernehmen die fertigen Dateien und bauen daraus – mit dem in Lab 07 gelernten Muster – ein eigenes Image.
+Ein Kollege aus dem Entwicklungsteam hat dafür bereits ein kleines Backup-Skript geschrieben und getestet – inklusive der nötigen Zeitsteuerung. Was fehlt, ist ein reproduzierbares, eigenständiges Docker-Image, das dieses Skript zuverlässig und nachvollziehbar betreibt, statt es manuell auf einem Server abzulegen. Genau das ist Ihre Aufgabe in dieser Übung: Sie übernehmen die fertigen Dateien und bauen daraus – mit dem in Lab 08 gelernten Muster – ein eigenes Image.
 
 ---
 
@@ -14,11 +14,11 @@ Ein Kollege aus dem Entwicklungsteam hat dafür bereits ein kleines Backup-Skrip
 
 Diese Übung konzentriert sich bewusst **ausschließlich auf das Bauen eines eigenen Docker-Images** – nicht auf das Schreiben von Bash-Skripten oder auf Kenntnisse über `cron`/`crontab`. Das Backup-Skript sowie die Zeitsteuerung liegen bereits fertig geschrieben vor und werden Ihnen im Abschnitt [Bereitgestellte Dateien](#bereitgestellte-dateien) vollständig samt Erklärung zur Verfügung gestellt. Sie müssen diese Dateien nicht selbst verstehen oder verändern können – nur grob wissen, wofür sie da sind.
 
-Ihre eigentliche Aufgabe ist es, mit dem in Lab 07 gelernten Muster (Betriebssystem-Image + `apt install`) ein eigenes **Dockerfile** zu schreiben, das diese vorgegebenen Dateien zu einem lauffähigen, eigenständigen Image zusammenfügt – inklusive der passenden Berechtigungen, Umgebungsvariablen und des Startbefehls.
+Ihre eigentliche Aufgabe ist es, mit dem in Lab 08 gelernten Muster (Betriebssystem-Image + `apt install`) ein eigenes **Dockerfile** zu schreiben, das diese vorgegebenen Dateien zu einem lauffähigen, eigenständigen Image zusammenfügt – inklusive der passenden Berechtigungen, Umgebungsvariablen und des Startbefehls.
 
 ## Lernziele
 
-- Das apt-install-Muster aus Lab 07 (Betriebssystem-Image + `apt install`) selbstständig auf ein neues, eigenes Problem übertragen
+- Das apt-install-Muster aus Lab 08 (Betriebssystem-Image + `apt install`) selbstständig auf ein neues, eigenes Problem übertragen
 - Vorgegebene Dateien (Skript, Konfiguration) mit `COPY` korrekt in ein eigenes Image einbinden und die passenden Zugriffsrechte setzen
 - Ein Dockerfile eigenständig anhand einer Anforderungsliste entwerfen, statt einer Schritt-für-Schritt-Anleitung zu folgen
 - Die eigene Lösung anhand klar definierter Abnahmekriterien selbst überprüfen
@@ -28,8 +28,8 @@ Ihre eigentliche Aufgabe ist es, mit dem in Lab 07 gelernten Muster (Betriebssys
 
 | Anforderung | Details |
 |---|---|
-| **Lab 07** | Vollständig durchgeführt – insbesondere das apt-install-Muster aus Schritt 2 und die Wegwerf-InfluxDB aus Schritt 4 |
-| **Docker** | Installiert (aus Lab 05, Buildx aus Lab 07) |
+| **Lab 08** | Vollständig durchgeführt – insbesondere das apt-install-Muster aus Schritt 2 und die Wegwerf-InfluxDB aus Schritt 4 |
+| **Docker** | Installiert (aus Lab 05, Buildx aus Lab 08) |
 | **Kenntnisse** | `FROM`/`RUN`/`COPY`/`ENV`/`CMD`, `docker build`/`run`/`network create` – **keine** Bash- oder cron-Kenntnisse nötig |
 
 ---
@@ -61,7 +61,7 @@ Ihre eigentliche Aufgabe ist es, mit dem in Lab 07 gelernten Muster (Betriebssys
 
 ### Das Muster verallgemeinern
 
-Das Dockerfile-Skelett aus Lab 07 ist nicht an nginx gebunden – es funktioniert für praktisch jede Software, die als Debian-Paket verfügbar ist:
+Das Dockerfile-Skelett aus Lab 08 ist nicht an nginx gebunden – es funktioniert für praktisch jede Software, die als Debian-Paket verfügbar ist:
 
 ```dockerfile
 FROM debian:trixie-slim
@@ -77,7 +77,7 @@ Nur `<PAKET(E)>` und das, was danach passiert, ändert sich mit dem Anwendungsfa
 
 | Ziel | apt-Paket(e) | Ergebnis |
 |---|---|---|
-| Statische Webseite | `nginx-light` | Portal v1 aus Lab 07 |
+| Statische Webseite | `nginx-light` | Portal v1 aus Lab 08 |
 | Passwort-Hashes erzeugen | `apache2-utils` | Wie in Lab 06 zur Erstellung des bcrypt-Hashes für die nginx-Basic-Authentication (`htpasswd`) |
 | MQTT-Testwerkzeug | `mosquitto-clients` | Vorgriff auf Lab 08: dort zum Testen des Mosquitto-Brokers (`mosquitto_pub`/`mosquitto_sub`) |
 | Zeitgesteuerte Aufgaben | `cron`, `curl` | Container, der wiederkehrende Aufgaben nach Zeitplan ausführt – Gegenstand dieser Übung |
@@ -88,7 +88,7 @@ Genau dieses Skelett – Basis-Image wählen, benötigte Pakete per `apt install
 
 Damit das Backup-Skript automatisch und regelmäßig läuft, ohne dass jemand es von Hand startet, kommt der Linux-Zeitplaner **cron** zum Einsatz. Für diese Übung müssen Sie cron **weder konfigurieren noch seine Syntax verstehen** – die passende Konfigurationsdatei liegt bereits fertig vor (siehe [Bereitgestellte Dateien](#bereitgestellte-dateien)).
 
-Eine einzige Besonderheit ist trotzdem für den *Container*-Betrieb wichtig, nicht für cron selbst: cron muss im **Vordergrund** laufen, da ein Container beendet wird, sobald sein Hauptprozess (PID 1) endet – ein Prozess, der als Dienst im Hintergrund arbeitet (daemon), würde den Container sofort wieder stoppen lassen, genau wie bei nginx in Lab 07. Auch darum kümmert sich bereits eine vorbereitete Datei (`entrypoint.sh`) für Sie.
+Eine einzige Besonderheit ist trotzdem für den *Container*-Betrieb wichtig, nicht für cron selbst: cron muss im **Vordergrund** laufen, da ein Container beendet wird, sobald sein Hauptprozess (PID 1) endet – ein Prozess, der als Dienst im Hintergrund arbeitet (daemon), würde den Container sofort wieder stoppen lassen, genau wie bei nginx in Lab 08. Auch darum kümmert sich bereits eine vorbereitete Datei (`entrypoint.sh`) für Sie.
 
 > **Hinweis:** cron-in-einem-Container ist eine pragmatische, weit verbreitete Lösung für einfache Zeitpläne – aber kein Selbstläufer. Produktivsysteme setzen dafür teils auf host-seitige Zeitsteuerung (`systemd`-Timer, der z. B. `docker exec` aufruft) oder dedizierte Scheduler-Container. Eine der Reflexionsfragen greift das auf – Sie müssen dafür aber keine cron-Syntax kennen.
 
@@ -161,7 +161,7 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') Backup geschrieben: ${ZIEL}" >> /var/log/back
 ```
 
 > **Wofür ist diese Datei da?**  
-> Dieses Skript stellt dieselbe Flux-Abfrage und denselben HTTP-POST an InfluxDB wie das Portal aus Lab 07, Schritt 5.1 – nur dass die Antwort hier nicht in eine HTML-Tabelle gerendert, sondern komprimiert in eine mit Datum und Uhrzeit benannte Datei geschrieben wird. Sie müssen dieses Skript nicht verändern oder in allen Details verstehen – nur wissen, dass es zwei Programme benötigt, um zu funktionieren: `curl` (für die HTTP-Abfrage) und `gzip` (zum Komprimieren).
+> Dieses Skript stellt dieselbe Flux-Abfrage und denselben HTTP-POST an InfluxDB wie das Portal aus Lab 08, Schritt 5.1 – nur dass die Antwort hier nicht in eine HTML-Tabelle gerendert, sondern komprimiert in eine mit Datum und Uhrzeit benannte Datei geschrieben wird. Sie müssen dieses Skript nicht verändern oder in allen Details verstehen – nur wissen, dass es zwei Programme benötigt, um zu funktionieren: `curl` (für die HTTP-Abfrage) und `gzip` (zum Komprimieren).
 
 ### entrypoint.sh
 
@@ -207,7 +207,7 @@ nano crontab.txt
 
 ### Ausgangslage
 
-Sie benötigen dieselbe Testumgebung wie in Lab 07, Schritt 4: ein Docker-Netzwerk und einen darin laufenden, mit Testdaten gefüllten InfluxDB-Container. Falls Sie diese Umgebung bereits abgebaut haben, legen Sie sie mit genau den dortigen Befehlen erneut an (Netzwerk `portal-test`, Container `influxdb`, Org `alp`, Bucket `iot`, dieselben drei Testpunkte im Measurement `umwelt`).
+Sie benötigen dieselbe Testumgebung wie in Lab 08, Schritt 4: ein Docker-Netzwerk und einen darin laufenden, mit Testdaten gefüllten InfluxDB-Container. Falls Sie diese Umgebung bereits abgebaut haben, legen Sie sie mit genau den dortigen Befehlen erneut an (Netzwerk `portal-test`, Container `influxdb`, Org `alp`, Bucket `iot`, dieselben drei Testpunkte im Measurement `umwelt`).
 
 ### Anforderungen (Definition of Done)
 
@@ -218,10 +218,10 @@ Schreiben Sie im Projektverzeichnis `/srv/iot-backup/` (neben den drei bereitges
 3. `backup.sh` und `entrypoint.sh` nach `/usr/local/bin/` kopiert und dort ausführbar macht,
 4. `crontab.txt` nach `/etc/cron.d/iot-backup` kopiert und mit den Rechten `644` versieht,
 5. das Verzeichnis `/backup` sowie leere Log-Dateien `/var/log/cron.log` und `/var/log/backup.log` anlegt,
-6. per `ENV` dieselben Vorgabewerte wie beim Portal aus Lab 07 setzt (`INFLUX_URL`, `INFLUX_ORG`, `INFLUX_BUCKET`) – **ohne** `INFLUX_TOKEN`,
+6. per `ENV` dieselben Vorgabewerte wie beim Portal aus Lab 08 setzt (`INFLUX_URL`, `INFLUX_ORG`, `INFLUX_BUCKET`) – **ohne** `INFLUX_TOKEN`,
 7. beim Containerstart `entrypoint.sh` ausführt.
 
-Bauen Sie daraus ein Image `iot-backup:1.0` und starten Sie testweise einen Container: Das InfluxDB-Token wird – wie beim Portal in Lab 07 – ausschließlich zur Laufzeit per `-e` übergeben, niemals im Image gespeichert. Die Backup-Dateien landen über einen Bind Mount in einem Host-Verzeichnis.
+Bauen Sie daraus ein Image `iot-backup:1.0` und starten Sie testweise einen Container: Das InfluxDB-Token wird – wie beim Portal in Lab 08 – ausschließlich zur Laufzeit per `-e` übergeben, niemals im Image gespeichert. Die Backup-Dateien landen über einen Bind Mount in einem Host-Verzeichnis.
 
 ### Vorgehensvorschlag
 
@@ -239,7 +239,7 @@ Kein verbindlicher Ablauf, aber eine mögliche Orientierung:
 
 > **Tipp 3 – Skripte ausführbar machen:** Anders als `crontab.txt` müssen `backup.sh` und `entrypoint.sh` nach dem `COPY` erst mit `chmod +x` ausführbar gemacht werden.
 
-> **Tipp 4 (optional) – Reihenfolge im Dockerfile:** Denken Sie an die Cache-Lektion aus Lab 07, Schritt 3: Wenn `RUN apt-get install` in einer eigenen, frühen Zeile steht und die `COPY`-Zeilen erst danach folgen, bleibt der langsamere Installations-Layer bei künftigen Änderungen an den Dateien im Cache erhalten.
+> **Tipp 4 (optional) – Reihenfolge im Dockerfile:** Denken Sie an die Cache-Lektion aus Lab 08, Schritt 3: Wenn `RUN apt-get install` in einer eigenen, frühen Zeile steht und die `COPY`-Zeilen erst danach folgen, bleibt der langsamere Installations-Layer bei künftigen Änderungen an den Dateien im Cache erhalten.
 
 ### Ihre Lösung testen
 

@@ -1,8 +1,8 @@
-# Lab 07: Erweiterung – Musterlösung
+# Lab 08: Erweiterung – Musterlösung
 
 ![line](images/banner.png)
 
-> Diese Datei enthält eine vollständige Musterlösung zur Übungsaufgabe aus [`Lab_07_ausbau.md`](Lab_07_ausbau.md). Es gibt nicht die eine richtige Lösung – vergleichen Sie Ihre eigene Umsetzung mit dieser, statt sie als einzig gültigen Weg zu betrachten. Die Dateien `backup.sh`, `entrypoint.sh` und `crontab.txt` sind identisch mit den in der Übungsaufgabe bereitgestellten Dateien – die eigentliche Lösung der Übung ist das **Dockerfile**.
+> Diese Datei enthält eine vollständige Musterlösung zur Übungsaufgabe aus [`Lab_08_ausbau.md`](Lab_08_ausbau.md). Es gibt nicht die eine richtige Lösung – vergleichen Sie Ihre eigene Umsetzung mit dieser, statt sie als einzig gültigen Weg zu betrachten. Die Dateien `backup.sh`, `entrypoint.sh` und `crontab.txt` sind identisch mit den in der Übungsaufgabe bereitgestellten Dateien – die eigentliche Lösung der Übung ist das **Dockerfile**.
 
 ## Inhalt
 
@@ -24,7 +24,7 @@
 └── crontab.txt         ← bereitgestellt, unverändert
 ```
 
-`entrypoint.sh`, `backup.sh` und `crontab.txt` entsprechen exakt den Dateien aus dem Abschnitt „Bereitgestellte Dateien" in [`Lab_07_ausbau.md`](Lab_07_ausbau.md#bereitgestellte-dateien) – hier nicht erneut abgedruckt.
+`entrypoint.sh`, `backup.sh` und `crontab.txt` entsprechen exakt den Dateien aus dem Abschnitt „Bereitgestellte Dateien" in [`Lab_08_ausbau.md`](Lab_08_ausbau.md#bereitgestellte-dateien) – hier nicht erneut abgedruckt.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -67,7 +67,7 @@ CMD ["/usr/local/bin/entrypoint.sh"]
 | `COPY crontab.txt /etc/cron.d/iot-backup` | Legt die Cron-Konfiguration am von Debian erwarteten Ort ab; der Dateiname selbst ist frei wählbar |
 | `chmod 0644 /etc/cron.d/iot-backup` | cron verlangt für Dateien in `/etc/cron.d/` genau diese Berechtigung – nicht ausführbar, nur für den Eigentümer beschreibbar |
 | `mkdir -p /backup` | Zielverzeichnis für die Backup-Dateien – wird beim `docker run` per Bind Mount mit einem Host-Verzeichnis verbunden |
-| `ENV INFLUX_URL=... INFLUX_ORG=... INFLUX_BUCKET=...` | Dieselben Vorgabewerte wie beim Portal aus Lab 07 – nur `INFLUX_TOKEN` fehlt bewusst, da es niemals im Image stehen darf |
+| `ENV INFLUX_URL=... INFLUX_ORG=... INFLUX_BUCKET=...` | Dieselben Vorgabewerte wie beim Portal aus Lab 08 – nur `INFLUX_TOKEN` fehlt bewusst, da es niemals im Image stehen darf |
 | `CMD [".../entrypoint.sh"]` | Startet den bereitgestellten Wrapper, der die Umgebungsvariablen sichert und anschließend cron im Vordergrund startet |
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
@@ -76,7 +76,7 @@ CMD ["/usr/local/bin/entrypoint.sh"]
 
 ## Bauen und testen
 
-Testumgebung wie in Lab 07, Schritt 4 (bei Bedarf neu anlegen):
+Testumgebung wie in Lab 08, Schritt 4 (bei Bedarf neu anlegen):
 
 ```bash
 docker network create portal-test 2>/dev/null; true
@@ -141,6 +141,6 @@ docker exec iot-backup cat /var/log/cron.log    # Ausgabe/Fehler von cron selbst
 
 ![line](images/banner.png)
 <p align="center">
-<a href="Lab_07_ausbau.md"><img src="images/previous.png" width="150px"></a>
+<a href="Lab_08_ausbau.md"><img src="images/previous.png" width="150px"></a>
 <a href="Lab_08.md"><img src="images/next.png" width="150px"></a>
 </p>
