@@ -118,7 +118,7 @@ Die Ausgabe sollte leer sein.
 
 ### Schritt 2: nginx aus dem offiziellen Repository installieren
 
-Wie schon bei Caddy (Lab 04) und Docker (Lab 05) installieren Sie nginx nicht aus den Debian-Standardquellen, sondern aus dem offiziellen nginx-Repository – nur dort ist das aktuelle ACME-Modul verfügbar.
+Wir installieren nginx nicht aus den Debian-Standardquellen, sondern aus dem offiziellen nginx-Repository – nur dort ist das aktuelle ACME-Modul verfügbar.
 
 ```bash
 apt install -y curl gnupg2 ca-certificates lsb-release
