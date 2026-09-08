@@ -201,6 +201,8 @@ Folgende Befehle helfen, sich jederzeit einen Überblick über die vorhandenen D
 | `docker network disconnect <netz> <container>` | Container aus einem Netzwerk entfernen |
 | `docker network prune` | Alle nicht genutzten (verwaisten) Netzwerke aufräumen |
 
+#### 1.8 Überblick über die Netze
+
 Zunächst ein Überblick über alle vorhandenen Netzwerke – auch über die von Docker immer automatisch angelegten Standardnetze, in deren Liste `app-net` erst nach dem Anlegen in Schritt 1.1 auftaucht:
 
 ```bash
