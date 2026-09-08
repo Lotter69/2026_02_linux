@@ -250,8 +250,6 @@ nginx -t
 systemctl restart nginx
 ```
 
-> **Tipp zur Fehlerbehebung:** Falls die spätere Zertifikatsausstellung fehlschlägt, prüfen Sie zunächst, ob der Redirect in `challenge.conf` die Challenge-Anfrage blockiert. Ersetzen Sie ihn zum Testen vorübergehend durch `return 404;` und prüfen Sie erneut.
-
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
