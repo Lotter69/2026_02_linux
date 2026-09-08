@@ -125,22 +125,10 @@ chmod a+r /etc/apt/keyrings/docker.asc
 ````
 
 Tragen Sie das Docker-Repository als Paketquelle ein:
+- Wechseln Sie in das Verzeichnis `/etc/apt/sources.list.d`
+- Legen Sie die Datei `docker.list` an
+- fügen Sie folgende zeile für das erforderliche Repostitory ein: `deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian trixie stable`
 
-```bash
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
-  https://download.docker.com/linux/debian \
-  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
-  | tee /etc/apt/sources.list.d/docker.list > /dev/null
-```
-
-| Segment | Bedeutung |
-|---|---|
-| `echo "..."` | Erzeugen: eine Zeile im APT-Quellenformat |
-| `$(dpkg --print-architecture)` | Command Substitution: liefert die CPU-Architektur (z. B. `amd64`) |
-| `$(. /etc/os-release && echo "$VERSION_CODENAME")` | Command Substitution: lädt zuerst die Systemvariablen aus `/etc/os-release` (`.` = Datei im aktuellen Shell-Kontext einlesen), gibt dann `$VERSION_CODENAME` aus |
-| `\|` | Pipe: Ausgabe von `echo` wird Eingabe von `tee` |
-| `tee /etc/apt/sources.list.d/docker.list` | Ablegen: in neue Datei schreiben |
-| `> /dev/null` | unterdrückt die zusätzliche Bildschirmausgabe von `tee` |
 
 #### 1.3 Docker installieren
 
