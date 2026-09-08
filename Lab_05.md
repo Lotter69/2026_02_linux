@@ -161,14 +161,10 @@ Docker erstellt für Container ein internes Brückennetzwerk (`docker0`). Damit 
 ```bash
 grep DEFAULT_FORWARD_POLICY /etc/default/ufw
 ```
+> **Hinweis:** Mit `grep` wird in der Datei `/etc/default/ufw`nach dem Texteintrag `DEFAULT_FORWARD_POLICY` gesucht und die gefundenen Zeilen angezeigt. 
 
-Falls der Wert `"DROP"` ist, ändern Sie ihn auf `"ACCEPT"`:
+Falls der Wert `"DROP"` ist, ändern Sie ihn auf `"ACCEPT"` mit einem Texteditor.
 
-```bash
-sed -i 's/DEFAULT_FORWARD_POLICY="DROP"/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
-# sed -i: Datei direkt bearbeiten | s/alt/neu/: den alten durch den neuen Wert ersetzen
-ufw reload
-```
 
 > **Warum ist das nötig?**
 > Wenn ufw `DEFAULT_FORWARD_POLICY=DROP` setzt, werden IP-Pakete, die über die Docker-Netzwerkbrücke weitergeleitet werden sollen, stillschweigend verworfen. Container können dann nicht mehr nach außen kommunizieren – z. B. keine DNS-Abfragen stellen oder Images herunterladen.
