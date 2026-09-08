@@ -553,11 +553,6 @@ Beide Seiten müssen mit einem gültigen Let's Encrypt-Zertifikat geladen werden
 - Wie können Sie die Daten eines benannten Volumes sichern?
 - Wählen Sie einen beliebigen Dienst und begründen Sie eine sinnvolle Speicherstrategie.
 
-**Zu den Containern und Caddy:**
-
-- Was müsste sich ändern, wenn Sie Caddy ebenfalls als Container betreiben wollten – warum wäre `localhost:8080` in `/etc/caddy/Caddyfile` dann nicht mehr ausreichend?
-- Was spricht dafür, Caddy auf dem Host zu installieren statt als Container – insbesondere im Hinblick auf systemd-Integration und TLS?
-
 **Zur Absicherung von Docker-Containern:**
 
 - Warum schützt `ufw status` allein nicht zuverlässig vor einem öffentlich erreichbaren Docker-Container? Welche Rolle spielt die `DOCKER-USER`-Chain dabei?
