@@ -209,30 +209,12 @@ Zunächst ein Überblick über alle vorhandenen Netzwerke – auch über die von
 docker network ls
 ```
 
-Das einem Netzwerk zugewiesene Subnetz lässt sich gezielt abfragen, ohne sich durch die vollständige, unübersichtliche `inspect`-Ausgabe zu lesen:
+oder umfängliche Netzwerkinformationen im json-Format
 
 ```bash
-docker network inspect app-net --format '{{(index .IPAM.Config 0).Subnet}}'
+docker network inspect app-net 
 ```
 
-Beispielausgabe:
-
-```
-172.18.0.0/16
-```
-
-Und die IP-Adressen aller Container, die aktuell Mitglied von `app-net` sind:
-
-```bash
-docker network inspect app-net --format '{{range .Containers}}{{.Name}} -> {{.IPv4Address}}{{"\n"}}{{end}}'
-```
-
-Beispielausgabe:
-
-```
-redis-cache -> 172.18.0.2/16
-nodered -> 172.18.0.3/16
-```
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
