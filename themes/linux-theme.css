@@ -1,0 +1,295 @@
+/* ===========================
+   Linux Administration Theme
+   Basierend auf LinuxPräsentation.pptx
+   =========================== */
+
+/* Schriftarten importieren */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Flex:wght@300;400;700&family=Roboto+Slab:wght@400;700&family=Roboto+Serif:wght@400;700&family=Source+Code+Pro:wght@400;700&display=swap');
+
+/* Theme-Basiseinstellungen */
+section {
+  background-color: #FFFFFF;
+  color: #44546A;
+  font-family: 'Roboto Serif', serif;
+  font-size: 28px;
+  padding: 60px 80px;
+}
+
+/* Überschriften */
+h1, h2, h3, h4 {
+  font-family: 'Roboto Flex', sans-serif;
+  color: #44546A;
+  font-weight: 700;
+}
+
+h1 {
+  font-size: 54px;
+  border-bottom: 4px solid #5B9BD5;
+  padding-bottom: 20px;
+  margin-bottom: 30px;
+}
+
+h2 {
+  font-size: 42px;
+  color: #4472C4;
+  margin-top: 40px;
+  margin-bottom: 20px;
+}
+
+h3 {
+  font-family: 'Roboto Slab', serif;
+  font-size: 32px;
+  color: #ED7D31;
+}
+
+/* Logo im Header */
+header {
+  position: absolute;
+  top: 20px;
+  right: 40px;
+  height: 60px;
+}
+
+header img {
+  height: 60px;
+}
+
+/* Footer */
+footer {
+  position: absolute;
+  bottom: 20px;
+  left: 80px;
+  right: 80px;
+  font-size: 18px;
+  color: #A5A5A5;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Code-Blöcke */
+pre, code {
+  font-family: 'Source Code Pro', monospace;
+  background-color: #F5F5F5;
+  border-left: 4px solid #5B9BD5;
+}
+
+pre {
+  padding: 20px;
+  border-radius: 8px;
+  font-size: 22px;
+  line-height: 1.4;
+}
+
+code {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 24px;
+}
+
+/* Inline Code */
+p code, li code {
+  background-color: #F5F5F5;
+  color: #ED7D31;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border-left: none;
+}
+
+/* Listen */
+ul, ol {
+  margin-left: 40px;
+  line-height: 1.8;
+}
+
+ul li::marker {
+  color: #5B9BD5;
+  font-weight: bold;
+}
+
+ol li::marker {
+  color: #4472C4;
+  font-weight: bold;
+}
+
+/* Titelfolie */
+section.title {
+  background: linear-gradient(135deg, #4472C4 0%, #5B9BD5 100%);
+  color: #FFFFFF;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+section.title h1 {
+  color: #FFFFFF;
+  border-bottom: none;
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+section.title h2 {
+  color: #E7E6E6;
+  font-weight: 400;
+  font-size: 36px;
+  margin-top: 10px;
+}
+
+section.title p {
+  color: #E7E6E6;
+  font-size: 24px;
+  margin-top: 40px;
+}
+
+/* Hervorhebungen */
+strong {
+  color: #ED7D31;
+  font-family: 'Roboto Slab', serif;
+}
+
+em {
+  color: #4472C4;
+  font-style: italic;
+}
+
+/* Links */
+a {
+  color: #5B9BD5;
+  text-decoration: none;
+  border-bottom: 2px solid #5B9BD5;
+  transition: all 0.3s ease;
+}
+
+a:hover {
+  color: #4472C4;
+  border-bottom-color: #4472C4;
+}
+
+/* Tabellen */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 20px 0;
+  font-size: 24px;
+}
+
+th {
+  background-color: #4472C4;
+  color: #FFFFFF;
+  padding: 12px;
+  text-align: left;
+  font-family: 'Roboto Flex', sans-serif;
+  font-weight: 700;
+}
+
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #E7E6E6;
+}
+
+tr:nth-child(even) {
+  background-color: #F9F9F9;
+}
+
+tr:hover {
+  background-color: #F0F0F0;
+}
+
+/* Bilder */
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* Blockquotes */
+blockquote {
+  border-left: 4px solid #ED7D31;
+  padding-left: 20px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  margin: 20px 0;
+  font-style: italic;
+  color: #666;
+  background-color: #FFF5F0;
+}
+
+blockquote p {
+  margin: 0;
+}
+
+/* Seitennummerierung */
+section::after {
+  color: #A5A5A5;
+  font-size: 16px;
+}
+
+/* Zwei-Spalten Layout (optional) */
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 40px;
+}
+
+.columns > * {
+  margin: 0;
+}
+
+/* Hervorhebungsboxen */
+.highlight {
+  background-color: #FFF9E6;
+  border-left: 4px solid #FFC000;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 4px;
+}
+
+.info {
+  background-color: #E6F3FF;
+  border-left: 4px solid #5B9BD5;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 4px;
+}
+
+.success {
+  background-color: #E6F7ED;
+  border-left: 4px solid #70AD47;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 4px;
+}
+
+.warning {
+  background-color: #FFF0E6;
+  border-left: 4px solid #ED7D31;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 4px;
+}
+
+/* Horizontale Linie */
+hr {
+  border: none;
+  border-top: 2px solid #E7E6E6;
+  margin: 40px 0;
+}
+
+/* Checkboxen in Listen (für TODO-Listen) */
+input[type="checkbox"] {
+  margin-right: 10px;
+  transform: scale(1.2);
+}
+
+/* Terminal/Command Highlighting */
+pre[class*="language-bash"] code,
+pre[class*="language-shell"] code {
+  color: #E7E6E6;
+}
+
+pre[class*="language-bash"],
+pre[class*="language-shell"] {
+  background-color: #2D3748;
+  border-left-color: #70AD47;
+}
