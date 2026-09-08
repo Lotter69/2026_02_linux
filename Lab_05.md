@@ -163,7 +163,7 @@ grep DEFAULT_FORWARD_POLICY /etc/default/ufw
 ```
 > **Hinweis:** Mit `grep` wird in der Datei `/etc/default/ufw`nach dem Texteintrag `DEFAULT_FORWARD_POLICY` gesucht und die gefundenen Zeilen angezeigt. 
 
-Falls der Wert `"DROP"` ist, ändern Sie ihn auf `"ACCEPT"` mit einem Texteditor.
+Falls der Wert `DROP` ist, ändern Sie ihn  mit einem Texteditor auf `ACCEPT`.
 
 
 > **Warum ist das nötig?**
