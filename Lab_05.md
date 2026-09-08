@@ -451,6 +451,10 @@ Den bcrypt-Hash für Ihr Passwort erzeugen Sie direkt im Container:
 ```bash
 docker exec -it nodered node-red admin hash-pw
 ```
+> **Was passiert hier**
+> - Mit dem Docker-Befehel `docker exec -it` öffnen wir ein Linux-Terminal im Container
+> - `nodered` ist der Name des gewählten Containers 
+> - `node-red admin hash-pw` ist der NodeRed-Befehl um einen Hashert für ein gewähltes Passwort zu erzeugen
 
 Starten Sie den Container nach der Änderung neu:
 
