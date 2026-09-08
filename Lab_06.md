@@ -81,6 +81,10 @@ ACME (*Automated Certificate Management Environment*) ist ein offenes, standardi
 
 Seit August 2025 bietet nginx mit `ngx_http_acme_module` ein offizielles, in Rust implementiertes Modul, das ACMEv2 direkt in der nginx-Konfiguration abbildet – sowohl für nginx Open Source als auch für NGINX Plus. Statt eines impliziten Automatismus definieren Sie einen benannten `acme_issuer`-Block mit der Server-URI der Zertifizierungsstelle, ordnen ihn explizit einem virtuellen Host über `acme_certificate` zu und richten einen eigenen Listener für die HTTP-01-Challenge ein. Aktuell wird ausschließlich die HTTP-01-Challenge unterstützt; DNS-01 ist für künftige Versionen angekündigt.
 
+> Hinweise:
+> - _HTTP-01-Challenge_ bedeutet, dass der ACME Issuer dem ACME Client eine Datei schickt, die der Client auf seinem Webserver bereitstellt. Damit zeigt der Client, dass er die Kontrolle über den Webserver unter dieser Adresse hat.
+> - _DNS-01_ ist so ähnlich, nur muss hier der Client einen neuen TXT-Eintrag auf dem Nameserver zur angefragten Domain vornehmen.
+
 ### Docker-Netzwerke als Bündelungskonzept
 
 Im Default-Bridge-Netzwerk von Docker können sich grundsätzlich alle Container gegenseitig erreichen – unabhängig davon, ob sie inhaltlich zusammengehören. Ein eigenes, benutzerdefiniertes Netzwerk dient nicht primär der Automatisierung, sondern der bewussten **Bündelung zusammengehöriger Dienste** und der **Abgrenzung** gegenüber allem, was nicht dazugehört – genau das, was Control A.8.22 verlangt. In einer späteren Übung werden Sie dieses Prinzip in größerem Maßstab wiederverwenden: eine zeitbasierte Datenbank (z. B. InfluxDB), ein Connector-Dienst und eine Visualisierung (z. B. Grafana) werden dann gemeinsam in einem eigenen Netzwerk laufen, ohne dass die Datenbank selbst von außen erreichbar sein muss. In diesem Lab üben Sie das Prinzip bereits an einem kleinen Beispiel.
