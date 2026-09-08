@@ -171,7 +171,7 @@ Dieser Befehl liefert **keine** Auflösung. Der einzige, aber entscheidende Unte
 ```bash
 ss -tlnp | grep 6379
 ```
->**Hinweis:** 6379 ist der Standard-Port für Redis
+>**Hinweis:** Der Befehl Socket Statistics `ss` zeigt aktive Verbindungen. Der `grep`-Befehl filter die Zeilen heraus, in denen 6379 steht. Das ist der Standard-Port für Redis.
 
 Die Ausgabe sollte **leer** sein. Im Unterschied zu den Containern aus Lab 05 (die bewusst über `-p 127.0.0.1:<port>:<port>` veröffentlicht wurden) ist hier gar kein Host-Port nötig – `redis-cache` muss ausschließlich für `nodered` erreichbar sein, und das funktioniert vollständig innerhalb von `app-net`, ohne dass der Host überhaupt einen offenen Port dafür braucht.
 
