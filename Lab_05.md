@@ -375,7 +375,7 @@ docker run -d \
 |---|---|
 | `--restart unless-stopped` | Automatischer Neustart nach Serverneustart (siehe Schritt 3.3) |
 | `-p 127.0.0.1:1880:1880` | Port 1880 — nur auf der lokalen Schnittstelle (`127.0.0.1`) — leitet auf Port 1880 im Container. Von außen nicht erreichbar; Zugriff ausschließlich über Caddy. |
-| `-v nodered-data:/data` | Benanntes Volume `nodered-data` wird in `/data` im Container eingehängt |
+| `-v nodered-data:/data` | Vergabe des Namens `nodered-data` wird verbunden mit dem Container-Verzeichnis `/data`|
 
 Das Volume `nodered-data` existiert zu diesem Zeitpunkt noch nicht – Docker legt es beim ersten Start automatisch an. Prüfen Sie anschließend:
 
