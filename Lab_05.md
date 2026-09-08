@@ -172,7 +172,7 @@ Falls der Wert `DROP` ist, ändern Sie ihn  mit einem Texteditor auf `ACCEPT`.
 
 > **Wichtiger Sicherheitshinweis: Docker und ufw**
 >
-> ufw schützt **native Host-Dienste** zuverlässig (z. B. Cockpit aus Lab 04). Für Docker-Container gilt das nicht automatisch: Docker trägt eigene Regeln in eine separate iptables-Chain (`DOCKER-USER`) ein, die **vor** den ufw-Regeln ausgewertet wird. Ein Container, der mit `-p <port>:<port>` (ohne IP-Präfix) veröffentlicht wird, ist damit direkt aus dem Internet erreichbar – unabhängig davon, was `ufw status` anzeigt. In den folgenden Schritten wird deshalb durchgängig mit `-p 127.0.0.1:<port>:<port>` gearbeitet, um Container-Ports explizit auf die lokale Schnittstelle zu beschränken.
+> ufw schützt **native Host-Dienste** zuverlässig (z. B. Cockpit aus Lab 04), da deren Traffic über die von ufw kontrollierte INPUT-Chain läuft. Docker-Container nutzen dagegen eine eigene, separate Chain (DOCKER-USER in FORWARD), auf die ufw keinen Einfluss hat. Ein Container, der mit -p <port>:<port> (ohne IP-Präfix) veröffentlicht wird, bindet den Port an 0.0.0.0 – also an alle Netzwerkschnittstellen des Hosts – und ist damit von jeder Quell-IP aus direkt aus dem Internet erreichbar, unabhängig davon, was ufw status anzeigt. In den folgenden Schritten wird deshalb durchgängig mit -p 127.0.0.1:<port>:<port> gearbeitet, um Container-Ports explizit auf die lokale Schnittstelle zu beschränken.
 
 > **Hinweis:** Für die Installation auf dem lokalen Linux-Mint-Rechner (statt auf dem Server) – inklusive Rootless-Betrieb und Docker Compose – siehe das Zusatz-Lab [Lab_Docker_Rootless.md](Lab_Docker_Rootless.md).
 
