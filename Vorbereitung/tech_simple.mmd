@@ -1,0 +1,35 @@
+%%{init: {'theme':'default', 'themeVariables': { 'fontSize':'18px'}}}%%
+graph TB
+    subgraph Base["🔧 System-Grundlagen"]
+        SYSTEMD["systemd"]
+        SSH["SSH"]
+        DNS["DNS"]
+        UFW["Firewall"]
+    end
+
+    subgraph Web["🌐 Web-Services"]
+        CADDY["Caddy"]
+        NGINX["nginx"]
+        ACME["Let's Encrypt"]
+    end
+
+    subgraph Docker["📦 Container"]
+        DOCKER["Docker"]
+        COMPOSE["Compose"]
+        NETS["Networks"]
+    end
+
+    SYSTEMD --> CADDY
+    SYSTEMD --> NGINX
+    SYSTEMD --> DOCKER
+    DNS --> CADDY
+    DNS --> NGINX
+    UFW --> CADDY
+    CADDY --> ACME
+    NGINX --> ACME
+    DOCKER --> COMPOSE
+    DOCKER --> NETS
+
+    style Base fill:#c8e6c9,stroke:#388e3c,stroke-width:3px
+    style Web fill:#fff9c4,stroke:#fbc02d,stroke-width:3px
+    style Docker fill:#b3e5fc,stroke:#0288d1,stroke-width:3px
