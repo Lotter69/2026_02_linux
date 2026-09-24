@@ -231,6 +231,26 @@ Die tatsächliche Absicherung dieses Hops passiert also nicht über Firewall-Reg
 
 Ein Detail, das leicht übersehen wird: Nach dem DNAT in `nat OUTPUT` hat das Paket als Quelladresse weiterhin `127.0.0.1`. Der Container kann darauf aber nicht sinnvoll antworten – `127.0.0.1` bedeutet für den Container "ich selbst", nicht "der Host". Docker legt deshalb in `nat POSTROUTING` eine zusätzliche MASQUERADE-Regel an, die die Quelladresse auf die Bridge-Gateway-IP (z.B. `172.17.0.1`) umschreibt. Erst dadurch kann der Container die Antwort korrekt zurückrouten, und conntrack ordnet die Antwort auf dem Rückweg wieder Caddys ursprünglicher Verbindung zu.
 
+### Wo genau wird `127.0.0.1` durchgesetzt?
+
+Wichtig für das Verständnis: **Der Container selbst weiß nichts von dieser Einschränkung.** Der Dienst im Container (z.B. nginx) lauscht ganz normal auf `0.0.0.0:80` innerhalb seines eigenen Netzwerk-Namespace – die Bindung an `127.0.0.1` ist reine Host-seitige Netfilter-Buchhaltung, an zwei Stellen:
+
+1. **In der DNAT-Regel selbst** (`nat OUTPUT`/`PREROUTING`, Chain `DOCKER`): Der IP-Präfix landet als zusätzliches Match-Feld `-d` in der Regel. Ohne Präfix (`-p 8080:80`):
+
+   ```
+   -A DOCKER ! -i docker0 -p tcp --dport 8080 -j DNAT --to-destination 172.17.0.2:80
+   ```
+
+   Mit `127.0.0.1`-Präfix (`-p 127.0.0.1:8080:80`) kommt `-d 127.0.0.1/32` hinzu:
+
+   ```
+   -A DOCKER ! -i docker0 -d 127.0.0.1/32 -p tcp --dport 8080 -j DNAT --to-destination 172.17.0.2:80
+   ```
+
+   Ein Paket, das von außen an die öffentliche Server-IP:8080 adressiert ist, hat eine andere Ziel-IP und matcht diese Regel gar nicht – es wird nicht DNATet und erreicht den Container über diesen Weg nicht.
+
+2. **Auf Kernel-Ebene, noch vor iptables**: Ein Paket mit Ziel-IP `127.0.0.1`, das auf einem echten externen Interface (`eth0`) ankommt, gilt als „Martian Packet" und wird vom Kernel standardmäßig verworfen, bevor iptables es überhaupt sieht. `127.0.0.1` ist nur für lokal erzeugte Pakete bzw. Pakete über `lo` gültig – genau deshalb ist der Caddy-Hop in Stage 2 oben zwingend ein lokal erzeugtes Paket.
+
 ---
 
 **Autoren**: Florian Reichl
