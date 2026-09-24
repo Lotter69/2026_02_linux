@@ -1,4 +1,4 @@
-# Lab 07: Docker-Netzwerke segmentieren und Lastverteilung einrichten
+# Lab 07: Vom transparenten Proxy zur transparenten Netzwerktrennung (ISO/IEC 27001)
 
 ![line](images/banner.png)
 
