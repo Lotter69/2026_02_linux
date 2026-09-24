@@ -165,6 +165,72 @@ Alternativen, die man in Labs/Praxis ebenfalls nennen kann:
 - Reverse Proxy (Caddy/nginx) als einzigen öffentlichen Eintrittspunkt nutzen, Container-Ports gar nicht erst binden.
 - `ufw-docker`-Helferskript verwenden, das automatisch passende `DOCKER-USER`-Regeln aus UFW-Regeln generiert.
 
+## Diagramm 2: Externe Anfrage über Caddy zu einem Docker-Container
+
+Im Kurs läuft Caddy als natives systemd-Programm auf dem Host (Lab 04) und leitet an Container weiter, deren Ports bewusst nur an `127.0.0.1` gebunden sind (Lab 05, z.B. `-p 127.0.0.1:8080:80`). Das ergibt zwei **völlig unterschiedliche** Netfilter-Wege für ein- und denselben Request, je nachdem, wer das Paket erzeugt:
+
+```mermaid
+flowchart TB
+    Client([Client im Internet])
+    NIC[eth0]
+
+    subgraph Stage1["1. Client → Caddy: normaler INPUT-Weg"]
+        direction TB
+        Raw1[raw / mangle<br/>PREROUTING]
+        NatPre1["nat PREROUTING<br/>kein Match: Ziel bleibt Host-IP:443"]
+        RD1{Routing:<br/>Ziel = Host-IP}
+        Input[filter INPUT]
+        UfwIn1["↳ ufw-before-input"]
+        UfwIn2["↳ ufw-user-input<br/>allow 443/tcp"]
+        UfwIn3["↳ ufw-after-input"]
+        CaddyProc["Caddy<br/>terminiert TLS,<br/>wählt reverse_proxy-Ziel<br/>aus dem Caddyfile"]
+    end
+
+    subgraph Stage2["2. Caddy → Container: lokal erzeugtes Paket – nur OUTPUT/POSTROUTING, FORWARD & DOCKER-USER werden NICHT durchlaufen!"]
+        direction TB
+        RD2{Routing:<br/>Ziel = 127.0.0.1:8080}
+        MangleOut[mangle OUTPUT]
+        NatOut["nat OUTPUT<br/>↳ DOCKER Chain: DNAT<br/>127.0.0.1:8080 → 172.17.0.2:80"]
+        RD3["erneutes Routing:<br/>Ziel nach DNAT<br/>= Container-IP"]
+        FilterOut[filter OUTPUT]
+        UfwOut1["↳ ufw-before-output"]
+        UfwOut2["↳ ufw-user-output<br/>meist keine Regel:<br/>Policy default ACCEPT"]
+        UfwOut3["↳ ufw-after-output"]
+        NatPost["nat POSTROUTING<br/>Hairpin-NAT: Quelle 127.0.0.1<br/>→ Bridge-Gateway 172.17.0.1<br/>(MASQUERADE)"]
+    end
+
+    Docker0[docker0 / Bridge]
+    Container[Container<br/>172.17.0.2:80]
+
+    Client -->|"HTTPS, Port 443"| NIC --> Raw1 --> NatPre1 --> RD1 --> Input --> UfwIn1 --> UfwIn2 --> UfwIn3 --> CaddyProc
+
+    CaddyProc -->|"neue Verbindung:<br/>GET localhost:8080"| RD2 --> MangleOut --> NatOut --> RD3 --> FilterOut --> UfwOut1 --> UfwOut2 --> UfwOut3 --> NatPost --> Docker0 --> Container
+
+    Container -.->|"Antwort<br/>conntrack: ESTABLISHED,<br/>keine erneute Regelprüfung"| CaddyProc
+    CaddyProc -.->|"HTTPS-Antwort<br/>verschlüsselt"| Client
+
+    style Stage1 fill:#e6f3ff,stroke:#0066cc,stroke-width:2px
+    style Stage2 fill:#fff3cd,stroke:#856404,stroke-width:2px
+    style NatOut fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+    style NatPost fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
+    style CaddyProc fill:#ccffcc,stroke:#155724,stroke-width:3px
+```
+
+### Warum das zweite Hop anders verläuft als alles bisher Gezeigte
+
+Der entscheidende Unterschied zu Diagramm 1: In Stage 2 handelt es sich um ein **lokal vom Host selbst erzeugtes Paket** (Caddy verbindet sich zu `127.0.0.1:8080`), kein durchgereichtes Paket wie in Diagramm 1. Netfilter unterscheidet strikt danach, wie ein Paket entsteht:
+
+- **Extern eintreffend, Ziel = anderer Host/Container** → `PREROUTING` → `FORWARD` → `POSTROUTING` (das war Fall 2/3 in Diagramm 1, dort greift `DOCKER-USER`).
+- **Lokal erzeugt** (jeder Prozess auf dem Host, auch Caddy) → **immer** `OUTPUT` → `POSTROUTING`, egal welche Ziel-IP am Ende herauskommt. Die `FORWARD`-Chain – und damit `DOCKER-USER` – wird für diesen Pfad **grundsätzlich nie erreicht.**
+
+Das heißt konkret: Wenn Caddys Verbindung zu `localhost:8080` durch Dockers `nat OUTPUT`-Regel auf die Container-IP umgeschrieben wird, bleibt der Netfilter-Pfad trotzdem OUTPUT/POSTROUTING. Weder eigene `DOCKER-USER`-Regeln noch ein restriktiver `ufw`-Forward-Regelsatz (siehe vorheriger Abschnitt) haben auf diesen Hop **irgendeinen** Einfluss – dort zählt ausschließlich die `filter OUTPUT`-Chain (`ufw-*-output`), deren UFW-Policy per Default `ACCEPT` ist und in der Praxis kaum verschärft wird.
+
+Die tatsächliche Absicherung dieses Hops passiert also nicht über Firewall-Regeln, sondern genau über den in Lab 05 vermittelten Kniff: **Port-Bindung an `127.0.0.1`**. Dadurch ist der Container-Port für Prozesse *auf dem Host* (wie Caddy) erreichbar, aber für kein externes Interface – unabhängig davon, wie `DOCKER-USER`, `ufw` oder die `FORWARD`-Policy konfiguriert sind. Würde derselbe Port stattdessen ohne IP-Präfix veröffentlicht (`-p 8080:80`), wäre er zusätzlich über `0.0.0.0` direkt aus dem Internet erreichbar – dann griffe für diesen zweiten, externen Zugriffsweg wieder Diagramm 1 (PREROUTING → FORWARD → DOCKER-USER), komplett unabhängig vom Caddy-Hop.
+
+### Die Hairpin-NAT-Regel in POSTROUTING
+
+Ein Detail, das leicht übersehen wird: Nach dem DNAT in `nat OUTPUT` hat das Paket als Quelladresse weiterhin `127.0.0.1`. Der Container kann darauf aber nicht sinnvoll antworten – `127.0.0.1` bedeutet für den Container "ich selbst", nicht "der Host". Docker legt deshalb in `nat POSTROUTING` eine zusätzliche MASQUERADE-Regel an, die die Quelladresse auf die Bridge-Gateway-IP (z.B. `172.17.0.1`) umschreibt. Erst dadurch kann der Container die Antwort korrekt zurückrouten, und conntrack ordnet die Antwort auf dem Rückweg wieder Caddys ursprünglicher Verbindung zu.
+
 ---
 
 **Autoren**: Florian Reichl
