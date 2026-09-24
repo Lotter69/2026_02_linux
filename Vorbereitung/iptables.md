@@ -44,6 +44,7 @@ flowchart TB
             DockerIso1["↳ DOCKER-ISOLATION-STAGE-1"]
             DockerFwd["↳ DOCKER<br/>erlaubt Traffic zu published Ports"]
             DockerIso2["↳ DOCKER-ISOLATION-STAGE-2"]
+            DockerEgress["↳ ACCEPT-Regel<br/>docker0 → !docker0<br/>(RELATED,ESTABLISHED bzw. neu)"]
             UfwFwdBefore["↳ ufw-before-forward"]
             UfwFwdUser["↳ ufw-user-forward"]
             UfwFwdAfter["↳ ufw-after-forward"]
@@ -82,7 +83,11 @@ flowchart TB
     UfwFwdUser -.-> UfwFwdAfter
 
     HostProc --> Output --> UfwOutBefore --> UfwOutUser --> UfwOutAfter --> NatPost
-    Container -->|Antwort| NatPost
+
+    Container -->|Antwort, neues Paket<br/>src=Container-IP, dst=Client-IP| Docker0
+    Docker0 -->|Routing: Ziel extern<br/>→ wieder FORWARD| Forward
+    DockerIso1 -->|"in=docker0, out=eth0"| DockerEgress
+    DockerEgress -->|ACCEPT: Chain-Ende| NatPost
     NatPost --> NIC --> Client
 
     style FORWARDC fill:#ffe6e6,stroke:#cc0000,stroke-width:2px
@@ -93,6 +98,7 @@ flowchart TB
     style UfwFwdBefore fill:#f0f0f0,stroke:#999,stroke-dasharray: 3 3
     style UfwFwdUser fill:#f0f0f0,stroke:#999,stroke-dasharray: 3 3
     style UfwFwdAfter fill:#f0f0f0,stroke:#999,stroke-dasharray: 3 3
+    style DockerEgress fill:#ccffcc,stroke:#155724,stroke-width:2px
 ```
 
 ## Wie das Diagramm zu lesen ist
@@ -115,6 +121,35 @@ In FORWARD gilt folgende feste Reihenfolge (von Docker beim Start vorne in die C
 2. **DOCKER-ISOLATION-STAGE-1/2** – verhindert unerwünschte Kommunikation zwischen verschiedenen Docker-Netzwerken.
 3. **DOCKER** – lässt Traffic zu den konkret published Ports durch.
 4. Erst danach kämen `ufw-before-forward`, `ufw-user-forward`, `ufw-after-forward` – **aber für Container-Traffic ist die Entscheidung (ACCEPT/DROP) da meist schon gefallen.** Deshalb sind diese Knoten im Diagramm gestrichelt/grau: UFW-Regeln zu `ufw allow` für Container-Ports greifen nicht wie erwartet, ein in `ufw` konfiguriertes `deny` schützt published Ports **nicht**.
+
+### Fall 3: Antwort-Traffic, der den Container verlässt (FORWARD, erneut)
+
+Die Antwort des Containers ist aus Sicht von Netfilter ein **komplett neues Paket**: Quelle = Container-IP, Ziel = Client-IP. Es tritt am virtuellen Interface `docker0` in den Netfilter-Stack ein und läuft die Tabellen erneut durch – `raw`/`mangle`/`nat PREROUTING` (hier greift keine Regel, da das Ziel nicht der Host ist), dann die Routing-Entscheidung: Ziel ist eine externe IP → wieder **FORWARD**.
+
+In FORWARD wird dieselbe Chain wie beim Hinweg durchlaufen, aber `in=docker0, out=eth0` statt umgekehrt:
+
+1. **DOCKER-USER** – erneut zuerst, Standard `RETURN`.
+2. **DOCKER-ISOLATION-STAGE-1** – lässt Traffic von `docker0` nach außen durch.
+3. Eine von Docker eingefügte **ACCEPT-Regel `docker0 → !docker0`** (für `RELATED,ESTABLISHED`- bzw. neue Verbindungen von Containern nach außen) matcht und beendet die Chain-Verarbeitung sofort mit `ACCEPT`. Die `DOCKER`-Chain (Schritt 3 vom Hinweg) und die UFW-Forward-Chains werden dabei **gar nicht mehr erreicht**, weil `ACCEPT` die Traversierung der Base-Chain beendet.
+4. Danach nur noch `nat POSTROUTING`: Die **MASQUERADE-Regel** schreibt die Quelladresse von der internen Container-IP auf die öffentliche Host-IP um – sonst wüsste der Client nicht, wohin er antworten soll.
+5. Das Paket verlässt den Host über `eth0` Richtung Client.
+
+Kurz gesagt: **Ausgehender Container-Traffic ist von Haus aus offen** – Docker legt beim Start eine großzügige ACCEPT-Regel für `docker0 → !docker0` an, damit Container ohne weitere Konfiguration ins Internet können. UFW hat darauf ebenso wenig Einfluss wie beim Hinweg, es sei denn man ergänzt eigene, restriktivere Regeln in `DOCKER-USER` (die dann für **beide** Richtungen gelten, da diese Chain am Anfang von FORWARD sitzt).
+
+### Policy vs. Regel: Warum `DEFAULT_FORWARD_POLICY="ACCEPT"` trotzdem oft nötig ist
+
+Neben den Regeln, die in eine Chain eingefügt werden, hat jede Base-Chain (`INPUT`, `FORWARD`, `OUTPUT`) auch eine **Policy** – ein Standard-Verdikt, das nur dann greift, wenn das Paket die **gesamte** Chain (inklusive aller Sub-Chains, in die gesprungen wird) durchläuft, ohne dass irgendeine Regel unterwegs ein finales `ACCEPT`/`DROP`/`REJECT` ausspricht. `/etc/default/ufw` setzt über die Variable `DEFAULT_FORWARD_POLICY` genau diese Policy der `FORWARD`-Chain – sobald UFW aktiviert wird, standardmäßig auf `DROP`.
+
+Die `ACCEPT`-Regeln, die Docker einträgt (siehe Fall 2 und Fall 3), greifen zwar meist **vor** dieser Policy und lassen die Fälle durch, die Docker beim Anlegen seiner Netzwerke/Container tatsächlich kennt (published Ports, Traffic über die bekannte Bridge). Das Problem: Diese Regeln decken nur genau diese Fälle ab. Alles, was **nicht** explizit erfasst wird – z.B. bestimmte Custom-Network-Konstellationen, IPv6-Forwarding (Docker pflegt `ip6tables` oft weniger vollständig als `iptables`), oder Traffic-Muster, die sich durch spätere `ufw reload`-Läufe anders zusammensetzen – fällt am Ende der Chain durch bis zur **Policy**. Und die steht bei aktivem UFW auf `DROP`.
+
+Ergebnis: Container-Traffic, der eigentlich funktionieren sollte, wird plötzlich verworfen – nicht weil eine Regel ihn blockiert, sondern weil **keine** Regel überhaupt eine Entscheidung getroffen hat und die Chain am Ende auf `DROP` läuft. Der übliche Fix in Docker+UFW-Anleitungen:
+
+```bash
+# /etc/default/ufw
+DEFAULT_FORWARD_POLICY="ACCEPT"
+```
+
+gefolgt von `ufw reload`. Damit bleibt UFW für **INPUT** (SSH, Host-Dienste) weiterhin restriktiv, aber die `FORWARD`-Chain "fällt sicher offen" statt "sicher geschlossen" – was in der Praxis ohnehin nur die Lücken betrifft, die sowieso schon primär von Docker selbst kontrolliert werden. Die eigentliche Zugriffskontrolle für Container-Traffic passiert weiterhin faktisch in Dockers eigenen Chains bzw. in `DOCKER-USER`, wenn man selbst gezielt eingreifen will – die Policy ist nur das Sicherheitsnetz für die Fälle dazwischen.
 
 ### Konsequenz für die Praxis
 
