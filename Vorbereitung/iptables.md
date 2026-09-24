@@ -251,6 +251,23 @@ Wichtig für das Verständnis: **Der Container selbst weiß nichts von dieser Ei
 
 2. **Auf Kernel-Ebene, noch vor iptables**: Ein Paket mit Ziel-IP `127.0.0.1`, das auf einem echten externen Interface (`eth0`) ankommt, gilt als „Martian Packet" und wird vom Kernel standardmäßig verworfen, bevor iptables es überhaupt sieht. `127.0.0.1` ist nur für lokal erzeugte Pakete bzw. Pakete über `lo` gültig – genau deshalb ist der Caddy-Hop in Stage 2 oben zwingend ein lokal erzeugtes Paket.
 
+### Und wenn der Server auch IPv6 hat?
+
+`127.0.0.1` bleibt davon völlig unberührt: IPv4 und IPv6 sind zwei unabhängige Adressfamilien, die beide auf `lo` liegen. Eine öffentliche IPv6-Adresse auf `eth0` kommt einfach zusätzlich dazu – sie „verdrängt" oder ersetzt nichts am IPv4-Loopback.
+
+Entscheidend ist außerdem: `-p 127.0.0.1:8080:80` übergibt Docker ein **literales** IPv4-Adressliteral, keinen Hostnamen. Docker löst hier nichts auf, sondern trägt genau dieses `-d 127.0.0.1/32` in die `iptables`-Regel ein (siehe oben) – `ip6tables` bleibt dabei komplett unberührt. Das gilt unabhängig davon, ob der Server IPv6 hat oder nicht.
+
+Relevant wird IPv6 erst, wenn im Caddyfile (wie in Lab 05) der **Hostname** `localhost` statt der literalen IP steht. `/etc/hosts` löst `localhost` auf Debian standardmäßig zu **beiden** Adressen auf:
+
+```
+127.0.0.1   localhost
+::1         localhost ip6-localhost ip6-loopback
+```
+
+Caddys Go-Laufzeit probiert beim Verbindungsaufbau typischerweise beide Adressen („Happy Eyeballs"). Ein Versuch über `::1:8080` läuft ins Leere, da dort keine DNAT-Regel existiert – Docker hat ja nur für `127.0.0.1` gebunden. Caddy fällt dann auf `127.0.0.1:8080` zurück, wo es funktioniert; man bemerkt das in der Praxis höchstens als minimale zusätzliche Verzögerung.
+
+Wollte man den Container auch über `::1` erreichbar machen, müsste man das explizit mit einer separaten Angabe wie `-p [::1]:8080:80` tun – Docker verwaltet IPv4- und IPv6-Portveröffentlichungen komplett getrennt (`iptables` vs. `ip6tables`), und IPv6-Unterstützung im Docker-Netzwerk selbst muss ohnehin erst explizit im Daemon aktiviert werden (`ipv6: true`, eigenes IPv6-Bridge-Subnetz) – das passiert nicht automatisch, nur weil der Host eine globale IPv6-Adresse hat.
+
 ---
 
 **Autoren**: Florian Reichl
