@@ -4,9 +4,9 @@
 
 ## Berufliche Aufgabenstellung
 
-Das Netzwerk-Team betreibt inzwischen mehrere Router und Dienste, hat aber keinerlei laufenden Überblick über deren tatsächliche Auslastung. Störungen und Kapazitätsengpässe fallen bislang erst auf, wenn Nutzer sich beschweren oder ein Gerät bereits spürbar überlastet ist – reaktiv statt vorausschauend. Die bisherigen Werkzeuge helfen dabei nur bedingt: **SNMP**-Polling ist zu träge für einen laufenden Überblick, **Syslog** liefert nur Ereignisse, keine kontinuierlichen Messreihen, und CLI-Befehle wie `show dmvpn detail` sind gerätespezifisch und nicht automatisiert auswertbar. Die Geschäftsführung erteilt daher den Auftrag, für die Netzwerkinfrastruktur eine **eigene Monitoring-Pipeline** aufzubauen: Betriebsdaten wie CPU-Auslastung und Schnittstellenauslastung sollen laufend erhoben, zentral gesammelt, dauerhaft gespeichert und für das Team sichtbar dargestellt werden – die Grundlage für Kapazitätsplanung und frühzeitige Störungserkennung.
+Das Netzwerk-Team betreibt inzwischen mehrere Router und Dienste, hat aber keinerlei laufenden Überblick über deren tatsächliche Auslastung. Störungen und Kapazitätsengpässe fallen bislang erst auf, wenn Nutzer sich beschweren oder ein Gerät bereits spürbar überlastet ist – reaktiv statt vorausschauend. Die bisherigen Werkzeuge helfen dabei nur bedingt: **SNMP**-Polling fragt in festen Intervallen einzelne Werte ab und ist damit für viele Kennzahlen oder kurze Intervalle zu träge – ein klassisches Netzwerk-Monitoring-System fragt CPU- oder Interface-Zähler häufig nur alle 5 Minuten ab, sodass ein kurzer CPU-Peak oder ein kurzzeitiger Interface-Flap unbemerkt bleibt. **Syslog** liefert nur Ereignisse, keine kontinuierlichen Messreihen, und CLI-Befehle wie `show dmvpn detail` liefern zwar detaillierte Tunnel-Informationen, aber in einem gerätespezifischen Textformat, das sich nicht automatisiert auswerten lässt. Die Geschäftsführung erteilt daher den Auftrag, für die Netzwerkinfrastruktur eine **eigene Monitoring-Pipeline** aufzubauen: Betriebsdaten wie CPU-Auslastung und Schnittstellenauslastung sollen laufend erhoben, zentral gesammelt, dauerhaft gespeichert und für das Team sichtbar dargestellt werden – die Grundlage für Kapazitätsplanung und frühzeitige Störungserkennung.
 
-Als erste Datenquelle dient ein virtueller Router in **Cisco Modeling Labs (CML)**, der seine Betriebsdaten über **YANG-basierte Streaming Telemetry** laufend selbst an einen Empfänger sendet. Sie bauen die vollständige Kette **Daten erheben → Daten sammeln → Daten speichern → Daten darstellen** dafür auf – mit Telegraf, InfluxDB und Grafana als containerisierten Diensten auf Ihrem eigenen Linux-Server bei Hetzner (aus Lab 03).
+Als erste Datenquelle dient ein virtueller Router in einer virtualisierten Netzwerklabor-Umgebung, der seine Betriebsdaten über **YANG-basierte Streaming Telemetry** laufend selbst an einen Empfänger sendet. Vor der Bereitstellung im realen Netzwerk wird der Ansatz so zunächst als Prototyp in dieser virtualisierten Umgebung erprobt. Sie bauen die vollständige Kette **Daten erheben → Daten sammeln → Daten speichern → Daten darstellen** dafür auf – mit Telegraf, InfluxDB und Grafana als containerisierten Diensten auf Ihrem eigenen Linux-Server (aus Lab 03).
 
 ---
 
@@ -14,7 +14,7 @@ Als erste Datenquelle dient ein virtueller Router in **Cisco Modeling Labs (CML)
 
 Sie kennen die Grundstruktur **Erheben → Sammeln → Speichern → Darstellen** bereits aus Lab 09, dort mit simulierten Sensordaten über MQTT. In diesem Lab ersetzen Sie die Datenquelle durch eine echte Netzwerkkomponente: einen virtuellen Cisco-Router, der seine Kennzahlen über sein YANG-Datenmodell aktiv an einen Empfänger "pusht", statt klassisch abgefragt zu werden. Empfängerseitig bauen Sie **Telegraf** (Sammler), **InfluxDB** (Zeitreihendatenbank) und **Grafana** (Darstellung) nach demselben Muster wie in Lab 06/09 als containerisierte, zusammengehörige Dienste in einem eigenen Docker-Netzwerk auf.
 
-Dieses Lab ist an eine erste, im Januar 2023 mit CML und einer AWS-EC2-Instanz erprobte Fassung angelehnt. Die Zielumgebung ist hier bewusst anders: Statt einer AWS-VM verwenden Sie Ihren eigenen, bereits vorhandenen Linux-Server bei Hetzner (aus Lab 03) und betreiben InfluxDB und Telegraf – abweichend vom ursprünglichen Versuch mit nativen `yum`/`systemctl`-Paketen – konsequent als Container, wie es dem in diesem Kurs etablierten Muster entspricht.
+Wie in den vorigen Labs betreiben Sie InfluxDB und Telegraf dabei konsequent als Container auf Ihrem eigenen Linux-Server (aus Lab 03) statt als native Betriebssystem-Pakete – das in diesem Kurs etablierte Muster.
 
 ## Lernziele
 
@@ -22,7 +22,7 @@ Dieses Lab ist an eine erste, im Januar 2023 mit CML und einer AWS-EC2-Instanz e
 - Den Unterschied zwischen **Dial-In**- und **Dial-Out**-Telemetrie erklären und begründen, welche Variante hier zum Einsatz kommt
 - InfluxDB und Telegraf als Container installieren und in Betrieb nehmen
 - Eine Telegraf-Konfiguration über die InfluxDB-Oberfläche erzeugen und um das plattformspezifische Input-Plugin `cisco_telemetry_mdt` ergänzen
-- Auf einem virtuellen CSR1000v-Router in CML YANG-Dienste aktivieren und Dial-Out-Abonnements für CPU- und Schnittstellendaten konfigurieren
+- Auf einem virtuellen CSR1000v-Router in Ihrer Labor-Umgebung YANG-Dienste aktivieren und Dial-Out-Abonnements für CPU- und Schnittstellendaten konfigurieren
 - Einen konkreten YANG-Xpath anhand von Modul, Container und Leaf selbst herleiten und typische Stolperfallen (z. B. Groß-/Kleinschreibung von Schnittstellennamen) vermeiden
 - Ein Grafana-Dashboard für CPU- und Schnittstellenauslastung aus den gesammelten Telemetriedaten aufbauen
 - Die eigene Pipeline als zusammengehörige Dienste in einem eigenen Docker-Netzwerk bündeln – Anwendung des Prinzips aus Lab 07 auf einen neuen Anwendungsfall
@@ -31,9 +31,9 @@ Dieses Lab ist an eine erste, im Januar 2023 mit CML und einer AWS-EC2-Instanz e
 
 | Anforderung | Details |
 |---|---|
-| **CML-Zugang** | Eigene Cisco-Modeling-Labs-Instanz mit einem laufenden Router-Node vom Typ **CSR1000v**. Wichtig: Cisco IOS-XE unterstützt YANG/NETCONF grundsätzlich – nur bringen die schlanken CML-Referenz-Images **IOSv und IOSvL2 die dafür nötigen YANG-Management-Prozesse gar nicht erst mit** (sie sind bewusst auf einfache Routing-/Switching-Labs zugeschnitten, ohne dieses Subsystem). Für dieses Lab kommt daher nur ein vollständiges IOS-XE-Image wie **CSR1000v** (bzw. neuer: Cat8000v) infrage |
-| **Erreichbarkeit** | Der CML-Router muss den Empfänger-Server per gRPC (TCP) erreichen können – z. B. über einen External Connector/NAT der CML-Instanz |
-| **Server** | Ihr Linux-Server bei Hetzner (aus Lab 03), öffentliche IPv4-Adresse, Docker mit Compose-Plugin (aus Lab 05/09) |
+| **Virtuelle Labor-Umgebung** | Eigene Instanz einer virtuellen Netzwerklabor-Umgebung (z. B. Cisco Modeling Labs, CML) mit einem laufenden Router-Node vom Typ **CSR1000v**. Wichtig: Cisco IOS-XE unterstützt YANG/NETCONF grundsätzlich – nur bringen schlanke Referenz-Images wie **IOSv und IOSvL2 die dafür nötigen YANG-Management-Prozesse gar nicht erst mit** (sie sind bewusst auf einfache Routing-/Switching-Labs zugeschnitten, ohne dieses Subsystem). Für dieses Lab kommt daher nur ein vollständiges IOS-XE-Image wie **CSR1000v** (bzw. neuer: Cat8000v) infrage. Achten Sie zusätzlich auf die Lizenzstufe: In der kostenlosen Basis-Variante (z. B. CML-Free) steht der CSR1000v in der Regel **nicht** zur Verfügung – dafür ist mindestens eine Personal-Lizenz (z. B. CML-Personal) erforderlich |
+| **Erreichbarkeit** | Der virtuelle Router muss den Empfänger-Server per gRPC (TCP) erreichen können – z. B. über ein NAT-Gateway Ihrer Labor-Umgebung (in CML: "External Connector") |
+| **Server** | Ihr Linux-Server (aus Lab 03), öffentliche IPv4-Adresse, Docker mit Compose-Plugin (aus Lab 05/09) |
 | **nginx** | Mit ACME-Modul als Reverse Proxy aktiv (aus Lab 06) – für die Grafana-Veröffentlichung |
 | **DNS** | Neuer A-Record `telemetry.<IHRE-DOMAIN>` für Grafana |
 | **SSH-Zugriff** | Key-Authentifizierung, inklusive der Möglichkeit, einen SSH-Tunnel aufzubauen (Schritt 4) |
@@ -82,10 +82,13 @@ Ein YANG-Modell gliedert sich hierarchisch in **Modul → Container → Liste �
 | **Liste** | Eine Menge gleichartiger Einträge, die über einen Schlüssel adressiert werden, z. B. `interface[name='GigabitEthernet1']` |
 | **Leaf** | Der eigentliche Wert am Ende des Pfades, z. B. `five-seconds` (die CPU-Auslastung der letzten 5 Sekunden) |
 | **Xpath** | Der vollständige Pfadausdruck durch diese Hierarchie, z. B. `/process-cpu-ios-xe-oper:cpu-usage/cpu-utilization/five-seconds` – das Äquivalent zur OID bei SNMP |
-| **NETCONF** | Protokoll zur Konfiguration und zum Abruf von YANG-modellierten Daten – die klassische, anfragebasierte Nutzung von YANG |
-| **YANG-Push** | Laufende, ereignis- oder zeitgesteuerte *Push*-Übertragung von YANG-Daten – die eigentliche "Streaming Telemetry" |
-| **gRPC** | Das Transportprotokoll, über das der Router die Telemetriedaten in diesem Lab überträgt |
+| **NETCONF** | Protokoll zur Konfiguration und zum Abruf von YANG-modellierten Daten – die klassische, anfragebasierte ("Dial-In"-artige) Nutzung von YANG: der Client fragt aktiv nach (`get`/`get-config`) |
+| **RESTCONF** | Dasselbe Grundprinzip wie NETCONF, aber als HTTP/REST-Schnittstelle mit JSON/XML statt SSH/XML – ebenfalls anfragebasiert, kein laufender Push-Stream |
+| **YANG-Push** | Laufende, ereignis- oder zeitgesteuerte *Push*-Übertragung von YANG-Daten – die eigentliche "Streaming Telemetry". Technisch unabhängig von NETCONF/RESTCONF: Die Subscription wird zwar per CLI (oder auch per NETCONF) eingerichtet, die laufenden Daten selbst überträgt der Router aber per **gRPC** |
+| **gRPC** | Das Transportprotokoll, über das der Router die laufenden Telemetriedaten in diesem Lab überträgt – zu unterscheiden von NETCONF/RESTCONF, die hier nur konzeptionell verwandt, aber nicht das tatsächlich genutzte Transportprotokoll sind |
 | **GPB-KV** | *Google Protocol Buffers, Key-Value-codiert* – das Encoding, in dem die Telemetriedaten übertragen werden |
+
+> **Ist das nun gRPC oder NETCONF/RESTCONF?** Beide Male gRPC – und zwar nachweislich, nicht nur laut Dokumentation: Die in Schritt 7 verwendete Zeile `receiver ip address <SERVER-IP> 57000 protocol grpc-tcp` sowie die Telegraf-Ausgabe von `show telemetry ietf subscription all detail` (`Encoding: encode-kvgpb`) stammen aus einer real getesteten Konfiguration. NETCONF und RESTCONF sind auf demselben Router zwar ebenfalls aktiv (für klassische Konfigurations- und Abfragezugriffe), werden in diesem Lab aber nicht für die Telemetrie-Übertragung selbst genutzt – dafür ist ausschließlich der gRPC-basierte YANG-Push-Mechanismus zuständig.
 
 > **Woher bekomme ich einen Xpath?** Eine gute Anlaufstelle für die auf Cisco-IOS-XE-Geräten verfügbaren YANG-Module ist [github.com/YangModels/yang – vendor/cisco/xe](https://github.com/YangModels/yang/tree/main/vendor/cisco/xe). Alternativ zeigt `show platform software yang-management process` auf dem Router, welche Dienste laufen, und die einzelnen `.yang`-Dateien lassen sich nach den gewünschten Containern/Leafs durchsuchen.
 
@@ -96,22 +99,22 @@ Bei Streaming Telemetry gibt es zwei Verbindungsrichtungen:
 - **Dial-In:** Der Empfänger (Telegraf) baut die Verbindung zum Router auf und holt sich den Stream ab. Der Router muss dafür seinerseits einen gRPC-Server-Port öffnen.
 - **Dial-Out:** Der Router baut die Verbindung selbstständig zu einem konfigurierten Empfänger auf. Der Empfänger stellt dafür einen gRPC-Server bereit.
 
-In diesem Lab kommt **Dial-Out** zum Einsatz: Der CML-Router sitzt in einem eigenen, per NAT angebundenen Labornetz und kann selbst eine ausgehende Verbindung zu Ihrem öffentlich erreichbaren Server aufbauen. Telegraf übernimmt dabei die Rolle des Empfängers.
+In diesem Lab kommt **Dial-Out** zum Einsatz: Der virtuelle Router sitzt in einem eigenen, per NAT angebundenen Labornetz und kann selbst eine ausgehende Verbindung zu Ihrem öffentlich erreichbaren Server aufbauen. Telegraf übernimmt dabei die Rolle des Empfängers.
 
 ### Die Ziel-Architektur im Überblick
 
 ```mermaid
 flowchart LR
-    subgraph CML["Cisco Modeling Labs"]
+    subgraph CML["Virtuelle Labor-Umgebung"]
         Router(["R1: CSR1000v<br/>(IOS-XE)"])
     end
 
     Browser(["Browser"])
 
     subgraph TelNet["Docker-Netzwerk: telemetry-net"]
-        telegraf["telegraf<br/>gRPC-Empfaenger :57000"]
+        telegraf["telegraf<br/>gRPC-Empfaenger :57000<br/>(Host-Port, offen)"]
         influxdb["influxdb :8086<br/>(kein Host-Port)"]
-        grafana["grafana :3000"]
+        grafana["grafana :3000<br/>(nur 127.0.0.1)"]
     end
 
     nginx["nginx<br/>(Reverse Proxy, 80/443)"]
@@ -124,7 +127,13 @@ flowchart LR
     nginx -->|"127.0.0.1:3000"| grafana
 ```
 
-Wie in Lab 07 gilt: Nur, was zwingend von außen erreichbar sein muss, bekommt einen Host-Port. `influxdb` bekommt – wie in Lab 09 – **keinen**. Bei `telegraf` liegt der Fall anders als bei den bisherigen internen Diensten: Der gRPC-Empfänger **muss** von außerhalb des Docker-Netzes erreichbar sein, weil die Datenquelle (der CML-Router) außerhalb Ihres Servers liegt.
+| Dienst | Host-Port? | Von außen (Internet) erreichbar? |
+|---|---|---|
+| `influxdb` | Nein | Nein – nur innerhalb von `telemetry-net` |
+| `telegraf` | Ja, `57000` (alle Interfaces) | Ja, direkt – der Router muss diesen Port erreichen können |
+| `grafana` | Ja, aber nur an `127.0.0.1:3000` gebunden | Nein direkt – nur über `nginx` (Reverse Proxy auf 80/443) |
+
+Wie in Lab 07 gilt: Nur, was zwingend von außen erreichbar sein muss, bekommt einen Host-Port, der auf allen Interfaces lauscht. `influxdb` bekommt – wie in Lab 09 – **keinen** Host-Port; Telegraf und Grafana erreichen es ausschließlich intern über den Docker-Servicenamen. `grafana` bekommt zwar einen Host-Port, der ist aber bewusst nur an `127.0.0.1` gebunden und damit von außen nicht direkt erreichbar – öffentlich sichtbar wird Grafana ausschließlich über den nginx-Reverse-Proxy. Bei `telegraf` liegt der Fall anders: Der gRPC-Empfänger **muss** direkt von außerhalb des Docker-Netzes erreichbar sein – ohne Reverse Proxy davor –, weil die Datenquelle (der Router) außerhalb Ihres Servers liegt und die Verbindung selbst aufbaut.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -134,7 +143,7 @@ Wie in Lab 07 gilt: Nur, was zwingend von außen erreichbar sein muss, bekommt e
 
 ### Schritt 1: Virtuelle Maschine für die Pipeline bereitstellen
 
-Nutzen Sie Ihren bestehenden Linux-Server bei Hetzner aus Lab 03 weiter – er ist bereits öffentlich erreichbar und hat Docker installiert (Lab 05/09). Eine eigene AWS-EC2-Instanz wie im ursprünglichen Versuch ist nicht nötig. Klären Sie zusätzlich, wie Ihr CML-Router diesen Server per Dial-Out erreichen kann: typischerweise über einen in CML konfigurierten External Connector mit NAT. Notieren Sie sich die Absender-Adresse, mit der der Router dabei tatsächlich nach außen auftritt – Sie brauchen sie später sowohl als `source-address` in der Router-Konfiguration als auch ggf. für eine Firewall-Regel (siehe Reflexion).
+Nutzen Sie Ihren bestehenden Linux-Server aus Lab 03 weiter – er ist bereits öffentlich erreichbar und hat Docker installiert (Lab 05/09); eine zusätzliche virtuelle Maschine ist nicht nötig. Klären Sie zusätzlich, wie Ihr virtueller Router diesen Server per Dial-Out erreichen kann: typischerweise über ein in Ihrer Labor-Umgebung konfiguriertes NAT-Gateway (in CML: "External Connector"). Notieren Sie sich die Absender-Adresse, mit der der Router dabei tatsächlich nach außen auftritt – Sie brauchen sie später sowohl als `source-address` in der Router-Konfiguration als auch ggf. für eine Firewall-Regel (siehe Reflexion).
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -155,6 +164,8 @@ INFLUX_PASSWORD=<SICHERES-PASSWORT>
 INFLUX_TOKEN=<TOKEN-z.B.-mit-openssl-rand--hex-32-erzeugen>
 GRAFANA_ADMIN_PASSWORD=<SICHERES-PASSWORT>
 ```
+
+> **Woher kommen diese Werte?** Sie legen sie selbst fest, bevor InfluxDB zum ersten Mal startet – es sind keine Werte, die Sie irgendwo abholen. `INFLUX_PASSWORD` und `GRAFANA_ADMIN_PASSWORD` sind frei wählbare, sichere Passwörter. `INFLUX_TOKEN` erzeugen Sie sich lokal als zufälligen String, z. B. mit `openssl rand -hex 32`, und tragen das Ergebnis hier ein. InfluxDB übernimmt genau diesen String beim ersten Start (`DOCKER_INFLUXDB_INIT_ADMIN_TOKEN`) automatisch als vollberechtigten Administrator-Token.
 
 ```bash
 chmod 600 .env
@@ -187,7 +198,7 @@ volumes:
   influxdb-config:
 ```
 
-> **Was passiert hier?** Dasselbe Muster wie in Lab 09, Schritt 3 – Bucket und Token kommen aus der `.env`-Datei, InfluxDB bekommt bewusst keinen `ports:`-Eintrag. Nur der Bucket-Name (`telemetry` statt `iot`) ist neu. Den `telegraf`-Dienst ergänzen Sie in Schritt 5, sobald seine Konfigurationsdatei vorliegt.
+> **Was passiert hier?** Dasselbe Muster wie in Lab 09, Schritt 3 – Bucket und Token kommen aus der `.env`-Datei, InfluxDB bekommt bewusst keinen `ports:`-Eintrag. Nur der Bucket-Name (`telemetry` statt `iot`) ist neu, da diese Pipeline nicht Sensor-, sondern Netzwerk-Telemetriedaten sammelt. Den `telegraf`-Dienst ergänzen Sie in Schritt 5, sobald seine Konfigurationsdatei vorliegt.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -220,7 +231,7 @@ ssh -L 8086:127.0.0.1:8086 <benutzer>@<server-ip>
 
 Binden Sie dafür `influxdb` kurzzeitig an `127.0.0.1:8086:8086`, rufen Sie `http://localhost:8086` in Ihrem lokalen Browser auf und melden Sie sich mit `admin` und dem Passwort aus Ihrer `.env` an.
 
-1. Legen Sie unter **Load Data → API Tokens** ein Custom-Token mit Lese- und Schreibrecht auf den Bucket `telemetry` an und notieren Sie es sich.
+1. Legen Sie unter **Load Data → API Tokens** ein Custom-Token mit Lese- und Schreibrecht auf den Bucket `telemetry` an. Ergänzen Sie es in Ihrer `.env`-Datei als neue Variable, z. B. `TELEGRAF_TOKEN=<das-gerade-erzeugte-token>` – dieser Token ist bewusst enger begrenzt als der Administrator-Token aus Schritt 2 und wird gleich ausschließlich von Telegraf verwendet.
 2. Wechseln Sie zum Reiter **Load Data → Telegraf**, klicken Sie auf **Influx Output Plugin** und kopieren Sie den angezeigten Block.
 
 Entfernen Sie den temporären Host-Port danach wieder aus der `compose.yaml` und starten Sie den Stack neu:
@@ -244,12 +255,12 @@ Fügen Sie zunächst den in Schritt 4 kopierten Output-Block ein und tragen Sie 
 ```toml
 [[outputs.influxdb_v2]]
   urls = ["http://influxdb:8086"]
-  token = "${INFLUX_TOKEN}"
+  token = "${TELEGRAF_TOKEN}"
   organization = "alp"
   bucket = "telemetry"
 ```
 
-> **Unterschied zum ursprünglichen Versuch:** Dort stand in `urls` die öffentliche IP der AWS-Instanz (`http://3.16.109.146:8086`), weil Telegraf dort als eigener systemd-Dienst *neben* InfluxDB lief. Hier laufen beide Dienste im selben Docker-Netzwerk `telemetry-net` – Telegraf erreicht InfluxDB deshalb einfach über den Servicenamen `influxdb`, genau wie in Lab 06/09 gelernt.
+> **Warum `http://influxdb:8086` und keine IP-Adresse?** Telegraf und InfluxDB laufen im selben Docker-Netzwerk `telemetry-net` – Telegraf erreicht InfluxDB deshalb einfach über den Servicenamen `influxdb`, genau wie in Lab 06/09 gelernt. Eine öffentliche IP-Adresse oder ein Host-Port wären hier nicht nötig, da beide Container nie über das Internet, sondern nur intern miteinander kommunizieren.
 
 Ergänzen Sie darunter den Input-Block für Cisco Model-Driven Telemetry unverändert, wie er im offiziellen Telegraf-Plugin dokumentiert ist:
 
@@ -284,7 +295,7 @@ Ergänzen Sie den `telegraf`-Dienst in der `compose.yaml`:
     image: telegraf:latest
     restart: unless-stopped
     ports:
-      - "57000:57000"        # muss von aussen (CML) erreichbar sein - bewusste Ausnahme, siehe Reflexion
+      - "57000:57000"        # muss von aussen (Router) erreichbar sein - bewusste Ausnahme, siehe Reflexion
     volumes:
       - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     networks:
@@ -306,7 +317,7 @@ In den Logs meldet Telegraf, dass die Plugins `cisco_telemetry_mdt` (Input) und 
 
 ### Schritt 6: YANG-Dienste auf dem Router aktivieren
 
-Die folgenden Befehle laufen auf dem virtuellen CSR1000v-Routers `R1` in CML, nicht auf Ihrem Server.
+Die folgenden Befehle laufen auf dem virtuellen CSR1000v-Router `R1` in Ihrer Labor-Umgebung, nicht auf Ihrem Server.
 
 ```
 R1#show platform software yang-management process
@@ -357,7 +368,7 @@ pubd              : Running
 
 ### Schritt 7: Abonnements für CPU-Auslastung und Schnittstellenstatistik konfigurieren
 
-Ersetzen Sie `<SERVER-IP>` durch die öffentliche Adresse Ihres Hetzner-Servers und `<ROUTER-OUTSIDE-IP>` durch die dem Internet zugewandte Adresse des Routers (bei `R1` z. B. die Adresse von GigabitEthernet1). Der Port `57000` muss zum `service_address`-Wert aus Schritt 5 passen:
+Ersetzen Sie `<SERVER-IP>` durch die öffentliche Adresse Ihres Servers und `<ROUTER-OUTSIDE-IP>` durch die dem Internet zugewandte Adresse des Routers (bei `R1` z. B. die Adresse von GigabitEthernet1). Der Port `57000` muss zum `service_address`-Wert aus Schritt 5 passen:
 
 ```
 R1#configure terminal
@@ -453,7 +464,7 @@ nginx -t
 systemctl reload nginx
 ```
 
-Legen Sie die Datenquelle an: **Connections → Data sources → Add data source → InfluxDB**, Query Language **Flux**, URL `http://influxdb:8086`, Organisation `alp`, Token aus Ihrer `.env`, Default Bucket `telemetry`.
+Legen Sie die Datenquelle an: **Connections → Data sources → Add data source → InfluxDB**, Query Language **Flux**, URL `http://influxdb:8086`, Organisation `alp`, als Token den Administrator-Token `INFLUX_TOKEN` aus Ihrer `.env` (er hat ausreichend Leserecht auf den Bucket `telemetry`), Default Bucket `telemetry`.
 
 Erstellen Sie ein Dashboard mit zwei Visualisierungen:
 
@@ -482,7 +493,7 @@ Speichern Sie das Dashboard. Nach dem ersten periodischen Update (Schritt 7: all
 
 **Zu Architektur und Sicherheit:**
 
-- Warum widerspricht der offene Host-Port bei `telegraf` (Schritt 5) auf den ersten Blick dem Prinzip aus Lab 07 ("nur was nötig ist, bekommt einen Host-Port") – und warum ist er hier trotzdem gerechtfertigt? Welche Härtungsmaßnahme (Stichwort: `ufw`, Quell-IP-Beschränkung auf die CML-External-Connector-Adresse) würden Sie ergänzen?
+- Warum widerspricht der offene Host-Port bei `telegraf` (Schritt 5) auf den ersten Blick dem Prinzip aus Lab 07 ("nur was nötig ist, bekommt einen Host-Port") – und warum ist er hier trotzdem gerechtfertigt? Welche Härtungsmaßnahme (Stichwort: `ufw`, Quell-IP-Beschränkung auf die Adresse Ihres Router-Gateways) würden Sie ergänzen?
 - Der SSH-Tunnel in Schritt 4 öffnet InfluxDBs Oberfläche nur temporär und nur lokal gebunden. Was wäre das konkrete Risiko, den Host-Port stattdessen dauerhaft im Compose-File zu belassen?
 
 **Zu Dial-In vs. Dial-Out:**
@@ -491,9 +502,11 @@ Speichern Sie das Dashboard. Nach dem ersten periodischen Update (Schritt 7: all
 
 **Zur Datenpipeline:**
 
-- Was würde sich ändern, wenn Sie statt eines einzelnen Routers drei oder vier CML-Nodes gleichzeitig überwachen wollten?
+- Was würde sich ändern, wenn Sie statt eines einzelnen Routers drei oder vier Router gleichzeitig überwachen wollten?
 - `update-policy periodic 500` erzeugt alle 5 Sekunden einen Messpunkt. Welche Kompromisse ergeben sich bei einem deutlich kürzeren bzw. deutlich längeren Intervall (Detailgrad vs. Datenvolumen vs. Last auf dem Router)?
 - Wie könnten Sie in Grafana eine Schwellwert-Warnung einrichten, die auffällt, sobald die CPU-Auslastung über einen längeren Zeitraum einen kritischen Wert überschreitet?
+
+> **Hinweis: offene Alternative zu Cisco-MDT.** Die hier genutzte Kombination aus `cisco_telemetry_mdt` und Cisco-IOS-XE-CLI ist nur eine mögliche Umsetzung – YANG, YANG-Push und gRPC sind offene, herstellerneutrale Standards. Wer die Pipeline stattdessen komplett herstellerneutral aufbauen möchte, kann sie mit dem offenen **gNMI**-Protokoll (OpenConfig) und kostenlos verfügbaren virtuellen Netzwerkbetriebssystemen wie Nokia SR Linux oder Arista cEOS-lab (z. B. via [Containerlab](https://containerlab.dev/)) nachbauen – Telegraf bringt dafür mit dem `gnmi`-Input-Plugin ein eigenes, vom `cisco_telemetry_mdt`-Plugin unabhängiges Werkzeug mit. Der Grundsatz der Pipeline bleibt dabei unverändert: **Daten erheben → Daten sammeln → Daten speichern → Daten darstellen** – nur Router-Plattform, Protokoll und Telegraf-Plugin ändern sich.
 
 ---
 
@@ -504,7 +517,7 @@ Speichern Sie das Dashboard. Nach dem ersten periodischen Update (Schritt 7: all
 - Model-Driven Telemetry als Push-basierte Alternative zu SNMP-Polling, Syslog und CLI-Abfragen verstanden (YANG, NETCONF, YANG-Push, gRPC, Dial-In/Dial-Out)
 - InfluxDB und Telegraf als containerisierte, zusammengehörige Dienste in einem eigenen Docker-Netzwerk installiert und in Betrieb genommen
 - Eine Telegraf-Grundkonfiguration über die InfluxDB-Oberfläche erzeugt und manuell um das `cisco_telemetry_mdt`-Plugin ergänzt
-- Auf einem CSR1000v-Router in CML YANG-Dienste aktiviert und Dial-Out-Abonnements für CPU-Auslastung und Schnittstellenstatistik eingerichtet – inklusive der typischen Groß-/Kleinschreibungs-Stolperfalle bei Schnittstellennamen
+- Auf einem CSR1000v-Router in einer virtuellen Labor-Umgebung YANG-Dienste aktiviert und Dial-Out-Abonnements für CPU-Auslastung und Schnittstellenstatistik eingerichtet – inklusive der typischen Groß-/Kleinschreibungs-Stolperfalle bei Schnittstellennamen
 - Ein Grafana-Dashboard aufgebaut, das die Live-Telemetriedaten des Routers darstellt
 
 ### Zentrale Befehle/Begriffe dieser Übung
@@ -533,7 +546,7 @@ systemctl reload nginx
 rm -rf /srv/telemetry
 ```
 
-Auf dem CML-Router:
+Auf dem virtuellen Router:
 
 ```
 R1#configure terminal
