@@ -625,7 +625,7 @@ echo | openssl s_client -connect telemetry.<IHRE-DOMAIN>:443 -servername telemet
 
 #### 8.3 In Grafana anmelden und Datenquelle anlegen
 
-Rufen Sie Grafana im Browser unter `https://telemetry.<IHRE-DOMAIN>` auf – **dieselbe** Adresse wie in `GF_SERVER_ROOT_URL` (8.1) und `server_name` (8.2). Stimmen diese drei nicht überein, baut Grafana falsche Links/Redirects. Melden Sie sich als `admin` mit dem Passwort aus `GRAFANA_ADMIN_PASSWORD` (Ihre `.env`) an. Alle folgenden Schritte finden in dieser Weboberfläche statt.
+Rufen Sie Grafana im Browser unter `https://telemetry.<IHRE-DOMAIN>` auf. Melden Sie sich als `admin` mit dem Passwort aus `GRAFANA_ADMIN_PASSWORD` (Ihre `.env`) an. Alle folgenden Schritte finden in dieser Weboberfläche statt.
 
 Legen Sie die Datenquelle an: **Connections → Data sources → Add data source → InfluxDB**, Query Language **Flux**, URL `http://influxdb:8086` (Servicename, **nicht** localhost!), Organisation `alp`, als Token den Administrator-Token `INFLUX_TOKEN` aus Ihrer `.env` (er hat ausreichend Leserecht auf den Bucket `telemetry`), Default Bucket `telemetry`. **Save & test** muss grün werden.
 
@@ -654,19 +654,15 @@ from(bucket: "telemetry")
   |> derivative(unit: 1s, nonNegative: true)
 ```
 
-> **Measurement-/Feldnamen:** `cpu`/`ifstats` stammen aus den `aliases` (Schritt 5); die Feldnamen schreibt `cisco_telemetry_mdt` mit Unterstrich (`in_octets`), nicht mit Bindestrich wie im YANG-Modell (`in-octets`). `in_octets`/`out_octets` sind fortlaufende Zähler – erst `derivative()` macht daraus eine Rate.
-
-> **Einheit Byte vs. Bit – ein häufiger Denkfehler:** `in_octets`/`out_octets` sind **Oktette = Bytes**. Nach `derivative(unit: 1s)` ist die Einheit also **Byte/s**; setzen Sie die Panel-Einheit dann unter *Standard options → Unit* auf **bytes/sec (SI)**. In der Netzwerktechnik ist Durchsatz aber üblicherweise in **Bit/s** angegeben (Leitungsraten, „GigabitEthernet"). Für Bit/s müssen Sie den Wert mit 8 multiplizieren **und** die Einheit auf **bits/sec (SI)** stellen:
+> **Einheit Byte vs. Bit – ein häufiger Denkfehler:** `in_octets`/`out_octets` sind **Oktette = Bytes**. Nach `derivative(unit: 1s)` ist die Einheit also **Byte/s**; setzen Sie die Panel-Einheit dann unter *Standard options → Unit* auf **bytes/sec (SI)**. In der Netzwerktechnik ist Durchsatz aber üblicherweise in **Bit/s** angegeben (Datenübertragungsraten, „GigabitEthernet"). Für Bit/s müssen Sie den Wert mit 8 multiplizieren **und** die Einheit auf **bits/sec (SI)** stellen:
 > ```
 >   |> map(fn: (r) => ({ r with _value: r._value * 8.0 }))
 > ```
-> Nur das Einheiten-Label umzustellen, ohne zu multiplizieren, wäre falsch (Faktor 8 zu niedrig). Für das CPU-Panel bietet sich die Einheit *Percent (0–100)* an.
 
-Benennen Sie die Panels sprechend (z. B. „CPU-Auslastung des CSR1000v" und „GigabitEthernet1") und **speichern** Sie das Dashboard mit **Save** – sonst ist das Layout nach dem Neuladen wieder weg.
+Benennen Sie die Panels aussagekräftig und **speichern** Sie das Dashboard mit **Save**.
 
-Nach dem ersten periodischen Update (Schritt 7: alle 5 Sekunden) füllen sich beide Panels mit den Live-Werten Ihres Routers. Machen Sie die Probe aufs Exempel: Erzeugen Sie auf dem Router testweise Last (z. B. `ping <SERVER-IP> repeat 100000 size 1400`) und beobachten Sie, wie sich CPU- und Schnittstellenkurve bewegen.
+Nach dem ersten periodischen Update (Schritt 7: alle 5 Sekunden) füllen sich beide Panels mit den Live-Werten Ihres Routers. Machen Sie die Probe aufs Exempel: Erzeugen Sie auf dem Router testweise Last (z. B. in diesem einfachen Lab mit nur einem Router `ping <SERVER-IP> repeat 100000 size 1400` oder schalten Sie das umfassende Debugging ein) und beobachten Sie, wie sich CPU- bzw. Schnittstellenkurve bewegen.
 
-> **Beobachtung – das Dial-Out-Prinzip sichtbar gemacht:** Schalten Sie den Ping wieder aus und vergleichen Sie `in_octets` und `out_octets` im Ruhezustand. `out` dominiert deutlich, `in` liegt nahe null – weil der Router die Telemetrie **selbst nach außen pusht** (Dial-Out) und nur kleine TCP-ACKs zurückkommen. Das Dashboard macht die Senderichtung also direkt sichtbar. Beim Ping stieg `in` nur deshalb an, weil die Echo-Replies (gleich groß wie die Requests) zurückkamen – die Request-Größe allein erzeugt keine dauerhafte Asymmetrie.
 
 #### 8.5 Zugriff ohne Admin-Konto (optional)
 
@@ -687,37 +683,13 @@ Sollen andere das Dashboard nur ansehen, ohne Ihr Admin-Konto zu nutzen, gibt es
 
 #### 8.6 Absicherung des Telemetrie-Ports
 
-Schränken Sie zum Abschluss den **Telemetrie-Port 57000** in Ihrer Firewall ein: nur die Absender-Adresse Ihres Labornetzes (die Adresse **nach** NAT, siehe Schritt 1 und Reflexion) statt „für alle". Ein dauerhaft für das ganze Internet offener, unverschlüsselter gRPC-Port wird sonst von Scannern gefunden. 
+Schränken Sie zum Abschluss den Zugang zum Telemetrie-Port 57000 ein. Dieser Port wird von einem Docker-Container veröffentlicht (-p 57000:57000, an 0.0.0.0 gebunden) – wie in Lab 05 beschrieben, greift ufw bei Docker-veröffentlichten Ports nicht zuverlässig (der Verkehr läuft über die DOCKER-USER-Chain, nicht über ufws INPUT-Chain). Nehmen Sie die Einschränkung deshalb in der Firewall Ihres Cloud-Providers vor (die auf den virtuellen Server angewendete Firewall, z. B. die Hetzner Cloud Firewall) – ersatzweise über eine eigene Regel in der DOCKER-USER-Chain. Erlauben Sie dort eingehend TCP 57000 nur von der öffentlichen Adresse, mit der Ihr Labornetz (CML) nach außen auftritt (die Adresse nach NAT, siehe Schritt 1). Da der Stream unverschlüsselt ist (grpc-tcp), könnten sonst Dritte ihn mitlesen oder einspeisen.
 
-Arbeiten Sie von **wechselnden Standorten**, ändert sich diese öffentliche Quell-IP – dann müssen Sie die Firewall-Regel bei jedem Wechsel nachziehen (aktuelle IP vom Labornetz aus mit `curl -4 ifconfig.me` ermitteln). Fällt der Receiver anschließend auf `Connecting` zurück, prüfen Sie zuerst die Firewall. Eine standortunabhängige Dauerlösung wäre ein **WireGuard-Tunnel** zwischen Labornetz und Server – dann bleibt Port 57000 ganz geschlossen und der Router streamt über eine feste interne Adresse (optional auch mit `grpc-tls` statt `grpc-tcp`, siehe Reflexion).
-
+Arbeiten Sie von **wechselnden Standorten**, ändert sich diese öffentliche Quell-IP – dann müssen Sie die Firewall-Regel bei jedem Wechsel nachziehen (aktuelle IP vom Labornetz aus mit `curl -4 ifconfig.me` ermitteln). Fällt der Receiver anschließend auf `Connecting` zurück, prüfen Sie zuerst die Firewall. 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
 
-## Reflexion und weiterführende Fragen
-
-**Zu Architektur und Sicherheit:**
-
-- Warum widerspricht der offene Host-Port bei `telegraf` (Schritt 5) auf den ersten Blick dem Prinzip aus Lab 07 ("nur was nötig ist, bekommt einen Host-Port") – und warum ist er hier trotzdem gerechtfertigt? Welche Härtungsmaßnahme (Stichwort: `ufw` bzw. Cloud-Firewall, Quell-IP-Beschränkung auf die Adresse Ihres Router-Gateways) würden Sie ergänzen?
-- Der SSH-Tunnel in Schritt 4 öffnet InfluxDBs Oberfläche nur temporär und nur lokal gebunden. Was wäre das konkrete Risiko, den Host-Port stattdessen dauerhaft im Compose-File zu belassen?
-- Eine Firewall-Regel, die Port 57000 nur für die Absender-Adresse Ihres Labornetzes öffnet, schränkt den **Zugang** ein. Schützt sie auch den **Inhalt** der Telemetriedaten? Was können Dritte auf dem Weg zwischen Labornetz und Server mit `grpc-tcp` sehen, und was müssten Sie für `grpc-tls` auf Router- und Telegraf-Seite ergänzen?
-- Warum terminiert nginx für **Grafana** (Schritt 8) ganz normal TLS, während der **Telemetrie-Eingang** (57000) bewusst ohne Reverse Proxy auskommt? Woran macht nginx fest, welchem Dienst eine eingehende Anfrage gilt – und warum funktioniert genau das bei `grpc-tcp` an eine IP nicht?
-
-**Zu Dial-In vs. Dial-Out:**
-
-- Welche Voraussetzung müsste erfüllt sein, damit stattdessen **Dial-In**-Telemetrie (Telegraf holt sich die Daten aktiv beim Router ab) funktionieren würde? Wann wäre dieser Ansatz vorzugswürdig?
-- Im Dashboard dominiert ohne Last `out_octets`, während `in_octets` nahe null liegt. Wie hängt das mit der gewählten Verbindungsrichtung (Dial-Out) zusammen?
-
-**Zur Datenpipeline:**
-
-- Was würde sich ändern, wenn Sie statt eines einzelnen Routers drei oder vier Router gleichzeitig überwachen wollten?
-- `update-policy periodic 500` erzeugt alle 5 Sekunden einen Messpunkt. Welche Kompromisse ergeben sich bei einem deutlich kürzeren bzw. deutlich längeren Intervall (Detailgrad vs. Datenvolumen vs. Last auf dem Router)?
-- Wie könnten Sie in Grafana eine Schwellwert-Warnung einrichten, die auffällt, sobald die CPU-Auslastung über einen längeren Zeitraum einen kritischen Wert überschreitet?
-
-> **Hinweis: offene Alternative zu Cisco-MDT.** Die hier genutzte Kombination aus `cisco_telemetry_mdt` und Cisco-IOS-XE-CLI ist nur eine mögliche Umsetzung – YANG, YANG-Push und gRPC sind offene, herstellerneutrale Standards. Wer die Pipeline stattdessen komplett herstellerneutral aufbauen möchte, kann sie mit dem offenen **gNMI**-Protokoll (OpenConfig) und kostenlos verfügbaren virtuellen Netzwerkbetriebssystemen wie Nokia SR Linux oder Arista cEOS-lab (z. B. via [Containerlab](https://containerlab.dev/)) nachbauen – Telegraf bringt dafür mit dem `gnmi`-Input-Plugin ein eigenes, vom `cisco_telemetry_mdt`-Plugin unabhängiges Werkzeug mit. Der Grundsatz der Pipeline bleibt dabei unverändert: **Daten erheben → Daten sammeln → Daten speichern → Daten darstellen** – nur Router-Plattform, Protokoll und Telegraf-Plugin ändern sich.
-
----
 
 ## Rückblick und Zusammenfassung
 
@@ -730,48 +702,13 @@ Arbeiten Sie von **wechselnden Standorten**, ändert sich diese öffentliche Que
 - Die ankommenden Daten entlang der Kette verifiziert (Router-Receiver → `ss`/Firewall → `influx query` für `cpu` **und** `ifstats`)
 - Ein Grafana-Dashboard mit zwei Panels aufgebaut, das die Live-Telemetriedaten des Routers darstellt, und über den nginx-Reverse-Proxy (natives ACME-Modul) per HTTPS veröffentlicht
 
-### Zentrale Befehle/Begriffe dieser Übung
+### Troubleshooting Referenz
 
-| Befehl/Begriff | Bedeutung |
-|---|---|
-| `netconf-yang` (IOS-XE) | Aktiviert die YANG-Infrastruktur auf dem Router |
-| `telemetry ietf subscription <id>` | Definiert eine YANG-Push-Subscription (Filter, Intervall, Empfänger) |
-| `show telemetry ietf subscription all detail` | Zeigt Status und Details aller konfigurierten Subscriptions |
-| `show telemetry internal connection` | Zeigt den tatsächlichen Verbindungszustand (`Connecting`/`Active`) |
-| `write memory` | Sichert running- in startup-config – sonst sind Änderungen nach Neustart weg |
-| `[[inputs.cisco_telemetry_mdt]]` | Telegraf-Plugin, das als gRPC-Empfänger für Cisco-MDT-Daten fungiert |
-| `schema.measurements(bucket: …)` (Flux) | Listet alle Measurements eines Buckets – praktisch zur Alias-Kontrolle |
-| Load Data → Telegraf → Influx Output Plugin (InfluxDB-UI) | Liefert den fertigen `[[outputs.influxdb_v2]]`-Block für die Telegraf-Konfiguration |
-
-> **Troubleshooting-Referenz:** Eine ausführliche Befehlssammlung zur Fehlersuche entlang der Kette (Erreichbarkeit/Ports mit `telnet`/`nc`, öffentliche IP ermitteln, `tcpdump` inkl. TCP-Fingerabdruck, Firewall-Logik Cloud vs. Host, Docker-Compose, InfluxDB-Abfragen, Cisco-Router-Befehle) findet sich im begleitenden Cheat-Sheet `Lab_10_Troubleshooting_Cheatsheet.md`.
+ Eine ausführliche Befehlssammlung zur Fehlersuche entlang der Kette (Erreichbarkeit/Ports mit `telnet`/`nc`, öffentliche IP ermitteln, `tcpdump` inkl. TCP-Fingerabdruck, Firewall-Logik Cloud vs. Host, Docker-Compose, InfluxDB-Abfragen, Cisco-Router-Befehle) findet sich im begleitenden Cheat-Sheet `Lab_10_Troubleshooting_Cheatsheet.md`.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
-
-## Aufräumarbeiten
-
-```bash
-cd /srv/telemetry
-docker compose down            # Container + Netzwerk telemetry-net entfernen
-docker compose down -v         # zusaetzlich: alle Volumes entfernen (Messdaten gehen verloren)
-rm /etc/nginx/conf.d/telemetry.conf
-nginx -t
-systemctl reload nginx
-rm -rf /srv/telemetry
-```
-
-Auf dem virtuellen Router:
-
-```
-R1#configure terminal
-R1(config)#no telemetry ietf subscription 101
-R1(config)#no telemetry ietf subscription 102
-R1(config)#end
-R1#write memory
-```
-
-[↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ## Autoren und Urheberrecht
 
