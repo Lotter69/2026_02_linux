@@ -577,7 +577,7 @@ docker compose up -d
 docker compose ps        # grafana muss "Up" sein, Port 127.0.0.1:3000 gemappt
 ```
 
-#### 8.2 nginx-vhost für Grafana
+#### 8.2 nginx-Konfiguration (Reverse Proxy) für Grafana anpassen
 
 Legen Sie `/etc/nginx/conf.d/telemetry.conf` an. Das aus Lab 06 aktive **native nginx-ACME-Modul** (`acme_issuer`/`acme_certificate`) holt und erneuert das Let's-Encrypt-Zertifikat automatisch – es ist also **kein certbot** und **kein separater Ausstell-Befehl** nötig. Den HTTP→HTTPS-Redirect (Port 80) erledigt bereits Ihr globaler Challenge-vhost aus Lab 06; dieser Dienst-vhost braucht daher nur den 443-Block:
 
