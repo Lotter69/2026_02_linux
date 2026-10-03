@@ -569,8 +569,6 @@ volumes:
   grafana-data:
 ```
 
-> **Warum an zwei Stellen?** Beim Dienst (`volumes:` eingerückt unter `grafana:`) **benutzen** Sie das Volume, im Top-Level-`volumes:`-Block **definieren** Sie es. Fehlt die zweite Stelle, bricht der Start sofort ab mit: `service "grafana" refers to undefined volume grafana-data: invalid compose project`.
-
 Wie InfluxDB bindet Grafana seinen Port bewusst nur an `127.0.0.1` – von außen erreichbar wird es ausschließlich über nginx (8.2).
 
 ```bash
