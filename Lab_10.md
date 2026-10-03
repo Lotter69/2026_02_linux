@@ -58,9 +58,7 @@ Wie in den vorigen Labs betreiben Sie InfluxDB und Telegraf dabei konsequent als
   - [Schritt 6: YANG-Dienste auf dem Router aktivieren](#schritt-6-yang-dienste-auf-dem-router-aktivieren)
   - [Schritt 7: Abonnements für CPU-Auslastung und Schnittstellenstatistik konfigurieren](#schritt-7-abonnements-für-cpu-auslastung-und-schnittstellenstatistik-konfigurieren)
   - [Schritt 8: Dashboards in Grafana erstellen](#schritt-8-dashboards-in-grafana-erstellen)
-- [Reflexion und weiterführende Fragen](#reflexion-und-weiterführende-fragen)
 - [Rückblick und Zusammenfassung](#rückblick-und-zusammenfassung)
-- [Aufräumarbeiten](#aufräumarbeiten)
 - [Autoren und Urheberrecht](#autoren-und-urheberrecht)
 
 ---
@@ -135,7 +133,7 @@ flowchart LR
 | `telegraf` | Ja, `57000` (alle Interfaces) | Ja, direkt – der Router muss diesen Port erreichen können |
 | `grafana` | Ja, aber nur an `127.0.0.1:3000` gebunden | Nein direkt, nur über `nginx` (Reverse Proxy auf 80/443) |
 
-Es gilt (siehe auch Lab 07): Nur, was zwingend von außen erreichbar sein muss, bekommt einen Host-Port, der auf allen Interfaces lauscht. `influxdb` bekommt **keinen** Host-Port. Telegraf und Grafana erreichen es ausschließlich intern über den Docker-Servicenamen. `grafana` bekommt zwar einen Host-Port, der ist aber bewusst nur an `127.0.0.1` gebunden und damit von außen nicht direkt erreichbar. Öffentlich sichtbar wird Grafana ausschließlich über den nginx-Reverse-Proxy und eine angepasst URL. 
+Es gilt (siehe auch Lab 07): Nur, was zwingend von außen erreichbar sein muss, bekommt einen Host-Port, der auf allen Interfaces lauscht. `influxdb` bekommt **keinen** Host-Port. Telegraf und Grafana erreichen es ausschließlich intern über den Docker-Servicenamen. `grafana` bekommt zwar einen Host-Port, der ist aber bewusst nur an `127.0.0.1` gebunden und damit von außen nicht direkt erreichbar. Öffentlich sichtbar wird Grafana ausschließlich über den nginx-Reverse-Proxy und eine angepasste URL. 
 Bei `telegraf` liegt der Fall anders: Der gRPC-Empfänger **muss** einen Host-Port bekommen, der von außerhalb des Docker-Netzes erreichbar ist, weil die Datenquelle (der Router) außerhalb Ihres Servers liegt und die Verbindung per Dial-Out selbst aufbaut.
 
 
@@ -154,7 +152,7 @@ Bei NAT sind dabei **zwei verschiedene Adressen** im Spiel – verwechseln Sie s
 | Adresse | Wo sichtbar | Wofür |
 |---|---|---|
 | Eigene Adresse von `GigabitEthernet1` (bei CML-NAT per DHCP, typischerweise `192.168.255.x`) | Auf dem Router: `show ip interface brief` | `source-address` in der Subscription (Schritt 7) – als Absenderadresse muss eine dem Router selbst gehörende Interface-Adresse angegeben werden, nicht die öffentliche Adresse nach außen hinter NAT. Hat der Router mehrere Interfaces, kommt grundsätzlich jede seiner eigenen Adressen in Frage. Pro Subscription wählt man eine. Hier nur die eine von GigabitEthernet1.|
-| Adresse **nach** der NAT-Übersetzung (öffentliche Adresse Ihrer Labor-Umgebung) | Auf dem Server: `ss -tn \| grep 57000`, sobald der Router verbunden ist | Firewall-Regel auf Port 57000 (siehe Reflexion) |
+| Adresse **nach** der NAT-Übersetzung (öffentliche Adresse Ihrer Labor-Umgebung) | Auf dem Server: `ss -tn \| grep 57000`, sobald der Router verbunden ist | Firewall-Regel auf Port 57000 (siehe Schritt 8.6) |
 
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
@@ -315,7 +313,7 @@ Ergänzen Sie darunter den Input-Block für Cisco Model-Driven Telemetry unverä
     ifstats = "Cisco-IOS-XE-interfaces-oper:interfaces/interface/statistics"
 ```
 
-> **Stolperfalle Modulname vs. Präfix:** Im XPath-Filter auf dem Router (Schritt 7) steht das YANG-**Präfix** (`process-cpu-ios-xe-oper:`). Der Router meldet die Daten aber unter dem **Modulnamen** (`Cisco-IOS-XE-process-cpu-oper:`) – und genau dieser Pfad muss in den Aliasen stehen. Mit dem Präfix greifen die Aliase nicht, und die Measurements erscheinen in InfluxDB unter den langen Pfadnamen statt als `cpu` und `ifstats`.
+Der Alias ordnet dem langen YANG-Pfad einen kurzen Measurement-Namen zu. Verwenden Sie dabei den **Modulnamen** (`Cisco-IOS-XE-process-cpu-oper:`), nicht das kürzere **Präfix** aus dem XPath-Filter (`process-cpu-ios-xe-oper:`) – nur mit dem Modulnamen greift der Alias, sonst erscheinen die Measurements unter den langen Pfadnamen statt als `cpu` und `ifstats`.
 
 | Zeile | Bedeutung |
 |---|---|
@@ -334,7 +332,7 @@ Ergänzen Sie den `telegraf`-Dienst in der `compose.yaml`:
     environment:
       TELEGRAF_TOKEN: ${TELEGRAF_TOKEN}
     ports:
-      - "57000:57000"        # muss von aussen (Router) erreichbar sein - bewusste Ausnahme, siehe Reflexion
+      - "57000:57000"        # muss von aussen (Router) erreichbar sein - bewusste Ausnahme, siehe Schritt 8.6
     volumes:
       - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     networks:
@@ -493,7 +491,7 @@ R1#show telemetry internal connection
 R1#show telemetry ietf subscription 101 receiver
 ```
 
-Erwartet wird `State: Connected` bzw. in der Verbindungsübersicht `Active`. Bleibt der Zustand bei `Connecting`, erreicht der Router den Empfänger nicht – häufigste Ursache ist ein Tippfehler bei Adresse oder Port (z. B. `5700` statt `57000`) oder eine Firewall, die Port 57000 vom Absender aus blockt. Kontrollieren Sie die **Rohkonfiguration** mit `show run | section telemetry` (die `valid/connecting`-Zusammenfassung allein genügt zur Fehlersuche nicht), und korrigieren Sie den Receiver bei Bedarf mit `no receiver ip address …` und anschließend der richtigen Zeile innerhalb von `telemetry ietf subscription <id>` (danach erneut `write memory`).
+Erwartet wird `State: Connected` bzw. in der Verbindungsübersicht `Active`. Bleibt der Zustand bei `Connecting`, erreicht der Router den Empfänger nicht – häufigste Ursache ist ein Tippfehler bei Adresse oder Port (z. B. `5700` statt `57000`) oder eine Firewall, die Port 57000 vom Absender aus blockt. Kontrollieren Sie die **Rohkonfiguration** mit `show run | section telemetry` (die `valid/connecting`-Zusammenfassung allein genügt zur Fehlersuche nicht), und korrigieren Sie den Receiver bei Bedarf mit `no receiver ip address …` und anschließend der richtigen Zeile innerhalb von `telemetry ietf subscription <id>`.
 
 **2. Kommt die Verbindung auf dem Server an?** (Server)
 
@@ -501,7 +499,7 @@ Erwartet wird `State: Connected` bzw. in der Verbindungsübersicht `Active`. Ble
 ss -tn | grep 57000
 ```
 
-Eine Zeile mit `ESTAB` zeigt die Verbindung; in der Spalte „Peer Address" steht die Absender-Adresse **nach** NAT – genau die Adresse für eine Firewall-Regel (siehe Reflexion). Kommt hier nichts an, obwohl der Router sendet, prüfen Sie die Firewall auf Port 57000 (bei einer Cloud-Firewall mit „default deny" muss der Port explizit freigegeben sein – ICMP/Ping kann durchgehen, während TCP 57000 blockiert bleibt).
+Eine Zeile mit `ESTAB` zeigt die Verbindung; in der Spalte „Peer Address" steht die Absender-Adresse **nach** NAT – genau die Adresse für eine Firewall-Regel (siehe Schritt 8.6). Kommt hier nichts an, obwohl der Router sendet, prüfen Sie die Firewall auf Port 57000 (bei einer Cloud-Firewall mit „default deny" muss der Port explizit freigegeben sein – ICMP/Ping kann durchgehen, während TCP 57000 blockiert bleibt).
 
 **3. Landen die Daten in InfluxDB?** (Server)
 
@@ -527,7 +525,7 @@ docker compose exec influxdb influx query \
   'import "influxdata/influxdb/schema" schema.measurements(bucket: "telemetry")'
 ```
 
-Hier müssen `cpu` **und** `ifstats` auftauchen. Stehen stattdessen lange YANG-Pfadnamen da, greift einer der Aliase aus Schritt 5 nicht (Modulname vs. Präfix).
+Hier müssen `cpu` **und** `ifstats` auftauchen. Stehen stattdessen lange YANG-Pfadnamen da, greift einer der Aliase aus Schritt 5 nicht.
 
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
@@ -560,7 +558,7 @@ Ergänzen Sie in Ihrer `compose.yaml` im `services:`-Block den folgenden Dienst:
       - influxdb
 ```
 
-Ergänzen Sie **zusätzlich** `grafana-data:` im `volumes:`-Block**:
+Ergänzen Sie **zusätzlich** `grafana-data:` im `volumes:`-Block:
 
 ```yaml
 volumes:
@@ -579,7 +577,7 @@ docker compose ps        # grafana muss "Up" sein, Port 127.0.0.1:3000 gemappt
 
 #### 8.2 nginx-Konfiguration (Reverse Proxy) für Grafana anpassen
 
-Legen Sie `/etc/nginx/conf.d/telemetry.conf` an. Das aus Lab 06 aktive **native nginx-ACME-Modul** (`acme_issuer`/`acme_certificate`) holt und erneuert das Let's-Encrypt-Zertifikat automatisch – es ist also **kein certbot** und **kein separater Ausstell-Befehl** nötig. Den HTTP→HTTPS-Redirect (Port 80) erledigt bereits Ihr globaler Challenge-vhost aus Lab 06; dieser Dienst-vhost braucht daher nur den 443-Block:
+Legen Sie `/etc/nginx/conf.d/telemetry.conf` an. Das aus Lab 06 aktive **native nginx-ACME-Modul** (`acme_issuer`/`acme_certificate`) holt und erneuert das Let's-Encrypt-Zertifikat automatisch – es ist also **kein certbot** und **kein separater Ausstell-Befehl** nötig. Den HTTP→HTTPS-Redirect (Port 80) erledigt bereits Ihre globale Challenge-Konfiguration aus Lab 06; für Grafana genügt daher der folgende 443-`server`-Block:
 
 ```nginx
 server {
@@ -679,13 +677,14 @@ Sollen andere das Dashboard nur ansehen, ohne Ihr Admin-Konto zu nutzen, gibt es
   ```
   Danach `docker compose up -d`. Jeder, der die URL kennt, sieht das Dashboard read-only; als Admin kommen Sie weiter über `…/login` hinein.
 
-> **Achtung:** Bei anonymem Zugriff ist das Dashboard über Ihre öffentliche URL für alle offen. Für einen Lab-/Internrahmen mit unkritischen Testdaten ist das vertretbar – sonst sollten Sie es zusätzlich absichern (z. B. `auth_basic` im vhost oder eine Firewall-Regel auf bestimmte Quell-IPs).
+> **Achtung:** Bei anonymem Zugriff ist das Dashboard über Ihre öffentliche URL für alle offen. Für einen Lab-/Internrahmen mit unkritischen Testdaten ist das vertretbar – sonst sollten Sie es zusätzlich absichern (z. B. `auth_basic` im `server`-Block oder eine Firewall-Regel auf bestimmte Quell-IPs).
 
 #### 8.6 Absicherung des Telemetrie-Ports
 
 Schränken Sie zum Abschluss den Zugang zum Telemetrie-Port 57000 ein. Dieser Port wird von einem Docker-Container veröffentlicht (-p 57000:57000, an 0.0.0.0 gebunden) – wie in Lab 05 beschrieben, greift ufw bei Docker-veröffentlichten Ports nicht zuverlässig (der Verkehr läuft über die DOCKER-USER-Chain, nicht über ufws INPUT-Chain). Nehmen Sie die Einschränkung deshalb in der Firewall Ihres Cloud-Providers vor (die auf den virtuellen Server angewendete Firewall, z. B. die Hetzner Cloud Firewall) – ersatzweise über eine eigene Regel in der DOCKER-USER-Chain. Erlauben Sie dort eingehend TCP 57000 nur von der öffentlichen Adresse, mit der Ihr Labornetz (CML) nach außen auftritt (die Adresse nach NAT, siehe Schritt 1). Da der Stream unverschlüsselt ist (grpc-tcp), könnten sonst Dritte ihn mitlesen oder einspeisen.
 
 Arbeiten Sie von **wechselnden Standorten**, ändert sich diese öffentliche Quell-IP – dann müssen Sie die Firewall-Regel bei jedem Wechsel nachziehen (aktuelle IP vom Labornetz aus mit `curl -4 ifconfig.me` ermitteln). Fällt der Receiver anschließend auf `Connecting` zurück, prüfen Sie zuerst die Firewall. 
+
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
@@ -698,7 +697,7 @@ Arbeiten Sie von **wechselnden Standorten**, ändert sich diese öffentliche Que
 - Model-Driven Telemetry als Push-basierte Alternative zu SNMP-Polling, Syslog und CLI-Abfragen verstanden (YANG, NETCONF, YANG-Push, gRPC, Dial-In/Dial-Out)
 - InfluxDB und Telegraf als containerisierte, zusammengehörige Dienste in einem eigenen Docker-Netzwerk installiert und in Betrieb genommen
 - Eine Telegraf-Grundkonfiguration über die InfluxDB-Oberfläche erzeugt und manuell um das `cisco_telemetry_mdt`-Plugin ergänzt
-- Auf einem CSR1000v-Router in einer virtuellen Labor-Umgebung YANG-Dienste aktiviert und Dial-Out-Abonnements für CPU-Auslastung und Schnittstellenstatistik eingerichtet – inklusive der typischen Groß-/Kleinschreibungs-Stolperfalle bei Schnittstellennamen und der Sicherung mit `write memory`
+- Auf einem CSR1000v-Router in einer virtuellen Labor-Umgebung YANG-Dienste aktiviert und Dial-Out-Abonnements für CPU-Auslastung und Schnittstellenstatistik eingerichtet
 - Die ankommenden Daten entlang der Kette verifiziert (Router-Receiver → `ss`/Firewall → `influx query` für `cpu` **und** `ifstats`)
 - Ein Grafana-Dashboard mit zwei Panels aufgebaut, das die Live-Telemetriedaten des Routers darstellt, und über den nginx-Reverse-Proxy (natives ACME-Modul) per HTTPS veröffentlicht
 
