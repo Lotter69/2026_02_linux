@@ -34,11 +34,11 @@ Wie in den vorigen Labs betreiben Sie InfluxDB und Telegraf dabei konsequent als
 | Anforderung | Details |
 |---|---|
 | **Virtuelle Labor-Umgebung** | Eigene Instanz einer virtuellen Netzwerklabor-Umgebung (z. B. Cisco Modeling Labs, CML) mit einem laufenden Router-Node vom Typ **CSR1000v**. Wichtig: Cisco IOS-XE unterstützt YANG/NETCONF grundsätzlich – nur bringen schlanke Referenz-Images wie **IOSv und IOSvL2 die dafür nötigen YANG-Management-Prozesse gar nicht erst mit** (sie sind bewusst auf einfache Routing-/Switching-Labs zugeschnitten, ohne dieses Subsystem). Für dieses Lab kommt daher nur ein vollständiges IOS-XE-Image wie **CSR1000v** (bzw. neuer: Cat8000v) infrage.  |
-| **Erreichbarkeit** | Der virtuelle Router muss den Empfänger-Server per gRPC (TCP) erreichen können – z. B. über ein NAT-Gateway Ihrer Labor-Umgebung (in CML: "External Connector") |
+| **Erreichbarkeit** | Der virtuelle Router muss den Empfänger-Server per gRPC (TCP) erreichen können. Hier über ein NAT-Gateway der Labor-Umgebung (in CML: "External Connector") |
 | **Server** | Ihr Linux-Server (aus Lab 03), öffentliche IPv4-Adresse, Docker mit Compose-Plugin (aus Lab 05/09) |
-| **nginx** | Mit ACME-Modul als Reverse Proxy aktiv (aus Lab 06) – für die Grafana-Veröffentlichung. Dieses Lab setzt das native nginx-ACME-Modul (`acme_issuer`/`acme_certificate`) voraus, wie in Lab 06 eingerichtet; es ist **kein** certbot nötig. |
-| **DNS** | Neuer A-Record `telemetry.<IHRE-DOMAIN>` für Grafana |
-| **SSH-Zugriff** | Key-Authentifizierung, inklusive der Möglichkeit, einen SSH-Tunnel aufzubauen (Schritt 4) |
+| **nginx** | Mit ACME-Modul als Reverse Proxy aktiv. Notwendig für die Grafana-Veröffentlichung.|
+| **DNS** | Neuer A-Record `telemetry.<IHRE-DOMAIN>` für Grafana, wenn nicht über Wildcard gelöst.|
+| **SSH-Zugriff** | Key-Authentifizierung, inklusive der Möglichkeit, einen SSH-Tunnel aufzubauen. Notwendig um temporär die Initialkonfiguration auf der WebUI von InfluxDB vorzunehmen (Schritt 4) |
 
 ---
 
@@ -69,7 +69,7 @@ Wie in den vorigen Labs betreiben Sie InfluxDB und Telegraf dabei konsequent als
 
 ### Von SNMP zu Model-Driven Telemetry
 
-Die bisher naheliegenden Monitoring-Werkzeuge haben für einen laufenden Überblick über Netzwerkgeräte alle einen strukturellen Nachteil: **SNMP**-Polling fragt in festen Intervallen einzelne Werte ab und ist damit für viele Kennzahlen oder kurze Intervalle zu träge ("too slow"). **Syslog** liefert nur Ereignisse und Meldungen, aber keine kontinuierliche Messreihe ("incomplete"). CLI-Befehle wie `show dmvpn detail` sind zwar informativ, aber gerätespezifisch formatiert und für automatisierte Auswertung ungeeignet.
+Die bisher naheliegenden Monitoring-Werkzeuge haben für einen laufenden Überblick über Netzwerkgeräte alle einen strukturellen Nachteil: **SNMP**-Polling fragt in festen Intervallen einzelne Werte ab und ist damit für viele Kennzahlen oder kurze Intervalle zu träge ("too slow"). **Syslog** liefert nur Ereignisse und Meldungen, aber keine kontinuierliche Messreihe ("incomplete"). Gerätespezifische CLI-Befehle sind zwar informativ, aber auch gerätespezifisch formatiert und für automatisierte Auswertung ungeeignet.
 
 **Model-Driven Telemetry (MDT)** dreht das Grundprinzip um: Der Router **sendet** ("pusht") Daten selbstständig und laufend an einen oder mehrere Empfänger. Ein ständiges Nachfragen ("pullen") kann entfallen. Welche Daten dabei übertragen werden, beschreibt nicht mehr eine herstellerspezifische OID-Liste oder ein CLI-Ausgabeformat, sondern ein **YANG-Datenmodell**: eine strukturierte, hierarchische Beschreibung der auf dem Gerät verfügbaren Betriebsdaten.
 
@@ -79,7 +79,7 @@ Ein YANG-Modell gliedert sich hierarchisch in **Modul → Container → Liste �
 
 | Begriff | Bedeutung |
 |---|---|
-| **Modul** | Die oberste Ebene eines YANG-Modells, z. B. `process-cpu-ios-xe-oper` – vergleichbar mit einem Namensraum |
+| **Modul** | Die oberste Ebene eines YANG-Modells, benannt durch seinen **Modulnamen** (z. B. `Cisco-IOS-XE-process-cpu-oper`). Vergleichbar mit einem Namensraum. Im XPath wird dasselbe Modul meist über sein kürzeres **Präfix** (`process-cpu-ios-xe-oper`) angesprochen, das vom Modulnamen abweicht. |
 | **Container** | Eine gruppierende Ebene innerhalb eines Moduls, z. B. `cpu-usage` |
 | **Liste** | Eine Menge gleichartiger Einträge, die über einen Schlüssel adressiert werden, z. B. `interface[name='GigabitEthernet1']` |
 | **Leaf** | Der eigentliche Wert am Ende des Pfades, z. B. `five-seconds` (die CPU-Auslastung der letzten 5 Sekunden) |
@@ -135,7 +135,7 @@ flowchart LR
 | `telegraf` | Ja, `57000` (alle Interfaces) | Ja, direkt – der Router muss diesen Port erreichen können |
 | `grafana` | Ja, aber nur an `127.0.0.1:3000` gebunden | Nein direkt, nur über `nginx` (Reverse Proxy auf 80/443) |
 
-Wie in Lab 07 gilt: Nur, was zwingend von außen erreichbar sein muss, bekommt einen Host-Port, der auf allen Interfaces lauscht. `influxdb` bekommt, wie in Lab 09, **keinen** Host-Port; Telegraf und Grafana erreichen es ausschließlich intern über den Docker-Servicenamen. `grafana` bekommt zwar einen Host-Port, der ist aber bewusst nur an `127.0.0.1` gebunden und damit von außen nicht direkt erreichbar – öffentlich sichtbar wird Grafana ausschließlich über den nginx-Reverse-Proxy. 
+Es gilt (siehe auch Lab 07): Nur, was zwingend von außen erreichbar sein muss, bekommt einen Host-Port, der auf allen Interfaces lauscht. `influxdb` bekommt **keinen** Host-Port. Telegraf und Grafana erreichen es ausschließlich intern über den Docker-Servicenamen. `grafana` bekommt zwar einen Host-Port, der ist aber bewusst nur an `127.0.0.1` gebunden und damit von außen nicht direkt erreichbar. Öffentlich sichtbar wird Grafana ausschließlich über den nginx-Reverse-Proxy und eine angepasst URL. 
 Bei `telegraf` liegt der Fall anders: Der gRPC-Empfänger **muss** einen Host-Port bekommen, der von außerhalb des Docker-Netzes erreichbar ist, weil die Datenquelle (der Router) außerhalb Ihres Servers liegt und die Verbindung per Dial-Out selbst aufbaut.
 
 > **Warum dann nicht auch hier nginx davor?** Dass die Gegenstelle außerhalb liegt, gilt für den Browser genauso – und Grafana läuft trotzdem über nginx. Der Unterschied liegt woanders: nginx ist in diesem Kurs als HTTP(S)-Reverse-Proxy auf 80/443 eingerichtet, unterscheidet die Anfragen anhand des Hostnamens (`server_name`/SNI) und beendet TLS. Der Router sendet dagegen per `grpc-tcp` unverschlüsselten gRPC-Verkehr an eine **IP-Adresse** und einen eigenen Port – ohne Hostnamen, zu dem ein `server`-Block passen könnte. Technisch wäre ein Proxy durchaus möglich (nginx-`stream`-Modul als Layer-4-Proxy oder `grpc_pass`), er brächte bei einem einzelnen, bekannten Absender aber keinen Mehrwert. Der Zugang wird stattdessen per Firewall-Regel auf die Absender-Adresse eingeschränkt (siehe Reflexion). Ein Reverse Proxy ist hier also **nicht nötig** – nicht etwa unmöglich. **Für Grafana (Schritt 8) gilt das Gegenteil:** Dort terminiert nginx wie bei jedem Webdienst ganz normal TLS. Der "ohne Reverse Proxy"-Gedanke betrifft also ausschließlich den Telemetrie-Port 57000.
@@ -321,7 +321,7 @@ Ergänzen Sie darunter den Input-Block für Cisco Model-Driven Telemetry unverä
     ifstats = "Cisco-IOS-XE-interfaces-oper:interfaces/interface/statistics"
 ```
 
-> **⚠️ Stolperfalle Modulname vs. Präfix:** Im XPath-Filter auf dem Router (Schritt 7) steht das YANG-**Präfix** (`process-cpu-ios-xe-oper:`). Der Router meldet die Daten aber unter dem **Modulnamen** (`Cisco-IOS-XE-process-cpu-oper:`) – und genau dieser Pfad muss in den Aliasen stehen. Mit dem Präfix greifen die Aliase nicht, und die Measurements erscheinen in InfluxDB unter den langen Pfadnamen statt als `cpu` und `ifstats`.
+> **Stolperfalle Modulname vs. Präfix:** Im XPath-Filter auf dem Router (Schritt 7) steht das YANG-**Präfix** (`process-cpu-ios-xe-oper:`). Der Router meldet die Daten aber unter dem **Modulnamen** (`Cisco-IOS-XE-process-cpu-oper:`) – und genau dieser Pfad muss in den Aliasen stehen. Mit dem Präfix greifen die Aliase nicht, und die Measurements erscheinen in InfluxDB unter den langen Pfadnamen statt als `cpu` und `ifstats`.
 
 | Zeile | Bedeutung |
 |---|---|
