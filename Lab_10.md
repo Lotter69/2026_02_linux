@@ -453,9 +453,9 @@ R1(config-mdt-subs)#end
 | `update-policy periodic 500` | Sendeintervall in Centisekunden – `500` entspricht 5 Sekunden |
 | `receiver ip address ... protocol grpc-tcp` | Ziel der Dial-Out-Verbindung: Ihr Telegraf-Container. `grpc-tcp` bedeutet gRPC **ohne** TLS |
 
-> **Klartext auf der Leitung:** Mit `grpc-tcp` gehen die Telemetriedaten unverschlüsselt über das Internet. `encode-kvgpb` ist nur ein binäres Datenformat, keine Verschlüsselung – mit Wireshark lässt sich der Verkehr auf Port 57000 mitschneiden und lesbar dekodieren. Für ein Lab ist das vertretbar, weil sich die Pipeline so leichter nachvollziehen und debuggen lässt. Eine verschlüsselte Variante wäre `protocol grpc-tls profile <TRUSTPOINT>` auf dem Router (CA per `crypto pki trustpoint` hinterlegt) und `tls_cert`/`tls_key` (für gegenseitige Authentifizierung zusätzlich `tls_allowed_cacerts`) im Telegraf-Input. Weil der Router nur eine IP-Adresse kennt, muss das Server-Zertifikat diese IP als SAN enthalten – Let's Encrypt stellt keine IP-Zertifikate aus, in der Praxis also eine eigene kleine CA.
+> **Klartext auf der Leitung:** Mit `grpc-tcp` gehen die Telemetriedaten unverschlüsselt über das Internet. `encode-kvgpb` ist nur ein binäres Datenformat, keine Verschlüsselung – mit Wireshark lässt sich der Verkehr auf Port 57000 mitschneiden und lesbar dekodieren. Für ein Lab ist das vertretbar, weil sich die Pipeline so leichter nachvollziehen und debuggen lässt. 
 
-> **Stolperfalle Groß-/Kleinschreibung:** Der Schnittstellenname im Filter ist case-sensitiv. `interface[name='gigabitethernet1']` liefert **keine** Daten – korrekt ist `interface[name='GigabitEthernet1']`, exakt wie der Router die Schnittstelle selbst benennt (`show ip interface brief`). Ein still bleibendes Interface-Abonnement bei gleichzeitig funktionierender CPU-Auslastung ist ein starkes Indiz genau für diesen Fehler.
+
 
 Prüfen Sie den Status:
 
@@ -529,7 +529,6 @@ docker compose exec influxdb influx query \
 
 Hier müssen `cpu` **und** `ifstats` auftauchen. Stehen stattdessen lange YANG-Pfadnamen da, greift einer der Aliase aus Schritt 5 nicht (Modulname vs. Präfix).
 
-> **Gut zu wissen:** Wird der Telegraf-Container neu gestartet, bricht die gRPC-Verbindung kurz ab (im Log: `context canceled`). Der Router baut sie selbstständig wieder auf – ein Eingriff auf dem Router ist nicht nötig.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -561,7 +560,7 @@ Ergänzen Sie in Ihrer `compose.yaml` im `services:`-Block den folgenden Dienst:
       - influxdb
 ```
 
-Ergänzen Sie **zusätzlich** `grafana-data:` im **Top-Level-`volumes:`-Block** (ganz unten, auf derselben Ebene wie `services:` und `networks:`):
+Ergänzen Sie **zusätzlich** `grafana-data:` im `volumes:`-Block**:
 
 ```yaml
 volumes:
