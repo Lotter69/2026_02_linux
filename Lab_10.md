@@ -261,7 +261,6 @@ ssh -L 8086:127.0.0.1:8086 <benutzer>@<server-ip>
 
 Rufen Sie `http://localhost:8086` in Ihrem lokalen Browser auf und melden Sie sich mit `admin` und dem Passwort aus Ihrer `.env` an.
 
-> **Tipp zur Fehlerbehebung:** Meldet die SSH-Sitzung `channel 3: open failed: connect failed: Connection refused` und zeigt der Browser „Website nicht erreichbar", steht der Tunnel zwar, aber auf dem Server lauscht nichts auf `127.0.0.1:8086` – Schritt 4.1 fehlt oder wurde nicht mit `docker compose up -d` übernommen.
 
 **4.3 Token und Output-Block holen:**
 
@@ -445,12 +444,6 @@ R1(config-mdt-subs)#stream yang-push
 R1(config-mdt-subs)#receiver ip address <SERVER-IP> 57000 protocol grpc-tcp
 R1(config-mdt-subs)#end
 ```
-
-> ** Stolperfalle running- vs. startup-config – unbedingt sichern:** Alle Subscription-Befehle landen zunächst nur im **running-config** und sind nach einem Neustart des Routers (oder der ganzen Labor-Umgebung, z. B. über Nacht) **wieder weg**. Sichern Sie die Konfiguration daher mit `write memory` (Kurzform `wr`) in den startup-config:
-> ```
-> R1#write memory
-> ```
-> Vergisst man das, lädt der Router beim nächsten Start den alten startup-config – und es kommen keine Daten mehr an, obwohl die Pipeline serverseitig völlig unverändert läuft. Dieser Fehler ist tückisch, weil Telegraf, InfluxDB und Firewall alle „grün" aussehen und man die Ursache zunächst auf der Serverseite sucht. Merksatz: **running-config = jetzt aktiv, startup-config = wird beim Booten geladen – nur `write memory` überträgt das eine ins andere.**
 
 | Element | Bedeutung |
 |---|---|
