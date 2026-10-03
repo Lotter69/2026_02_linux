@@ -606,7 +606,6 @@ server {
 }
 ```
 
-> **Grafana-spezifisch gegenüber einem Standard-Dienst-vhost:** Die WebSocket-Header (`Upgrade`/`Connection`, `proxy_http_version 1.1`) braucht Grafana Live. Setzen Sie hier **kein** `auth_basic` – Grafana bringt einen eigenen Login mit; eine zusätzliche Basic-Auth würde doppelt abfragen und die Grafana-API stören. `GF_SERVER_ROOT_URL` (8.1) und `X-Forwarded-Proto` sorgen zusammen dafür, dass Grafana alle Links und WebSockets mit `https://`/`wss://` aufbaut – sonst zeigt der Browser „nicht sicher" (Mixed Content), obwohl das Zertifikat gültig ist.
 
 Voraussetzung: ein **DNS-A-Record** `telemetry.<IHRE-DOMAIN>` auf Ihre Server-IP sowie in der Firewall offene Ports **TCP 80 und 443** (80 für die ACME-HTTP-01-Challenge des Moduls). Dann:
 
