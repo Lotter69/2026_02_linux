@@ -163,8 +163,7 @@ Bei NAT sind dabei **zwei verschiedene Adressen** im Spiel – verwechseln Sie s
 
 ### Schritt 2: InfluxDB und Telegraf installieren
 
-Wie in Lab 09 werden die Dienste nicht einzeln als native Pakete (`yum install`/`systemctl`), sondern deklarativ über eine `compose.yaml` "installiert" und betrieben. Zusammengehörige Dienste sollen in einem eigenen Docker-Netzwerk betrieben werden. 
-Das hat einen angenehmen Nebeneffekt: Die bei einer nativen Paketinstallation zeitweise fehlerhaften RPM-Repository-URLs von InfluxData entfallen komplett, da Sie ausschließlich fertige, offizielle Container-Images verwenden.
+Wie in Lab 09 werden die Dienste nicht einzeln als native Pakete, sondern deklarativ über eine `compose.yaml` "installiert" und betrieben. Zusammengehörige Dienste sollen in einem eigenen Docker-Netzwerk betrieben werden. 
 
 ```bash
 mkdir -p /srv/telemetry/telegraf
@@ -210,8 +209,6 @@ volumes:
   influxdb-data:
   influxdb-config:
 ```
-
-> **Was passiert hier?** Dasselbe Muster wie in Lab 09, Schritt 3 – Bucket und Token kommen aus der `.env`-Datei, InfluxDB bekommt bewusst keinen `ports:`-Eintrag. Nur der Bucket-Name (`telemetry` statt `iot`) ist neu, da diese Pipeline nicht Sensor-, sondern Netzwerk-Telemetriedaten sammelt. Den `telegraf`-Dienst ergänzen Sie in Schritt 5, sobald seine Konfigurationsdatei vorliegt.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
