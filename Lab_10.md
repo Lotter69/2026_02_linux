@@ -156,7 +156,6 @@ Bei NAT sind dabei **zwei verschiedene Adressen** im Spiel – verwechseln Sie s
 | Eigene Adresse von `GigabitEthernet1` (bei CML-NAT per DHCP, typischerweise `192.168.255.x`) | Auf dem Router: `show ip interface brief` | `source-address` in der Subscription (Schritt 7) – als Absenderadresse muss eine dem Router selbst gehörende Interface-Adresse angegeben werden, nicht die öffentliche Adresse nach außen hinter NAT. Hat der Router mehrere Interfaces, kommt grundsätzlich jede seiner eigenen Adressen in Frage. Pro Subscription wählt man eine. Hier nur die eine von GigabitEthernet1.|
 | Adresse **nach** der NAT-Übersetzung (öffentliche Adresse Ihrer Labor-Umgebung) | Auf dem Server: `ss -tn \| grep 57000`, sobald der Router verbunden ist | Firewall-Regel auf Port 57000 (siehe Reflexion) |
 
-> **Tipp zur Fehlerbehebung:** Zeigt `show ip interface brief` für `GigabitEthernet1` den Zustand `down / down` (nicht `administratively down`), ist das Interface zwar eingeschaltet, hat aber keinen Link. Die Ursache liegt dann in der CML-Topologie, nicht in der Router-Konfiguration: Prüfen Sie, ob das Kabel wirklich an `GigabitEthernet1` hängt, ob der Link selbst gestartet ist und ob der External Connector läuft (nach einem Moduswechsel: Stop → Wipe → Start).
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
