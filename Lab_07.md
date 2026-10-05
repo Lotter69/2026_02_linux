@@ -1,4 +1,4 @@
-# Lab 07: Docker-Netzwerke segmentieren und Lastverteilung einrichten
+# Lab 07: Vom transparenten Proxy zur transparenten Netzwerktrennung (ISO/IEC 27001)
 
 ![line](images/banner.png)
 
@@ -93,7 +93,7 @@ docker network connect app-net nodered
 
 `nodered` läuft bereits (aus Lab 05) mit `-p 127.0.0.1:1880:1880` im Standard-Netzwerk – darüber bleibt er für nginx auf dem Host erreichbar, aber weiterhin nicht direkt aus dem Internet. Mit diesem Befehl bekommt `nodered` ein zweites Standbein: Er gehört jetzt **gleichzeitig** zwei Netzwerken an. Ein Container kann beliebig vielen Netzwerken angehören, ohne neu erstellt werden zu müssen.
 
-#### 1.3 Neuen, rein internen Dienst startennicht primär der Automatisierung, sondern 
+#### 1.3 Neuen, rein internen Dienst starten
 
 ```bash
 docker run -d \
