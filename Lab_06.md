@@ -464,7 +464,7 @@ https://dashboard.<IHRE-DOMAIN>
 
 - Welche Pentest-Feststellung lässt sich anhand der nginx-Konfiguration jetzt konkret nachweisen – und was genau würde ein Auditor dafür sehen wollen?
 - Vergleichen Sie den Aufwand für eine neue Subdomain bei Caddy (Lab 04) mit dem Aufwand bei nginx mit ACME-Modul – was hat sich an Übersicht und Kontrolle verändert, was an Komfort?
-- Warum ist die explizite Konfiguration des ACME-Issuers aus Audit-Sicht wichtiger als die automatische Lösung von Caddy?
+- Warum ist die explizite Konfiguration des ACME-Issuers aus Audit-Sicht besser als die automatische Lösung von Caddy?
 
 ---
 
