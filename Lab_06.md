@@ -108,7 +108,8 @@ apt install -y curl gnupg2 ca-certificates lsb-release
 Dann das Laden der Schlüssel:
 
 ```bash
-curl -fsSL https://nginx.org/keys/nginx_signing.key \    # Erzeugen: Schlüssel-Datei laden
+# Schlüssel-Datei laden:
+curl -fsSL https://nginx.org/keys/nginx_signing.key \
   | gpg --dearmor | tee /usr/share/keyrings/nginx-archive-keyring.gpg > /dev/null
     # Filtern/Umwandeln: in Binärformat wandeln und in Datei schreiben (Bildschirmausgabe unterdrückt)
 
