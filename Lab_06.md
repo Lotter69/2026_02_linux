@@ -110,11 +110,11 @@ Dann das Laden der Schlüssel:
 ```bash
 curl -fsSL https://nginx.org/keys/nginx_signing.key \    # Erzeugen: Schlüssel-Datei laden
   | gpg --dearmor | tee /usr/share/keyrings/nginx-archive-keyring.gpg > /dev/null
-    # Filtern/Umwandeln: in Binärformat wandeln | Ablegen: in Datei schreiben (Bildschirmausgabe unterdrückt)
+    # Filtern/Umwandeln: in Binärformat wandeln und in Datei schreiben (Bildschirmausgabe unterdrückt)
 
 echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian $(lsb_release -cs) nginx" \
   | tee /etc/apt/sources.list.d/nginx.list
-    # Erzeugen: Repository-Zeile (inkl. Command Substitution $(lsb_release -cs)) | Ablegen: in Datei schreiben + anzeigen
+    # Erzeugen: Repository-Zeile (inkl. Command Substitution $(lsb_release -cs)) und in Datei schreiben + anzeigen
 ```
 
 > Dieselbe Grundstruktur **[Text erzeugen] → (filtern/umwandeln) → [ablegen]** wie im Exkurs zu Lab 02 – nur mit anderen Befehlen (`curl`/`echo` statt `echo`, `gpg --dearmor` statt `grep`, `tee` statt `logger`).
