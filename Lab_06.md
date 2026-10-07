@@ -345,6 +345,8 @@ apt install -y apache2-utils
 htpasswd -B -c /etc/nginx/.htpasswd admin   # -B: bcrypt-Hash, -c: Datei neu anlegen, admin: Benutzername
 ```
 
+Schauen Sie sich das Ergebnis mit `cat /etc/nginx/.htpasswd` an.
+
 > **Vergleich mit Caddy:** Caddy hat den bcrypt-Hash mit `caddy hash-password` direkt ins Caddyfile geschrieben. nginx benötigt dafür eine separate Datei und das Werkzeug `htpasswd` aus den Apache-Hilfsprogrammen – derselbe Hash-Algorithmus (bcrypt, Option `-B`), aber ein anderer Aufbewahrungsort.
 
 `/etc/nginx/conf.d/dienst-b.conf`:
