@@ -147,6 +147,7 @@ nginx -v
 systemctl enable --now nginx
 curl http://localhost
 ```
+`enable`sorgt für den automatischen Start nach dem Booten des Servers. `--now` sorgt dafür, dass nginx auch jetzt sofort gestartet wird.
 
 Die letzte Zeile sollte die Standard-Begrüßungsseite von nginx liefern.
 
