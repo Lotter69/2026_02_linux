@@ -230,12 +230,15 @@ server {
 }
 ```
 
-Da `load_module` nur beim vollständigen Start eingelesen wird, genügt hier kein einfaches Reload:
+
 
 ```bash
 nginx -t
 systemctl restart nginx
 ```
+
+- `nginx -t` überprüft, ob die Konfigurationsdatei von der Syntax her korrekt ist. So findet man z. B. Tippfehler.
+- Da `load_module` nur beim vollständigen Start eingelesen wird, genügt hier kein einfaches Reload. nginx muss also mit `restart` neu gestartet werden.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
