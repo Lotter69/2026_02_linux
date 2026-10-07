@@ -454,14 +454,6 @@ https://www.<IHRE-DOMAIN>
 https://dashboard.<IHRE-DOMAIN>
 ```
 
-Vergewissern Sie sich, dass Caddy nicht mehr läuft:
-
-```bash
-systemctl status caddy
-```
-
-Der Dienst muss als `inactive (dead)` gemeldet sein.
-
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
