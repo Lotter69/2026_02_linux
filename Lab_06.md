@@ -300,13 +300,15 @@ nginx -t
 systemctl reload nginx
 ```
 
-Beobachten Sie die Ausstellung des Zertifikats:
+Beobachten Sie, wie Let's Encrypt auf unseren Webserver zugreift, um zu prüfen, ob wir die Challenge erfüllen:
 
 ```bash
-journalctl -u nginx -f
+tail -n 100 -f /var/log/nginx/access.log 
 ```
 
 Rufen Sie anschließend `https://cockpit.<IHRE-DOMAIN>` im Browser auf und prüfen Sie im Zertifikat: Aussteller Let's Encrypt, keine Sicherheitswarnung.
+
+Die Anzeige von `tail -f` kann man mit Ctrl-C beenden.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
