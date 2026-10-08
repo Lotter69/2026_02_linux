@@ -154,7 +154,7 @@ docker compose version
 ```
 
 > **`docker-compose` vs. `docker compose`**  
-> Docker Compose v1 war ein eigenständiges Programm mit Bindestrich (`docker-compose`). Seit Version 2 ist Compose ein Subcommand der Docker-CLI ohne Bindestrich (`docker compose`) – für Linux Mint wurde diese Unterscheidung bereits in `Lab_Docker_Rootless.md` behandelt, hier auf dem Server gilt dasselbe.
+> Docker Compose v1 war ein eigenständiges Programm mit Bindestrich (`docker-compose`). Seit Version 2 ist Compose ein Subcommand der Docker-CLI ohne Bindestrich (`docker compose`).
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
