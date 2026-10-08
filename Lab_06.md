@@ -108,13 +108,14 @@ apt install -y curl gnupg2 ca-certificates lsb-release
 Dann das Laden der Schlüssel:
 
 ```bash
-curl -fsSL https://nginx.org/keys/nginx_signing.key \    # Erzeugen: Schlüssel-Datei laden
+# Schlüssel-Datei laden:
+curl -fsSL https://nginx.org/keys/nginx_signing.key \
   | gpg --dearmor | tee /usr/share/keyrings/nginx-archive-keyring.gpg > /dev/null
-    # Filtern/Umwandeln: in Binärformat wandeln | Ablegen: in Datei schreiben (Bildschirmausgabe unterdrückt)
+    # Filtern/Umwandeln: in Binärformat wandeln und in Datei schreiben (Bildschirmausgabe unterdrückt)
 
 echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/debian $(lsb_release -cs) nginx" \
   | tee /etc/apt/sources.list.d/nginx.list
-    # Erzeugen: Repository-Zeile (inkl. Command Substitution $(lsb_release -cs)) | Ablegen: in Datei schreiben + anzeigen
+    # Erzeugen: Repository-Zeile (inkl. Command Substitution $(lsb_release -cs)) und in Datei schreiben + anzeigen
 ```
 
 > Dieselbe Grundstruktur **[Text erzeugen] → (filtern/umwandeln) → [ablegen]** wie im Exkurs zu Lab 02 – nur mit anderen Befehlen (`curl`/`echo` statt `echo`, `gpg --dearmor` statt `grep`, `tee` statt `logger`).
@@ -146,6 +147,7 @@ nginx -v
 systemctl enable --now nginx
 curl http://localhost
 ```
+`enable`sorgt für den automatischen Start nach dem Booten des Servers. `--now` sorgt dafür, dass nginx auch jetzt sofort gestartet wird.
 
 Die letzte Zeile sollte die Standard-Begrüßungsseite von nginx liefern.
 
@@ -228,12 +230,15 @@ server {
 }
 ```
 
-Da `load_module` nur beim vollständigen Start eingelesen wird, genügt hier kein einfaches Reload:
+
 
 ```bash
 nginx -t
 systemctl restart nginx
 ```
+
+- `nginx -t` überprüft, ob die Konfigurationsdatei von der Syntax her korrekt ist. So findet man z. B. Tippfehler.
+- Da `load_module` nur beim vollständigen Start eingelesen wird, genügt hier kein einfaches Reload. nginx muss also mit `restart` neu gestartet werden.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -295,13 +300,15 @@ nginx -t
 systemctl reload nginx
 ```
 
-Beobachten Sie die Ausstellung des Zertifikats:
+Beobachten Sie, wie Let's Encrypt auf unseren Webserver zugreift, um zu prüfen, ob wir die Challenge erfüllen:
 
 ```bash
-journalctl -u nginx -f
+tail -n 100 -f /var/log/nginx/access.log 
 ```
 
 Rufen Sie anschließend `https://cockpit.<IHRE-DOMAIN>` im Browser auf und prüfen Sie im Zertifikat: Aussteller Let's Encrypt, keine Sicherheitswarnung.
+
+Die Anzeige von `tail -f` kann man mit Ctrl-C beenden.
 
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
@@ -337,6 +344,8 @@ server {
 apt install -y apache2-utils
 htpasswd -B -c /etc/nginx/.htpasswd admin   # -B: bcrypt-Hash, -c: Datei neu anlegen, admin: Benutzername
 ```
+
+Schauen Sie sich das Ergebnis mit `cat /etc/nginx/.htpasswd` an.
 
 > **Vergleich mit Caddy:** Caddy hat den bcrypt-Hash mit `caddy hash-password` direkt ins Caddyfile geschrieben. nginx benötigt dafür eine separate Datei und das Werkzeug `htpasswd` aus den Apache-Hilfsprogrammen – derselbe Hash-Algorithmus (bcrypt, Option `-B`), aber ein anderer Aufbewahrungsort.
 
@@ -445,14 +454,6 @@ https://www.<IHRE-DOMAIN>
 https://dashboard.<IHRE-DOMAIN>
 ```
 
-Vergewissern Sie sich, dass Caddy nicht mehr läuft:
-
-```bash
-systemctl status caddy
-```
-
-Der Dienst muss als `inactive (dead)` gemeldet sein.
-
 [↑ Zum Inhaltsverzeichnis](#inhalt)
 
 ---
@@ -463,7 +464,7 @@ Der Dienst muss als `inactive (dead)` gemeldet sein.
 
 - Welche Pentest-Feststellung lässt sich anhand der nginx-Konfiguration jetzt konkret nachweisen – und was genau würde ein Auditor dafür sehen wollen?
 - Vergleichen Sie den Aufwand für eine neue Subdomain bei Caddy (Lab 04) mit dem Aufwand bei nginx mit ACME-Modul – was hat sich an Übersicht und Kontrolle verändert, was an Komfort?
-- Warum ist die explizite Konfiguration des ACME-Issuers aus Audit-Sicht wichtiger als die automatische Lösung von Caddy?
+- Warum ist die explizite Konfiguration des ACME-Issuers aus Audit-Sicht besser als die automatische Lösung von Caddy?
 
 ---
 

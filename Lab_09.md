@@ -101,7 +101,7 @@ MQTT ist ein schlankes **Publish/Subscribe-Protokoll**: Ein zentraler **Broker**
 Bevor Sie den Stack Schritt für Schritt aufbauen, hier das Zielbild: Alle fünf Dienste leben gemeinsam im Netzwerk `iot-net`. Innerhalb dieses Netzwerks kommunizieren sie über ihre Servicenamen (Docker-DNS, wie in Lab 06 gelernt) – nach außen sichtbar wird davon nur, was nginx explizit als vhost veröffentlicht:
 
 ```mermaid
-flowchart LR
+flowchart TD
     Sensor(["mosquitto_pub<br/>(Sensor-Simulation)"])
     Browser(["Browser"])
 
