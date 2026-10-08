@@ -94,7 +94,7 @@ Eine `.env`-Datei im selben Verzeichnis wie die `compose.yaml` wird automatisch 
 
 ### MQTT in Kürze
 
-MQTT ist ein schlankes **Publish/Subscribe-Protokoll**: Ein zentraler **Broker** nimmt Nachrichten entgegen, die unter einem **Topic** (einem hierarchischen Namen wie `sensoren/raum1`) veröffentlicht werden, und leitet sie an alle Teilnehmer weiter, die genau dieses Topic abonniert haben. Sensoren müssen dabei nichts über die Empfänger ihrer Daten wissen – sie veröffentlichen nur unter einem Topic; wer die Daten weiterverarbeitet (hier: Node-RED), entscheidet sich unabhängig davon, was es abonniert. Genau diese Entkopplung macht MQTT für Sensordaten so verbreitet.
+MQTT ist ein schlankes **Publish/Subscribe-Protokoll**: Ein zentraler **Broker** nimmt Nachrichten entgegen, die unter einem **Topic** (einem hierarchischen Namen wie `sensoren/raum1`) veröffentlicht werden, und leitet sie an alle Teilnehmer weiter, die genau dieses Topic abonniert haben. Sensoren müssen dabei nichts über die Empfänger ihrer Daten wissen – sie veröffentlichen nur unter einem Topic. Wer die Daten weiterverarbeiten will (hier: Node-RED), abonniert das Topic oder auch alle Topics aus der Hierarchie, z. B. `sensoren/#`. Details zu den Wildcards z. B. [hier](https://mosquitto.org/man/mqtt-7.html).
 
 ### Die Ziel-Architektur im Überblick
 
